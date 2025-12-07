@@ -5,6 +5,13 @@ const path = require('path');
 const multer = require('multer');
 const app = express();
 
+const ProductController = require('./controllers/ProductController');
+const UserController = require('./controllers/UserController');
+const OrderController = require('./controllers/OrderController');
+const OrderItemController = require('./controllers/OrderItemController');
+const CartController = require('./controllers/CartController');
+const ReviewController = require('./controllers/ReviewController');
+
 // -------------------- CONFIG --------------------
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -40,9 +47,21 @@ const upload = multer({ storage });
 
 
 // -------------------- OUR WORK PUT BELOW HERE --------------------
-app.get('/', (req, res) => {
-    res.render('index');  // views/index.ejs
-});
+// Public pages
+// app.get('/', (req, res) => {
+//     res.render('homepage');
+// });
+
+// // User shopping list
+// app.get('/shopping', ProductController.shopping);
+
+// // Live search API
+// app.get('/shopping-api', ProductController.shoppingAPI);
+
+// // app.get('/contact',);
+
+// // Dynamic product page by id (no login required)
+// app.get('/product/:id', ProductController.get);
 
 
 

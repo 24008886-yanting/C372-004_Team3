@@ -1,0 +1,124 @@
+<!-- to see the look of navbar, i will delete later -->
+<!-- right click then open live server -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Navbar Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1b1c32;
+      --bg: #ffffff;
+      --font: 'Patrick Hand', 'Comic Sans MS', cursive;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+    }
+
+    .rp-nav {
+      font-family: var(--font);
+      color: var(--ink);
+    }
+
+    .rp-nav__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 26px 10px;
+    }
+
+    .rp-brand {
+      font-size: 44px;
+      letter-spacing: 0.02em;
+    }
+
+    .rp-icons {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      padding: 6px;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    /* Uniform sizes for all icons */
+    .icon-btn--profile,
+    .icon-btn--search,
+    .icon-btn--cart,
+    .icon-btn--plain {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 0;
+      padding: 6px;
+      background: transparent;
+    }
+
+    .icon-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .rp-links {
+      display: flex;
+      gap: 52px;
+      padding: 8px 26px 12px;
+      font-size: 28px;
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .rp-links a {
+      color: var(--ink);
+      text-decoration: none;
+      padding: 4px 2px;
+    }
+
+    .rp-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="rp-nav">
+    <div class="rp-nav__top">
+      <div class="rp-brand">Repawblic Pets</div>
+      <div class="rp-icons">
+        <button class="icon-btn icon-btn--profile" aria-label="Profile">
+          <img src="../public/images/profile-icon.jpg" alt="">
+        </button>
+        <button class="icon-btn icon-btn--search" aria-label="Search">
+          <img src="../public/images/search-icon.png" alt="">
+        </button>
+        <button class="icon-btn icon-btn--cart icon-btn--plain" aria-label="Cart">
+          <img src="../public/images/cart-icon.jpg" alt="">
+        </button>
+      </div>
+    </div>
+    <nav class="rp-links">
+      <a href="#">Home</a>
+      <a href="#">Product</a>
+      <a href="#">Contact Us</a>
+    </nav>
+  </header>
+</body>
+
+</html>

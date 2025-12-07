@@ -1,0 +1,83 @@
+:root {
+  --ink: #1b1c32;
+  --bg: #ffffff;
+  --font: 'Patrick Hand', 'Comic Sans MS', cursive;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+.rp-nav {
+  font-family: var(--font);
+  color: var(--ink);
+}
+
+.rp-nav__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 26px 10px;
+}
+
+.rp-brand {
+  font-size: 44px;
+  letter-spacing: 0.02em;
+}
+
+.rp-icons {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+/* Uniform sizes for all icons */
+.icon-btn--profile,
+.icon-btn--search,
+.icon-btn--cart,
+.icon-btn--plain {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 0;
+  padding: 6px;
+  background: transparent;
+}
+
+.icon-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.rp-links {
+  display: flex;
+  gap: 52px;
+  padding: 8px 26px 12px;
+  font-size: 28px;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+
+.rp-links a {
+  color: var(--ink);
+  text-decoration: none;
+  padding: 4px 2px;
+}
+
+.rp-links a:hover {
+  text-decoration: underline;
+}
