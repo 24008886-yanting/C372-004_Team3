@@ -22,7 +22,7 @@ body {
 }
 
 .rp-brand {
-  font-size: 44px;
+  font-size: 42px;
   letter-spacing: 0.02em;
 }
 
@@ -32,7 +32,9 @@ body {
   gap: 20px;
 }
 
-.icon-btn {
+/* styles for icons */
+.icon-btn--profile,
+.icon-btn--wishlist {
   width: 36px;
   height: 36px;
   padding: 6px;
@@ -44,17 +46,28 @@ body {
   cursor: pointer;
 }
 
-/* Uniform sizes for all icons */
-.icon-btn--profile,
-.icon-btn--search,
-.icon-btn--cart,
-.icon-btn--plain {
-  width: 36px;
+.icon-btn--search {
+  width: 34px;
   height: 36px;
-  border: none;
-  border-radius: 0;
   padding: 6px;
   background: transparent;
+  border: none;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.icon-btn--cart {
+  width: 38px;
+  height: 36px;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
 }
 
 .icon-btn img {
@@ -67,7 +80,7 @@ body {
   display: flex;
   gap: 52px;
   padding: 8px 26px 12px;
-  font-size: 28px;
+  font-size: 20px;
   border-top: 2px solid var(--ink);
   border-bottom: 2px solid var(--ink);
 }
