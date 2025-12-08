@@ -18,7 +18,7 @@ const ProductController = {
         Product.getAllProducts((err, products) => {
             if (err) {
                 req.flash('error', 'Failed to load products.');
-                return res.redirect('back');
+                return res.redirect('/');
             }
             req.flash('success', 'Products loaded successfully.');
             res.render('shopping', { products });
@@ -36,7 +36,7 @@ const ProductController = {
             const product = results && results[0];
             if (!product) {
                 req.flash('error', 'Product not found.');
-                return res.redirect('back');
+                return res.redirect('/shopping');
             }
             req.flash('success', 'Product loaded successfully.');
             res.render('product', { product });

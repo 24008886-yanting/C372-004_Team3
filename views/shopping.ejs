@@ -97,7 +97,7 @@
                const price = Number(product.price) || 0;
                const imageUrl = product.image1 || product.image2 || '';
           %>
-            <article class="product-card" data-category="<%= category %>" data-instock="<%= inStock %>" data-price="<%= price %>">
+            <article class="product-card" data-product-id="<%= product.product_id %>" data-category="<%= category %>" data-instock="<%= inStock %>" data-price="<%= price %>">
               <div class="product-image">
                 <img src="<%= imageUrl %>" alt="<%= product.product_name %>">
                 <span class="stock-badge <%= inStock ? '' : 'out' %>"><%= inStock ? 'In stock' : 'Out of stock' %></span>
@@ -108,6 +108,9 @@
               </div>
               <div class="price-row">
                 <span class="product-price">$<%= price.toFixed(2) %></span>
+                <button class="wishlist-btn" type="button" aria-label="Add <%= product.product_name %> to wishlist">
+                  <img src="/images/wishlist-logo.jpg" alt="">
+                </button>
                 <button class="cart-btn" type="button" aria-label="Add <%= product.product_name %> to cart">
                   <span aria-hidden="true">&#128722;</span>
                   Add
@@ -130,6 +133,8 @@
       const filterPanel = document.querySelector('.filter-panel');
       const productCards = Array.from(document.querySelectorAll('.product-card'));
       const emptyState = document.getElementById('empty-state');
+      const wishlistButtons = Array.from(document.querySelectorAll('.wishlist-btn'));
+      const cartButtons = Array.from(document.querySelectorAll('.cart-btn'));
 
       if (!filterPanel || !productCards.length) return;
 
@@ -177,6 +182,72 @@
       controls.forEach(ctrl => ctrl.addEventListener('change', applyFilters));
 
       applyFilters();
+
+      const addToWishlist = async (btn) => {
+        const card = btn.closest('.product-card');
+        const productId = card?.dataset.productId;
+        if (!productId) return;
+
+        btn.disabled = true;
+        btn.classList.add('busy');
+
+        try {
+          const res = await fetch('/wishlist/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId })
+          });
+
+          if (!res.ok) throw new Error('Failed to add to wishlist');
+          btn.classList.add('added');
+        } catch (err) {
+          console.error(err);
+          alert('Could not add to wishlist. Please try again.');
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove('busy');
+        }
+      };
+
+      wishlistButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          addToWishlist(btn);
+        });
+      });
+
+      const addToCart = async (btn) => {
+        const card = btn.closest('.product-card');
+        const productId = card?.dataset.productId;
+        if (!productId) return;
+
+        btn.disabled = true;
+        btn.classList.add('busy');
+
+        try {
+          const res = await fetch('/cart/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId, quantity: 1 })
+          });
+
+          if (!res.ok) throw new Error('Failed to add to cart');
+          btn.classList.add('added');
+        } catch (err) {
+          console.error(err);
+          alert('Could not add to cart. Please try again.');
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove('busy');
+        }
+      };
+
+      cartButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          addToCart(btn);
+        });
+      });
     })();
   </script>
 </body>
