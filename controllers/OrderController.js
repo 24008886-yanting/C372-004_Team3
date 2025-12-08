@@ -1,0 +1,1 @@
+// Stores order details when user checks out

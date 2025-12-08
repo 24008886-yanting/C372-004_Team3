@@ -1,0 +1,1 @@
+// Stores products available for sale in the shop
