@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<%
+  const safeProducts = products || [];
+  const categorySet = new Set();
+  safeProducts.forEach(p => categorySet.add(p.category || 'Uncategorized'));
+  const categories = Array.from(categorySet).sort();
+  const placeholderImage = 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="260" viewBox="0 0 400 260"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23f3d9ff"/><stop offset="100%" stop-color="%23d7e3ff"/></linearGradient></defs><rect width="400" height="260" rx="14" fill="url(%23g)"/><text x="50%" y="52%" font-size="26" font-family="Arial,sans-serif" fill="%23333" text-anchor="middle" dominant-baseline="middle">Pet Product</text></svg>';
+%>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repawblic Pets | Shop</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
+  <link rel="stylesheet" href="/css/shopping.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main class="shopping-shell">
+    <section class="shopping-page">
+      <aside class="filter-panel">
+        <h2 class="filter-title">Filter Products</h2>
+
+        <div class="filter-group">
+          <h3>Category</h3>
+          <div class="filter-options">
+            <% if (categories.length) { %>
+              <% categories.forEach((category) => { %>
+                <label class="filter-option">
+                  <input type="checkbox" name="category" value="<%= category %>">
+                  <span><%= category %></span>
+                </label>
+              <% }); %>
+            <% } else { %>
+              <p class="muted">Categories will appear once products are added.</p>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <h3>Availability</h3>
+          <div class="filter-options">
+            <label class="filter-option">
+              <input type="radio" name="availability" value="all" checked>
+              <span>Show all</span>
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="availability" value="in">
+              <span>In stock</span>
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="availability" value="out">
+              <span>Out of stock</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <h3>Price range</h3>
+          <div class="filter-options">
+            <label class="filter-option">
+              <input type="radio" name="priceRange" value="all" checked>
+              <span>Any price</span>
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="priceRange" value="0-30">
+              <span>$0 - $30</span>
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="priceRange" value="30-60">
+              <span>$30 - $60</span>
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="priceRange" value="60+">
+              <span>$60+</span>
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <section class="products-area">
+        <div class="products-header">
+          <h2>All Products</h2>
+          <p class="muted"><%= safeProducts.length %> items</p>
+        </div>
+
+        <% if (!safeProducts.length) { %>
+          <div class="empty-state" style="display: flex;">
+            <div>No products yet. Please add some to the catalog.</div>
+          </div>
+        <% } %>
+
+        <div class="products-grid">
+          <% safeProducts.forEach((product) => {
+               const inStock = Number(product.stock) > 0;
+               const category = product.category || 'Uncategorized';
+               const price = Number(product.price) || 0;
+          %>
+            <article class="product-card" data-category="<%= category %>" data-instock="<%= inStock %>" data-price="<%= price %>">
+              <div class="product-image">
+                <img src="<%= product.image_url || placeholderImage %>" alt="<%= product.product_name %>" onerror="this.src='<%= placeholderImage %>'">
+                <span class="stock-badge <%= inStock ? '' : 'out' %>"><%= inStock ? 'In stock' : 'Out of stock' %></span>
+              </div>
+              <div>
+                <h3 class="product-name"><%= product.product_name %></h3>
+                <p class="product-category"><%= category %></p>
+              </div>
+              <div class="price-row">
+                <span class="product-price">$<%= price.toFixed(2) %></span>
+                <button class="cart-btn" type="button" aria-label="Add <%= product.product_name %> to cart">
+                  <span aria-hidden="true">&#128722;</span>
+                  Add
+                </button>
+              </div>
+            </article>
+          <% }); %>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          <div>No products match these filters.</div>
+          <small class="muted">Try clearing or adjusting your filters.</small>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const filterPanel = document.querySelector('.filter-panel');
+      const productCards = Array.from(document.querySelectorAll('.product-card'));
+      const emptyState = document.getElementById('empty-state');
+
+      if (!filterPanel || !productCards.length) return;
+
+      const categoryInputs = Array.from(filterPanel.querySelectorAll('input[name="category"]'));
+      const availabilityInputs = Array.from(filterPanel.querySelectorAll('input[name="availability"]'));
+      const priceInputs = Array.from(filterPanel.querySelectorAll('input[name="priceRange"]'));
+
+      const priceMatches = (price, range) => {
+        if (range === 'all') return true;
+        if (range.endsWith('+')) return price >= Number(range.replace('+', '')) || false;
+        const parts = range.split('-').map(Number);
+        const min = parts[0] || 0;
+        const max = parts[1];
+        return price >= min && price < (Number.isFinite(max) ? max : Infinity);
+      };
+
+      const applyFilters = () => {
+        const activeCategories = categoryInputs.filter(input => input.checked).map(input => input.value);
+        const availability = (availabilityInputs.find(input => input.checked) || {}).value || 'all';
+        const priceRange = (priceInputs.find(input => input.checked) || {}).value || 'all';
+
+        let visible = 0;
+
+        productCards.forEach(card => {
+          const category = card.dataset.category;
+          const inStock = card.dataset.instock === 'true';
+          const price = parseFloat(card.dataset.price || '0');
+
+          const categoryMatch = !activeCategories.length || activeCategories.includes(category);
+          const availabilityMatch =
+            availability === 'all' ||
+            (availability === 'in' && inStock) ||
+            (availability === 'out' && !inStock);
+          const priceMatch = priceMatches(price, priceRange);
+
+          const show = categoryMatch && availabilityMatch && priceMatch;
+          card.style.display = show ? '' : 'none';
+          if (show) visible += 1;
+        });
+
+        emptyState.style.display = visible ? 'none' : 'flex';
+      };
+
+      const controls = [...categoryInputs, ...availabilityInputs, ...priceInputs];
+      controls.forEach(ctrl => ctrl.addEventListener('change', applyFilters));
+
+      applyFilters();
+    })();
+  </script>
+</body>
+</html>
