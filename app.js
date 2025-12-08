@@ -45,24 +45,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 
+// -------------------- ROUTES --------------------
+app.get('/', (req, res) => {
+    res.render('homepage');
+});
 
-// -------------------- OUR WORK PUT BELOW HERE --------------------
-// Public pages
-// app.get('/', (req, res) => {
-//     res.render('homepage');
-// });
-
-// // User shopping list
-// app.get('/shopping', ProductController.shopping);
-
-// // Live search API
-// app.get('/shopping-api', ProductController.shoppingAPI);
-
-// // app.get('/contact',);
-
-// // Dynamic product page by id (no login required)
-// app.get('/product/:id', ProductController.get);
-
+// Product views
+app.get('/shopping', ProductController.shoppingList);             // customer shopping list
+app.get('/product/:id', ProductController.getProductById);        // product detail
 
 
 
