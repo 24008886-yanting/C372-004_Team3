@@ -5,7 +5,6 @@
   const categorySet = new Set();
   safeProducts.forEach(p => categorySet.add(p.category || 'Uncategorized'));
   const categories = Array.from(categorySet).sort();
-  const placeholderImage = 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="260" viewBox="0 0 400 260"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23f3d9ff"/><stop offset="100%" stop-color="%23d7e3ff"/></linearGradient></defs><rect width="400" height="260" rx="14" fill="url(%23g)"/><text x="50%" y="52%" font-size="26" font-family="Arial,sans-serif" fill="%23333" text-anchor="middle" dominant-baseline="middle">Pet Product</text></svg>';
 %>
 <head>
   <meta charset="UTF-8">
@@ -96,10 +95,11 @@
                const inStock = Number(product.stock) > 0;
                const category = product.category || 'Uncategorized';
                const price = Number(product.price) || 0;
+               const imageUrl = product.image1 || product.image2 || '';
           %>
             <article class="product-card" data-category="<%= category %>" data-instock="<%= inStock %>" data-price="<%= price %>">
               <div class="product-image">
-                <img src="<%= product.image_url || placeholderImage %>" alt="<%= product.product_name %>" onerror="this.src='<%= placeholderImage %>'">
+                <img src="<%= imageUrl %>" alt="<%= product.product_name %>">
                 <span class="stock-badge <%= inStock ? '' : 'out' %>"><%= inStock ? 'In stock' : 'Out of stock' %></span>
               </div>
               <div>

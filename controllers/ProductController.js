@@ -66,7 +66,9 @@ const ProductController = {
             ingredient_list: req.body.ingredient_list,
             price: req.body.price,
             stock: req.body.stock,
-            category: req.body.category
+            category: req.body.category,
+            image1: req.body.image1,
+            image2: req.body.image2
         };
 
         Product.addProduct(product, role, (err, result) => {
@@ -116,7 +118,9 @@ const ProductController = {
             ingredient_list: req.body.ingredient_list,
             price: req.body.price,
             stock: req.body.stock,
-            category: req.body.category
+            category: req.body.category,
+            image1: req.body.image1,
+            image2: req.body.image2
         };
 
         Product.updateProduct(productId, product, role, (err) => {

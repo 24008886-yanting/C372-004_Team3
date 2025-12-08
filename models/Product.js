@@ -2,17 +2,17 @@ const db = require('../db');
 
 const ProductModel = {
     getAllProducts(callback) {
-        const query = 'SELECT product_id, product_name, description, ingredient_list, price, stock, category FROM products';
+        const query = 'SELECT product_id, product_name, description, ingredient_list, price, stock, category, image1, image2 FROM products';
         db.query(query, callback);
     },
 
     getProductById(productId, callback) {
-        const query = 'SELECT product_id, product_name, description, ingredient_list, price, stock, category FROM products WHERE product_id = ?';
+        const query = 'SELECT product_id, product_name, description, ingredient_list, price, stock, category, image1, image2 FROM products WHERE product_id = ?';
         db.query(query, [productId], callback);
     },
 
     getProductByName(productName, callback) {
-        const query = 'SELECT product_id, product_name, description, ingredient_list, price, stock, category FROM products WHERE product_name LIKE ?';
+        const query = 'SELECT product_id, product_name, description, ingredient_list, price, stock, category, image1, image2 FROM products WHERE product_name LIKE ?';
         db.query(query, [`%${productName}%`], callback);
     },
 
@@ -26,10 +26,10 @@ const ProductModel = {
             return callback(new Error('Unauthorized: admin role required to add products'));
         }
 
-        const { product_name, description, ingredient_list, price, stock, category } = product;
-        const query = `INSERT INTO products (product_name, description, ingredient_list, price, stock, category)
-                       VALUES (?, ?, ?, ?, ?, ?)`;
-        const params = [product_name, description, ingredient_list, price, stock, category];
+        const { product_name, description, ingredient_list, price, stock, category, image1, image2 } = product;
+        const query = `INSERT INTO products (product_name, description, ingredient_list, price, stock, category, image1, image2)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        const params = [product_name, description, ingredient_list, price, stock, category, image1, image2];
 
         db.query(query, params, (err, result) => {
             if (err) return callback(err);
@@ -42,11 +42,11 @@ const ProductModel = {
             return callback(new Error('Unauthorized: admin role required to update products'));
         }
 
-        const { product_name, description, ingredient_list, price, stock, category } = product;
+        const { product_name, description, ingredient_list, price, stock, category, image1, image2 } = product;
         const query = `UPDATE products
-                       SET product_name = ?, description = ?, ingredient_list = ?, price = ?, stock = ?, category = ?
+                       SET product_name = ?, description = ?, ingredient_list = ?, price = ?, stock = ?, category = ?, image1 = ?, image2 = ?
                        WHERE product_id = ?`;
-        const params = [product_name, description, ingredient_list, price, stock, category, productId];
+        const params = [product_name, description, ingredient_list, price, stock, category, image1, image2, productId];
 
         db.query(query, params, callback);
     },
