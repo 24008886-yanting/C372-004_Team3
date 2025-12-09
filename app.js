@@ -11,6 +11,7 @@ const OrderController = require('./controllers/OrderController');
 const OrderItemController = require('./controllers/OrderItemController');
 const CartController = require('./controllers/CartController');
 const ReviewController = require('./controllers/ReviewController');
+const ContactController = require('./controllers/ContactController');
 
 // -------------------- CONFIG --------------------
 app.set('view engine', 'ejs');
@@ -53,6 +54,10 @@ app.get('/', (req, res) => {
 // Product views
 app.get('/shopping', ProductController.shoppingList);             // customer shopping list
 app.get('/product/:id', ProductController.getProductById);        // product detail
+
+// Contact
+app.get('/contact', ContactController.showForm);
+app.post('/contact', ContactController.submitMessage);
 
 
 

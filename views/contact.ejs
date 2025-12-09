@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Contact Us — Repawblic Pets</title>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+    <link rel="stylesheet" href="/css/homepage.css">
+</head>
+
+<body class="home-body">
+    <%- include('partials/navbar') %>
+
+        <main class="home-shell">
+            <section class="about">
+                <div class="about-card">
+                    <h2>Contact Us</h2>
+
+                    <% if (typeof success !=='undefined' ) { %>
+                        <p style="color:green;margin:8px 0;">
+                            <%= success %>
+                        </p>
+                        <% } %>
+                            <% if (typeof error !=='undefined' ) { %>
+                                <p style="color:#b00020;margin:8px 0;">
+                                    <%= error %>
+                                </p>
+                                <% } %>
+
+                                    <p style="margin-bottom:12px;color:var(--muted)">
+                                        Have a question or need help? Describe the issue (orders, delivery, payment,
+                                        product info, or general feedback).
+                                    </p>
+                                    <p style="margin-bottom:12px;color:var(--muted)">
+                                        We'll get back to you within 2 business days.
+                                    </p>
+
+                                    <form action="/contact" method="POST"
+                                        style="display:flex;flex-direction:column;gap:12px;">
+                                        <% if (user && user.id) { %>
+                                            <input type="hidden" name="user_id" value="<%= user.id %>">
+                                            <% } %>
+
+                                                <label>
+                                                    Email
+                                                    <input type="email" name="email" required
+                                                        value="<%= (user && user.email) ? user.email : (typeof formData !== 'undefined' ? formData.email : '') %>"
+                                                        style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px">
+                                                </label>
+
+                                                <label>
+                                                    Subject
+                                                    <input type="text" name="subject" required maxlength="120"
+                                                        value="<%= (typeof formData !== 'undefined' ? formData.subject : '') %>"
+                                                        style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px">
+                                                </label>
+
+                                                <label>
+                                                    Message
+                                                    <textarea name="message" required rows="6" maxlength="2000"
+                                                        style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;resize:vertical"><%= (typeof formData !== 'undefined' ? formData.message : '') %></textarea>
+                                                </label>
+
+                                                <div style="display:flex;gap:10px;align-items:center">
+                                                    <button type="submit"
+                                                        style="background:var(--accent);color:#fff;border:none;padding:10px 16px;border-radius:10px;cursor:pointer">
+                                                        Send
+                                                    </button>
+                                                </div>
+                                    </form>
+                </div>
+            </section>
+        </main>
+</body>
+
+</html>
