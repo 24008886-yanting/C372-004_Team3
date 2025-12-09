@@ -3,13 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <title>Profile | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="/css/profile.css">
 </head>
-<body>
+<body class="profile-body">
   <%- include('partials/navbar') %>
 
-  
+  <main class="profile-shell">
+    <header class="profile-header">
+      <div class="profile-identity">
+        <div class="profile-avatar">RP</div>
+        <div>
+          <p class="eyebrow">Welcome back</p>
+          <h1>Manage your profile</h1>
+          <p class="subhead">Switch between account details, wallet, vouchers, and all your recent transactions.</p>
+        </div>
+      </div>
+      <a class="profile-back" href="/"><span aria-hidden="true">&#60;</span> Back to Home</a>
+    </header>
+
+    <section class="profile-card">
+      <div class="profile-actions">
+        <a class="profile-link" href="/accountDetails">
+          <span>Account Details</span>
+          <span aria-hidden="true">&#8250;</span>
+        </a>
+        <a class="profile-link" href="/digitalWallet">
+          <span>Digital Wallet</span>
+          <span aria-hidden="true">&#8250;</span>
+        </a>
+        <a class="profile-link" href="/myVoucher">
+          <span>My Voucher</span>
+          <span aria-hidden="true">&#8250;</span>
+        </a>
+        <a class="profile-link" href="/allTransactions">
+          <span>All Transactions</span>
+          <span aria-hidden="true">&#8250;</span>
+        </a>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

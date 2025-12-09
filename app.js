@@ -59,6 +59,33 @@ app.get('/product/:id', ProductController.getProductById);        // product det
 app.get('/contact', ContactController.showForm);
 app.post('/contact', ContactController.submitMessage);
 
+// Profile
+app.get('/profile', (req, res) => {
+    res.render('profile', {
+        user: {},
+        preferences: [],
+        wallet: {},
+        vouchers: [],
+        transactions: []
+    });
+});
+
+// Profile sub-pages
+app.get('/accountDetails', (req, res) => {
+    res.send('Account details page placeholder');
+});
+
+app.get('/digitalWallet', (req, res) => {
+    res.send('Digital wallet page placeholder');
+});
+
+app.get('/myVoucher', (req, res) => {
+    res.send('My voucher page placeholder');
+});
+
+app.get('/allTransactions', (req, res) => {
+    res.send('All transactions page placeholder');
+});
 
 
 
