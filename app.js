@@ -59,6 +59,13 @@ app.get('/product/:id', ProductController.getProductById);        // product det
 app.get('/contact', ContactController.showForm);
 app.post('/contact', ContactController.submitMessage);
 
+// Users
+app.get('/users', UserController.listUsers);
+app.get('/users/:id', UserController.getUserById);
+app.post('/users', UserController.addUser);
+app.put('/users/:id', UserController.updateUser);
+app.delete('/users/:id', UserController.deleteUser);
+
 // Profile
 app.get('/profile', (req, res) => {
     res.render('profile', {
