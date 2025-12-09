@@ -1,18 +1,14 @@
-:root {
-  /* Theme tokens */
+.rp-nav {
+  /* Theme */
   --ink: #1b1c32;
   --bg: #ffffff;
   --font: 'Tinos', Georgia, serif;
 }
 
-body {
-  /* Reset and background */
-  margin: 0;
-  background: var(--bg);
-}
-
 .rp-nav {
   /* Navbar container */
+  margin: 0;
+  background: var(--bg);
   font-family: var(--font);
   color: var(--ink);
 }

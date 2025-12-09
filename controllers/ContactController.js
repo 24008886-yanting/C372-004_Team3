@@ -6,8 +6,8 @@ const ContactController = {
    */
   showForm: (req, res) => {
     const user = req.session?.user || null;
-    const success = (req.flash && req.flash('success')[0]) || undefined;
-    const error = (req.flash && req.flash('error')[0]) || undefined;
+    const success = (req.flash && req.flash('contact_success')[0]) || undefined;
+    const error = (req.flash && req.flash('contact_error')[0]) || undefined;
     res.render('contact', { user, success, error });
   },
 
@@ -38,7 +38,7 @@ const ContactController = {
             formData: { email, subject, message }
           });
         }
-        if (req.flash) req.flash('success', 'Message sent. We will reply soon.');
+        if (req.flash) req.flash('contact_success', 'Message sent. We will reply soon.');
         return res.redirect('/contact');
       }
     );

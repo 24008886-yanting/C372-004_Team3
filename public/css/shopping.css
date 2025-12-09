@@ -1,4 +1,4 @@
-﻿:root {
+.shopping-body {
   --bg: #f6f8fb;
   --panel: #ffffff;
   --ink: #1f2933;
@@ -14,7 +14,7 @@
   box-sizing: border-box;
 }
 
-body {
+.shopping-body {
   margin: 0;
   font-family: 'Manrope', 'Source Sans 3', system-ui, -apple-system, sans-serif;
   background: var(--bg);
@@ -298,6 +298,7 @@ body {
   .shopping-page {
     grid-template-columns: 240px 1fr;
   }
+
   .products-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -307,9 +308,11 @@ body {
   .shopping-page {
     grid-template-columns: 1fr;
   }
+
   .filter-panel {
     position: relative;
   }
+
   .products-grid {
     grid-template-columns: 1fr;
   }

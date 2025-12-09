@@ -1,0 +1,63 @@
+/* Contact page theme */
+.contact-body {
+  --bg: white;
+  --panel: #ffffff;
+  --ink: #192131;
+  --muted: #586070;
+  --accent: #8a6fff;
+  --border: #e3e6f0;
+  --shadow: 0 16px 48px rgba(20, 24, 56, 0.08);
+  --radius: 18px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box
+}
+
+body.contact-body {
+  margin: 0;
+  font-family: 'Manrope', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.home-shell {
+  max-width: 1200px;
+  margin: 24px auto 72px;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+section {
+  width: 100%
+}
+
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: 18px
+}
+
+.about-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 26px;
+  box-shadow: var(--shadow);
+}
+
+.about-card h2 {
+  margin: 0 0 10px;
+  font-size: 26px
+}
+
+.about-card p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--muted);
+  font-size: 16px
+}
