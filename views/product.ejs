@@ -1,1 +1,236 @@
-<!-- product details for each product -->
+<!DOCTYPE html>
+<html lang="en">
+<%
+  const safeProduct = product || {};
+  const fallbackImage = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="700" height="700" viewBox="0 0 700 700">
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ffe7d1" />
+          <stop offset="100%" stop-color="#ffd6e8" />
+        </linearGradient>
+      </defs>
+      <rect width="700" height="700" rx="28" fill="url(#grad)" />
+      <text x="50%" y="52%" font-size="36" font-family="Manrope, Arial, sans-serif" fill="#b35335" text-anchor="middle">Repawblic Pets</text>
+      <text x="50%" y="60%" font-size="20" font-family="Manrope, Arial, sans-serif" fill="#b35335" text-anchor="middle">Image coming soon</text>
+    </svg>
+  `);
+  const heroImage = safeProduct.image1 || safeProduct.image2 || fallbackImage;
+  const priceValue = Number(safeProduct.price) || 0;
+  const stockValue = Number.isFinite(Number(safeProduct.stock)) ? Number(safeProduct.stock) : null;
+  const inStock = stockValue === null ? true : stockValue > 0;
+  const ingredientItems = (safeProduct.ingredient_list || '')
+    .split(/[\n,]/)
+    .map(item => item.trim())
+    .filter(Boolean);
+%>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= safeProduct.product_name || 'Product' %> | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap">
+  <link rel="stylesheet" href="/css/product.css">
+</head>
+<body class="product-body">
+  <%- include('partials/navbar') %>
+
+  <main class="product-page" data-product-id="<%= safeProduct.product_id %>" data-stock="<%= stockValue ?? '' %>">
+    <section class="product-layout">
+      <aside class="media-column">
+        <div class="hero-image">
+          <img src="<%= heroImage %>" alt="<%= safeProduct.product_name || 'Product image' %>">
+        </div>
+        <% if (safeProduct.image2 && safeProduct.image2 !== safeProduct.image1) { %>
+          <div class="secondary-image">
+            <img src="<%= safeProduct.image2 %>" alt="<%= safeProduct.product_name || 'Product image alternate view' %>">
+          </div>
+        <% } %>
+      </aside>
+
+      <section class="content-column">
+        <article class="detail-card sticky-info">
+          <div class="title-row">
+            <div class="title-text">
+              <p class="product-kicker"><%= safeProduct.category || 'Featured product' %></p>
+              <h1 class="product-title"><%= safeProduct.product_name || 'Product Name' %></h1>
+            </div>
+            <button id="wishlist-btn" class="wishlist-icon" type="button" aria-label="Add to wishlist">
+              <img src="/images/wishlist-logo.jpg" alt="">
+            </button>
+          </div>
+
+          <div class="price-stock-row">
+            <div class="price-block">
+              <span class="price-value">$<%= priceValue.toFixed(2) %></span>
+            </div>
+            <span class="stock-chip <%= inStock ? '' : 'stock-chip--out' %>">
+              <%= inStock ? 'In stock' : 'Out of stock' %>
+            </span>
+          </div>
+
+
+
+          <div class="quantity-row">
+            <label for="quantity-input">Quantity</label>
+            <div class="qty-control">
+              <button type="button" class="qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
+              <input id="quantity-input" name="quantity" type="number" min="1" value="1" <%= inStock ? '' : 'disabled' %> <%= stockValue !== null ? `max="${Math.max(stockValue, 1)}"` : '' %>>
+              <button type="button" class="qty-btn" data-step="1" aria-label="Increase quantity">+</button>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <% if (inStock) { %>
+              <button id="add-to-cart-btn" class="cta-btn cta-btn--cart" type="button">
+                Add to Cart
+              </button>
+              <button id="buy-now-btn" class="cta-btn cta-btn--buy" type="button">
+                Buy Now
+              </button>
+            <% } else { %>
+              <button class="cta-btn cta-btn--out" type="button" disabled>Out of Stock</button>
+            <% } %>
+          </div>
+
+          <div id="action-status" class="action-status" role="status" aria-live="polite"></div>
+        </article>
+
+        <article class="detail-card" id="description">
+          <h2>Description</h2>
+          <p><%= safeProduct.description || 'A detailed description will appear here once added.' %></p>
+        </article>
+
+        <article class="detail-card" id="ingredients">
+          <h2>Ingredients</h2>
+          <% if (ingredientItems.length) { %>
+            <ul class="ingredient-list">
+              <% ingredientItems.forEach((item) => { %>
+                <li><%= item %></li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p>No ingredients have been listed yet.</p>
+          <% } %>
+        </article>
+
+        <article class="detail-card" id="reviews">
+          <h2>Reviews</h2>
+          <div class="reviews-placeholder">
+            <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p>Reviews will show up here. Be the first to share feedback on this product.</p>
+          </div>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const page = document.querySelector('.product-page');
+      if (!page) return;
+
+      const productId = page.dataset.productId;
+      const stock = Number(page.dataset.stock);
+      const qtyInput = document.getElementById('quantity-input');
+      const qtyButtons = Array.from(document.querySelectorAll('.qty-btn'));
+      const addBtn = document.getElementById('add-to-cart-btn');
+      const buyBtn = document.getElementById('buy-now-btn');
+      const wishlistBtn = document.getElementById('wishlist-btn');
+      const statusEl = document.getElementById('action-status');
+
+      const setStatus = (msg, tone = 'neutral') => {
+        if (!statusEl) return;
+        statusEl.textContent = msg;
+        statusEl.className = 'action-status ' + tone;
+      };
+
+      const clampQuantity = () => {
+        let val = parseInt(qtyInput.value, 10);
+        if (!Number.isFinite(val) || val < 1) val = 1;
+        if (Number.isFinite(stock) && stock > 0) {
+          val = Math.min(val, stock);
+        }
+        qtyInput.value = val;
+        return val;
+      };
+
+      qtyButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const step = parseInt(btn.dataset.step, 10) || 0;
+          qtyInput.value = (parseInt(qtyInput.value, 10) || 1) + step;
+          clampQuantity();
+        });
+      });
+
+      qtyInput.addEventListener('change', clampQuantity);
+
+      const postJSON = async (url, payload) => {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || 'Request failed');
+        }
+        return res.json().catch(() => ({}));
+      };
+
+      const setButtonsDisabled = (state) => {
+        if (addBtn) addBtn.disabled = state;
+        if (buyBtn) buyBtn.disabled = state;
+      };
+
+      const handleCart = async ({ redirectToCheckout = false } = {}) => {
+        if (!productId || !addBtn || !buyBtn) return;
+        const quantity = clampQuantity();
+        setButtonsDisabled(true);
+        setStatus('Adding to cart...', 'neutral');
+
+        try {
+          await postJSON('/cart/add', { productId, quantity });
+          setStatus(redirectToCheckout ? 'Added! Redirecting to checkout...' : 'Added to cart.', 'ok');
+          if (redirectToCheckout) {
+            window.location.href = '/checkout';
+          }
+        } catch (err) {
+          console.error(err);
+          setStatus('Could not add to cart. Please try again.', 'error');
+        } finally {
+          setButtonsDisabled(false);
+        }
+      };
+
+      const handleWishlist = async () => {
+        if (!productId) return;
+        wishlistBtn.disabled = true;
+        setStatus('Saving to wishlist...', 'neutral');
+
+        try {
+          await postJSON('/wishlist/add', { productId });
+          wishlistBtn.classList.add('wishlist-icon--added');
+          setStatus('Added to wishlist.', 'ok');
+        } catch (err) {
+          console.error(err);
+          setStatus('Could not add to wishlist. Please try again.', 'error');
+        } finally {
+          wishlistBtn.disabled = false;
+        }
+      };
+
+      if (addBtn) {
+        addBtn.addEventListener('click', () => handleCart({ redirectToCheckout: false }));
+      }
+
+      if (buyBtn) {
+        buyBtn.addEventListener('click', () => handleCart({ redirectToCheckout: true }));
+      }
+
+      if (wishlistBtn) {
+        wishlistBtn.addEventListener('click', handleWishlist);
+      }
+    })();
+  </script>
+</body>
+</html>

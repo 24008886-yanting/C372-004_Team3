@@ -98,12 +98,14 @@
                const imageUrl = product.image1 || product.image2 || '';
           %>
             <article class="product-card" data-product-id="<%= product.product_id %>" data-category="<%= category %>" data-instock="<%= inStock %>" data-price="<%= price %>">
-              <div class="product-image">
+              <a class="product-image" href="/product/<%= product.product_id %>">
                 <img src="<%= imageUrl %>" alt="<%= product.product_name %>">
                 <span class="stock-badge <%= inStock ? '' : 'out' %>"><%= inStock ? 'In stock' : 'Out of stock' %></span>
-              </div>
+              </a>
               <div>
-                <h3 class="product-name"><%= product.product_name %></h3>
+                <h3 class="product-name">
+                  <a href="/product/<%= product.product_id %>"><%= product.product_name %></a>
+                </h3>
                 <p class="product-category"><%= category %></p>
               </div>
               <div class="price-row">

@@ -1,1 +1,73 @@
-<!-- intro of our shop -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repawblic Pets | Home</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="/css/homepage.css">
+</head>
+<body class="home-body">
+  <%- include('partials/navbar') %>
+
+  <main class="home-shell">
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-image">
+          <img src="/images/cat-homepage.jpg" alt="Content cat lounging comfortably">
+        </div>
+        <div class="hero-copy">
+          <h1>Welcome to Repawblic Pets</h1>
+          <p class="hero-lead">
+            Quality Care for Every Cat—Rescued or Not.
+          </p>
+          <p class="hero-lead">
+            Together, We Build a Kinder Repawblic.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="about">
+      <div class="about-card">
+        <h2>About us</h2>
+        <p>
+          Repawblic Pets is a compassionate pet care platform that partners with local shelters to support adopted cats.
+          We provide lifetime discounts on essential pet supplies, making adoption more affordable and sustainable. While
+          our mission focuses on helping adopted cats, we also welcome all cat owners to enjoy products at regular prices
+          — because every cat deserves care and love.
+        </p>
+      </div>
+
+      <div class="partners">
+        <span class="partners-label">Partner shelters:</span>
+        <div class="partner-logos">
+          <img src="/images/shelter1.png" alt="Shelter partner 1">
+          <img src="/images/shelter2.png" alt="Shelter partner 2">
+        </div>
+      </div>
+    </section>
+
+    <section class="services">
+      <div class="services-grid">
+        <article class="feature-card feature-card--left">
+          <img class="feature-icon feature-icon--left" src="/images/cat paw logo.jpg" alt="Cat paw logo">
+          <div class="feature-content">
+            <h3>Support Adoption</h3>
+            <p>Encouraging more people to adopt, not shop.</p>
+          </div>
+        </article>
+
+        <article class="feature-card feature-card--right">
+          <img class="feature-icon feature-icon--right" src="/images/money-logo.jpg" alt="Savings icon">
+          <div class="feature-content">
+            <h3>Lifetime Discounts</h3>
+            <p>Affordable care for adopted cats.</p>
+          </div>
+        </article>
+      </div>
+
+    </section>
+  </main>
+</body>
+</html>
