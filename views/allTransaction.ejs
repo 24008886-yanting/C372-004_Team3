@@ -1,0 +1,41 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Transactions | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="/css/allTransaction.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header style="margin-bottom:12px;">
+      <p class="subhead">Review everything you have purchased with us.</p>
+      <h1>All Transactions</h1>
+    </header>
+
+    <section class="card">
+      <% if (transactions && transactions.length) { %>
+        <div class="table-like">
+          <span>Recent</span>
+          <span>Qty</span>
+          <span>$</span>
+        </div>
+        <% transactions.forEach(function(tx) { %>
+          <div class="row">
+            <span><%= tx.name || tx.product_name || 'Item' %></span>
+            <span><%= tx.quantity %></span>
+            <span>S$<%= Number(tx.total_price || tx.item_total || 0).toFixed(2) %></span>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <p class="muted">No transactions found yet.</p>
+      <% } %>
+    </section>
+
+    <a class="back-link" href="javascript:history.back()">&#60; Back</a>
+  </main>
+</body>
+</html>

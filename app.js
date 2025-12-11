@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
 const path = require('path');
@@ -96,13 +96,12 @@ app.get('/myVoucher', (req, res) => {
     res.send('My voucher page placeholder');
 });
 
+// Alias with plural path
 app.get('/allTransactions', (req, res) => {
-    res.send('All transactions page placeholder');
+    res.render('allTransaction', {
+        transactions: []
+    });
 });
-
-
-
-
 
 
 // -------------------- START SERVER --------------------
