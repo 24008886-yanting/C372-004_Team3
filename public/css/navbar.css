@@ -5,6 +5,11 @@
   --font: 'Tinos', Georgia, serif;
 }
 
+.rp-nav,
+.rp-nav * {
+  box-sizing: border-box;
+}
+
 .rp-nav {
   /* Navbar container */
   margin: 0;
