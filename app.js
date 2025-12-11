@@ -13,6 +13,7 @@ const CartController = require('./controllers/CartController');
 const ReviewController = require('./controllers/ReviewController');
 const ContactController = require('./controllers/ContactController');
 const VoucherController = require('./controllers/VoucherController');
+const WishlistController = require('./controllers/WishlistController');
 
 // -------------------- CONFIG --------------------
 app.set('view engine', 'ejs');
@@ -91,6 +92,13 @@ app.put('/cart/:id', CartController.updateQuantity);
 app.delete('/cart/:id', CartController.removeItem);
 app.delete('/cart', CartController.clearCart);
 app.post('/cart/checkout', CartController.checkout);
+
+// Wishlist
+app.get('/wishlist', WishlistController.view);
+app.post('/wishlist', WishlistController.add);
+app.delete('/wishlist/:id', WishlistController.remove);
+app.post('/wishlist/move-from-cart/:id', WishlistController.moveFromCart);
+app.post('/wishlist/:id/move-to-cart', WishlistController.moveToCart);
 
 // Profile
 app.get('/profile', (req, res) => {
