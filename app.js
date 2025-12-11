@@ -12,6 +12,7 @@ const OrderItemController = require('./controllers/OrderItemController');
 const CartController = require('./controllers/CartController');
 const ReviewController = require('./controllers/ReviewController');
 const ContactController = require('./controllers/ContactController');
+const VoucherController = require('./controllers/VoucherController');
 
 // -------------------- CONFIG --------------------
 app.set('view engine', 'ejs');
@@ -72,6 +73,16 @@ app.get('/orderItems/:id', OrderItemController.getOrderItemById);
 app.post('/orderItems', OrderItemController.addOrderItem);
 app.put('/orderItems/:id', OrderItemController.updateOrderItem);
 app.delete('/orderItems/:id', OrderItemController.deleteOrderItem);
+
+// Vouchers (admin CRUD)
+app.get('/vouchers', VoucherController.list);
+app.get('/vouchers/new', VoucherController.showCreateForm);
+app.post('/vouchers', VoucherController.create);
+app.get('/vouchers/:id/edit', VoucherController.showEditForm);
+app.put('/vouchers/:id', VoucherController.update);
+app.delete('/vouchers/:id', VoucherController.delete);
+// Apply voucher (user)
+app.post('/vouchers/apply', VoucherController.apply);
 
 // Cart
 app.get('/cart', CartController.viewCart);
