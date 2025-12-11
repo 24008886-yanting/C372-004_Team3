@@ -78,9 +78,8 @@ app.get('/profile', (req, res) => {
 });
 
 // Profile sub-pages
-app.get('/accountDetails', (req, res) => {
-    res.send('Account details page placeholder');
-});
+app.get('/accountDetails', UserController.renderAccountDetails);
+app.post('/accountDetails', UserController.updateAccountDetails);
 
 app.get('/digitalWallet', (req, res) => {
     res.send('Digital wallet page placeholder');

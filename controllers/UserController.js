@@ -56,6 +56,96 @@ const UserController = {
       if (result?.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
       renderOrJson(res, 'users/delete-success', { message: 'User deleted', user_id: id });
     });
+  },
+
+  // Render the account details page for the current user (session) or provided userId
+  renderAccountDetails(req, res) {
+    const userId = req.session?.user_id || req.query.userId || req.query.id;
+    const success = (req.flash && req.flash('account_success')[0]) || undefined;
+    const errorFromFlash = (req.flash && req.flash('account_error')[0]) || undefined;
+
+    if (!userId) {
+      return res.status(200).render('accountDetails', {
+        user: null,
+        success,
+        error: errorFromFlash || 'Please sign in to view your account.'
+      });
+    }
+
+    User.getUserById(userId, (err, results) => {
+      if (err) {
+        console.error('getUserById error:', err);
+        return res.status(500).render('accountDetails', {
+          user: null,
+          success: undefined,
+          error: 'Failed to load account details. Please try again.'
+        });
+      }
+
+      if (!results || results.length === 0) {
+        return res.status(404).render('accountDetails', {
+          user: null,
+          success: undefined,
+          error: 'User not found.'
+        });
+      }
+
+      const user = results[0];
+      res.render('accountDetails', { user, success, error: errorFromFlash });
+    });
+  },
+
+  // Handle updates from the account details form; hashes password via the model
+  updateAccountDetails(req, res) {
+    const userId = req.session?.user_id || req.body.user_id || req.query.userId || req.query.id;
+    const { username, email, phone, password } = req.body || {};
+
+    if (!userId) {
+      if (req.flash) req.flash('account_error', 'Please sign in to update your account.');
+      return res.redirect('/accountDetails');
+    }
+
+    if (!username || !email || !phone) {
+      return res.status(400).render('accountDetails', {
+        user: { user_id: userId, username, email, phone },
+        success: undefined,
+        error: 'Username, email, and contact number are required.'
+      });
+    }
+
+    const updates = {
+      username: username.trim(),
+      email: email.trim(),
+      phone: phone.trim()
+    };
+
+    const trimmedPassword = password && password.trim();
+    if (trimmedPassword) {
+      updates.password = trimmedPassword; // hashed inside the model
+    }
+
+    User.updateUser(userId, updates, (err, result) => {
+      if (err) {
+        console.error('updateUser error:', err);
+        return res.status(500).render('accountDetails', {
+          user: { user_id: userId, username, email, phone },
+          success: undefined,
+          error: 'Failed to update account. Please try again.'
+        });
+      }
+
+      if (result?.affectedRows === 0) {
+        return res.status(404).render('accountDetails', {
+          user: null,
+          success: undefined,
+          error: 'User not found.'
+        });
+      }
+
+      if (req.flash) req.flash('account_success', 'Account details updated successfully.');
+      const redirectUrl = `/accountDetails${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
+      return res.redirect(redirectUrl);
+    });
   }
 };
 
