@@ -73,6 +73,14 @@ app.post('/orderItems', OrderItemController.addOrderItem);
 app.put('/orderItems/:id', OrderItemController.updateOrderItem);
 app.delete('/orderItems/:id', OrderItemController.deleteOrderItem);
 
+// Cart
+app.get('/cart', CartController.viewCart);
+app.post('/cart', CartController.addItem);
+app.put('/cart/:id', CartController.updateQuantity);
+app.delete('/cart/:id', CartController.removeItem);
+app.delete('/cart', CartController.clearCart);
+app.post('/cart/checkout', CartController.checkout);
+
 // Profile
 app.get('/profile', (req, res) => {
     res.render('profile', {
