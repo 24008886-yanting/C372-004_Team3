@@ -66,6 +66,13 @@ app.post('/users', UserController.addUser);
 app.put('/users/:id', UserController.updateUser);
 app.delete('/users/:id', UserController.deleteUser);
 
+// Order items
+app.get('/orderItems', OrderItemController.listOrderItems);
+app.get('/orderItems/:id', OrderItemController.getOrderItemById);
+app.post('/orderItems', OrderItemController.addOrderItem);
+app.put('/orderItems/:id', OrderItemController.updateOrderItem);
+app.delete('/orderItems/:id', OrderItemController.deleteOrderItem);
+
 // Profile
 app.get('/profile', (req, res) => {
     res.render('profile', {
