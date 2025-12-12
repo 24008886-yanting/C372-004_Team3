@@ -35,6 +35,13 @@ app.use(session({
 
 app.use(flash());
 
+// Expose session user/role to all views
+app.use((req, res, next) => {
+    res.locals.currentUser = req.session?.user || null;
+    res.locals.currentRole = (req.session?.role || '').toLowerCase();
+    next();
+});
+
 // -------------------- MULTER --------------------
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {

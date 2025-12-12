@@ -3,28 +3,63 @@
 <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/navbar.css">
 
+<%
+  const resolvedRole = (
+    (typeof currentRole !== 'undefined' && currentRole) ||
+    (typeof currentUser !== 'undefined' && currentUser?.role) ||
+    (typeof user !== 'undefined' && user?.role) ||
+    (typeof userRole !== 'undefined' && userRole) ||
+    (typeof role !== 'undefined' && role) ||
+    ''
+  ).toLowerCase();
+  const isAdmin = resolvedRole === 'admin';
+  const isShelter = resolvedRole === 'shelter';
+%>
+
 <header class="rp-nav">
   <div class="rp-nav__top">
     <div class="rp-brand">Repawblic Pets</div>
     <div class="rp-icons">
-      <a class="icon-btn icon-btn--profile" aria-label="Profile" href="/profile">
-        <img src="/images/profile-icon.jpg" alt="Profile">
-      </a>
-      <button class="icon-btn icon-btn--search" aria-label="Search">
-        <img src="/images/search-icon.png" alt="Search">
-      </button>
-      <a class="icon-btn icon-btn--wishlist" aria-label="Wishlist" href="/wishlist">
-        <img src="/images/wishlist-logo.jpg" alt="Wishlist">
-      </a>
-      <a class="icon-btn icon-btn--cart" aria-label="Cart" href="/cart">
-        <img src="/images/cart-icon.jpg" alt="Cart">
-      </a>
+      <% if (isAdmin || isShelter) { %>
+        <a class="icon-btn icon-btn--profile" aria-label="Profile" href="/profile">
+          <img src="/images/profile-icon.jpg" alt="Profile">
+        </a>
+      <% } else { %>
+        <a class="icon-btn icon-btn--profile" aria-label="Profile" href="/profile">
+          <img src="/images/profile-icon.jpg" alt="Profile">
+        </a>
+        <button class="icon-btn icon-btn--search" aria-label="Search">
+          <img src="/images/search-icon.png" alt="Search">
+        </button>
+        <a class="icon-btn icon-btn--wishlist" aria-label="Wishlist" href="/wishlist">
+          <img src="/images/wishlist-logo.jpg" alt="Wishlist">
+        </a>
+        <a class="icon-btn icon-btn--cart" aria-label="Cart" href="/cart">
+          <img src="/images/cart-icon.jpg" alt="Cart">
+        </a>
+      <% } %>
     </div>
   </div>
 
   <nav class="rp-links">
-    <a href="/">Home</a>
-    <a href="/shopping">Product</a>
-    <a href="/contact">Contact Us</a>
+    <% if (isAdmin) { %>
+      <a href="/users">Manage Users</a>
+      <a href="/inventory">Products</a>
+      <a href="/vouchers">Vouchers</a>
+      <a href="/orderDashboard">Order Dashboard</a>
+      <a href="/reviews">Reviews</a>
+      <a href="/messages">Messages</a>
+      <a href="/shelters">Shelters</a>
+
+    <% } else if (isShelter) { %>
+      <a href="/contact">Contact Us</a>
+      <a href="/adoptedList">List of adopted details</a>
+      <a href="/addAdopter">Add New Adopter</a>
+      
+    <% } else { %>
+      <a href="/">Home</a>
+      <a href="/shopping">Product</a>
+      <a href="/contact">Contact Us</a>
+    <% } %>
   </nav>
 </header>
