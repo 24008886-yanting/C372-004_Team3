@@ -230,10 +230,28 @@ const UserController = {
       address: trimmed.address
     };
 
-    if (!trimmed.username || !trimmed.email || !trimmed.phone || !trimmed.password) {
+    if (!trimmed.username || !trimmed.email || !trimmed.phone || !trimmed.password || !trimmed.address) {
       return res.status(400).render('register', {
         success: undefined,
-        error: 'All fields are required.',
+        error: 'All fields (username, email, password, address, and contact number) are required.',
+        formData
+      });
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(trimmed.email)) {
+      return res.status(400).render('register', {
+        success: undefined,
+        error: 'Please enter a valid email address (format: name@example.com).',
+        formData
+      });
+    }
+
+    const phonePattern = /^\d{8}$/;
+    if (!phonePattern.test(trimmed.phone)) {
+      return res.status(400).render('register', {
+        success: undefined,
+        error: 'Contact number must be exactly 8 digits.',
         formData
       });
     }

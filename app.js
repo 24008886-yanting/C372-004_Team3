@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
 const path = require('path');
@@ -14,6 +14,7 @@ const ReviewController = require('./controllers/ReviewController');
 const ContactController = require('./controllers/ContactController');
 const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
+const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
 // -------------------- CONFIG --------------------
 app.set('view engine', 'ejs');
@@ -54,13 +55,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Require login for protected routes
-const requireAuth = (req, res, next) => {
-    if (req.session?.user_id) return next();
-    if (req.flash) req.flash('error', 'Please log in to continue.');
-    return res.redirect('/login');
-};
-
 
 // -------------------- ROUTES --------------------
 app.get('/', (req, res) => {
@@ -70,12 +64,12 @@ app.get('/', (req, res) => {
 // Product views
 app.get('/shopping', ProductController.shoppingList);             // customer shopping list
 app.get('/product/:id', ProductController.getProductById);        // product detail
-app.get('/inventory', ProductController.listInventory);           // admin inventory list
-app.get('/products/new', ProductController.showAddForm);          // show add form
-app.post('/products/add', upload.fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]), ProductController.addProduct);  // add product
-app.get('/products/:id/edit', ProductController.showUpdateForm);  // show update form
-app.post('/products/:id/update', upload.fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]), ProductController.updateProduct); // update product
-app.post('/products/:id/delete', ProductController.deleteProduct); // delete product
+app.get('/inventory', checkAuthenticated, checkAuthorised(['admin']), ProductController.listInventory);           // admin inventory list
+app.get('/products/new', checkAuthenticated, checkAuthorised(['admin']), ProductController.showAddForm);          // show add form
+app.post('/products/add', checkAuthenticated, checkAuthorised(['admin']), upload.fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]), ProductController.addProduct);  // add product
+app.get('/products/:id/edit', checkAuthenticated, checkAuthorised(['admin']), ProductController.showUpdateForm);  // show update form
+app.post('/products/:id/update', checkAuthenticated, checkAuthorised(['admin']), upload.fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]), ProductController.updateProduct); // update product
+app.post('/products/:id/delete', checkAuthenticated, checkAuthorised(['admin']), ProductController.deleteProduct); // delete product
 
 // Contact
 app.get('/contact', ContactController.showForm);
@@ -117,32 +111,24 @@ app.delete('/vouchers/:id', VoucherController.delete);
 app.post('/vouchers/apply', VoucherController.apply);
 
 // Cart
-app.get('/cart', requireAuth, CartController.viewCart);
-app.post('/cart', requireAuth, CartController.addItem);
-app.put('/cart/:id', requireAuth, CartController.updateQuantity);
-app.delete('/cart/:id', requireAuth, CartController.removeItem);
-app.delete('/cart', requireAuth, CartController.clearCart);
-app.post('/cart/checkout', requireAuth, CartController.checkout);
+app.get('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.viewCart);
+app.post('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.addItem);
+app.put('/cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.updateQuantity);
+app.delete('/cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.removeItem);
+app.delete('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.clearCart);
+app.post('/cart/checkout', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.checkout);
 
 // Wishlist
-app.get('/wishlist', requireAuth, WishlistController.view);
-app.post('/wishlist', requireAuth, WishlistController.add);
-app.delete('/wishlist/:id', requireAuth, WishlistController.remove);
-app.post('/wishlist/move-from-cart/:id', requireAuth, WishlistController.moveFromCart);
-app.post('/wishlist/:id/move-to-cart', requireAuth, WishlistController.moveToCart);
+app.get('/wishlist', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.view);
+app.post('/wishlist', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.add);
+app.delete('/wishlist/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.remove);
+app.post('/wishlist/move-from-cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.moveFromCart);
+app.post('/wishlist/:id/move-to-cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.moveToCart);
 
-// Admin dashboard (simple gate)
-app.get('/admin', (req, res) => {
-    if (req.session?.role !== 'admin') {
-        return res.status(403).send('Admin access required');
-    }
-    res.render('adminDashboard', {
-        user: req.session.user || null
-    });
-});
+
 
 // Profile
-app.get('/profile', requireAuth, (req, res) => {
+app.get('/profile', checkAuthenticated, (req, res) => {
     res.render('profile', {
         user: {},
         preferences: [],
