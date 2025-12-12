@@ -12,7 +12,7 @@
 
   <main class="auth-shell">
     <section class="auth-card">
-      <h1>Welcome back 👋</h1>
+      <h1>Welcome back</h1>
       <p class="auth-subtitle">Log in to manage your profile, wishlist, and purchases.</p>
 
       <% if (error) { %>
@@ -24,7 +24,7 @@
 
       <form method="POST" action="/login" class="auth-form">
         <div class="auth-field">
-          <label for="identifier">Username</label>
+          <label for="identifier">Username or Email</label>
           <input
             type="text"
             id="identifier"
@@ -50,7 +50,7 @@
       </form>
 
       <p class="auth-footer-text">
-        Don’t have an account?
+        Don't have an account?
         <a href="/register">Create one here</a>
       </p>
     </section>

@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Account | Repawblic Pets</title>
+  <title>Register | Repawblic Pets</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
-  <link rel="stylesheet" href="/css/auth.css"><!-- optional -->
+  <link rel="stylesheet" href="/css/auth.css"><!-- optional, create later if you want -->
 </head>
 <body class="auth-body">
   <%- include('partials/navbar') %>
 
   <main class="auth-shell">
     <section class="auth-card">
-      <h1>Create your account 🐾</h1>
-      <p class="auth-subtitle">Sign up to start shopping and tracking your pet orders.</p>
+      <h1>Create your account</h1>
+      <p class="auth-subtitle">Join to save wishlists, manage orders, and checkout faster.</p>
 
       <% if (error) { %>
         <div class="auth-alert auth-alert-error"><%= error %></div>
@@ -22,85 +22,49 @@
         <div class="auth-alert auth-alert-success"><%= success %></div>
       <% } %>
 
-      <% const data = formData || {}; %>
-
       <form method="POST" action="/register" class="auth-form">
         <div class="auth-field">
-          <label for="username">Username *</label>
-          <input
-            type="text"
-            id="username"
-            name="username"
-            required
-            value="<%= data.username || '' %>"
-            placeholder="pawlover123"
-          >
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required placeholder="pawlover123">
         </div>
 
         <div class="auth-field">
-          <label for="email">Email *</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            value="<%= data.email || '' %>"
-            placeholder="you@example.com"
-          >
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required placeholder="you@example.com">
         </div>
 
         <div class="auth-field">
           <label for="phone">Phone</label>
-          <input
-            type="text"
-            id="phone"
-            name="phone"
-            value="<%= data.phone || '' %>"
-            placeholder="Optional"
-          >
+          <input type="text" id="phone" name="phone" required placeholder="12345678">
         </div>
 
         <div class="auth-field">
-          <label for="address">Address</label>
-          <textarea
-            id="address"
-            name="address"
-            rows="3"
-            placeholder="Optional"
-          ><%= data.address || '' %></textarea>
+          <label for="address">Address (optional)</label>
+          <input type="text" id="address" name="address" placeholder="123 Paw Street">
         </div>
 
         <div class="auth-field">
-          <label for="password">Password *</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            required
-            placeholder="••••••••"
-          >
+          <label for="role">Account type</label>
+          <select id="role" name="role">
+            <option value="customer" selected>Customer</option>
+            <option value="adopter">Adopter</option>
+            <option value="shelter">Shelter</option>
+            <option value="admin" disabled>Admin (assigned by staff)</option>
+          </select>
+          <small class="auth-help">Roles available: admin, adopter, customer, shelter. Admin is staff-assigned only.</small>
         </div>
 
         <div class="auth-field">
-          <label for="confirmPassword">Confirm Password *</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            required
-            placeholder="••••••••"
-          >
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required placeholder="••••••••">
         </div>
-
-        <!-- default role -->
-        <input type="hidden" name="role" value="customer">
 
         <button type="submit" class="auth-button">Create Account</button>
       </form>
 
       <p class="auth-footer-text">
         Already have an account?
-        <a href="/login">Log in instead</a>
+        <a href="/login">Log in</a>
       </p>
     </section>
   </main>

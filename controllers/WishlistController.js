@@ -25,7 +25,8 @@ const WishlistController = {
 
     Wishlist.getByUser(userId, (err, items) => {
       if (err) return res.status(500).json({ error: 'Failed to load wishlist', details: err });
-      renderOrJson(res, 'wishlist/view', { items });
+      // Render main wishlist page; fall back to JSON if view missing
+      renderOrJson(res, 'wishlist', { items });
     });
   },
 
