@@ -93,6 +93,30 @@ const VoucherController = {
       if (err) return res.status(400).json({ error: 'Failed to apply voucher', details: err.message || err });
       res.json({ voucher: info });
     });
+  },
+
+  // User: view own vouchers (visible only for adopters)
+  viewMine(req, res) {
+    const role = (req.session?.role || req.query?.role || '').toLowerCase();
+    const isAdopter = role === 'adopter';
+
+    // Prefer explicit arrays if provided; otherwise derive from a generic vouchers list
+    const sessionVouchers = Array.isArray(req.session?.vouchers) ? req.session.vouchers : [];
+    const derivedActive = sessionVouchers.filter(v => !v.used && v.status !== 'used');
+    const derivedUsed = sessionVouchers.filter(v => v.used || v.status === 'used');
+
+    const activeVouchers = isAdopter
+      ? (Array.isArray(req.session?.activeVouchers) ? req.session.activeVouchers : derivedActive)
+      : [];
+    const usedVouchers = isAdopter
+      ? (Array.isArray(req.session?.usedVouchers) ? req.session.usedVouchers : derivedUsed)
+      : [];
+
+    renderOrJson(res, 'myVoucher', {
+      userRole: role || null,
+      activeVouchers,
+      usedVouchers
+    });
   }
 };
 

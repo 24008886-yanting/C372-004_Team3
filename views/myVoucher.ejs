@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<%
+  const roleFromUser = typeof user !== 'undefined' && user ? user.role : undefined;
+  const role = (userRole || roleFromUser || '').toLowerCase();
+  const isAdopter = role === 'adopter';
+  const activeList = Array.isArray(activeVouchers) ? activeVouchers : [];
+  const usedList = Array.isArray(usedVouchers) ? usedVouchers : [];
+  const formatDiscount = (voucher) => {
+    if (voucher.discount_type === 'percentage') {
+      const val = Number(voucher.discount_value) || 0;
+      return `${val}% off`;
+    }
+    const val = Number(voucher.discount_value);
+    const money = Number.isFinite(val) ? val.toFixed(2) : '0.00';
+    return `S$${money} off`;
+  };
+%>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Vouchers | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="/css/myVoucher.css">
+</head>
+<body class="voucher-body">
+  <%- include('partials/navbar') %>
+
+  <main class="voucher-shell">
+    <header class="voucher-hero">
+      <div>
+        <p class="eyebrow">Rewards</p>
+        <h1>My Vouchers</h1>
+        <p class="lede">
+          <%= isAdopter
+            ? 'Track the perks you have unlocked as an adopter.'
+            : 'Voucher tracking is reserved for adopters. You can still browse this page.' %>
+        </p>
+      </div>
+      <div class="status-chip <%= isAdopter ? 'status-chip--ok' : 'status-chip--muted' %>">
+        <span class="dot"></span>
+        <span><%= isAdopter ? 'Adopter profile' : 'Not marked as adopter' %></span>
+      </div>
+    </header>
+
+    <section class="voucher-grid">
+      <article class="voucher-section">
+        <div class="section-top">
+          <div>
+            <p class="eyebrow">Active</p>
+            <h2>Ready to use</h2>
+          </div>
+          <span class="count-pill"><%= isAdopter ? activeList.length : 0 %></span>
+        </div>
+
+        <% if (isAdopter && activeList.length) { %>
+          <div class="voucher-list">
+            <% activeList.forEach((voucher) => { %>
+              <div class="voucher-card">
+                <div class="code-row">
+                  <span class="code"><%= voucher.voucher_code || voucher.code || 'Voucher' %></span>
+                  <span class="tag tag--active">Active</span>
+                </div>
+                <p class="detail"><%= voucher.description || 'Discount ready for checkout.' %></p>
+                <div class="meta">
+                  <span><%= formatDiscount(voucher) %></span>
+                  <% if (voucher.expiry_date) { %>
+                    <span>Expires <%= voucher.expiry_date %></span>
+                  <% } %>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <div class="empty-state">
+            <p><%= isAdopter ? 'No active vouchers yet.' : 'Vouchers unlock once you are verified as an adopter.' %></p>
+          </div>
+        <% } %>
+      </article>
+
+      <article class="voucher-section">
+        <div class="section-top">
+          <div>
+            <p class="eyebrow">History</p>
+            <h2>Used or expired</h2>
+          </div>
+          <span class="count-pill"><%= isAdopter ? usedList.length : 0 %></span>
+        </div>
+
+        <% if (isAdopter && usedList.length) { %>
+          <div class="voucher-list">
+            <% usedList.forEach((voucher) => { %>
+              <div class="voucher-card voucher-card--used">
+                <div class="code-row">
+                  <span class="code"><%= voucher.voucher_code || voucher.code || 'Voucher' %></span>
+                  <span class="tag tag--used">Used</span>
+                </div>
+                <p class="detail"><%= voucher.description || 'Previously redeemed voucher.' %></p>
+                <div class="meta">
+                  <span><%= formatDiscount(voucher) %></span>
+                  <% if (voucher.used_on || voucher.redeemed_on) { %>
+                    <span>Used on <%= voucher.used_on || voucher.redeemed_on %></span>
+                  <% } else if (voucher.expiry_date) { %>
+                    <span>Expired <%= voucher.expiry_date %></span>
+                  <% } %>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <div class="empty-state">
+            <p><%= isAdopter ? 'You have not used any vouchers yet.' : 'No voucher history for non-adopter accounts.' %></p>
+          </div>
+        <% } %>
+      </article>
+    </section>
+
+    <% if (isAdopter) { %>
+      <div class="add-row">
+        <a class="add-btn" href="/vouchers/new">Add new voucher</a>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>

@@ -125,9 +125,7 @@ app.get('/digitalWallet', (req, res) => {
     res.send('Digital wallet page placeholder');
 });
 
-app.get('/myVoucher', (req, res) => {
-    res.send('My voucher page placeholder');
-});
+app.get('/myVoucher', VoucherController.viewMine);
 
 // Alias with plural path
 app.get('/allTransactions', (req, res) => {

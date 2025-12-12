@@ -1,0 +1,221 @@
+.voucher-body {
+  margin: 0;
+  font-family: 'Manrope', 'Space Grotesk', Arial, sans-serif;
+  background: #f9f8fb;
+  color: #1f1f2c;
+}
+
+.voucher-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 120px 24px 64px;
+}
+
+.voucher-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 28px 32px;
+  background: linear-gradient(120deg, #ffe6cf, #ffd0d8);
+  border: 1px solid #ffe0e8;
+  border-radius: 18px;
+}
+
+.voucher-hero h1 {
+  margin: 6px 0 4px;
+  font-size: 34px;
+}
+
+.voucher-hero .lede {
+  margin: 0;
+  color: #4b4b5f;
+  max-width: 720px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f6f70;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid #d2d2de;
+  color: #474756;
+  background: #fff;
+}
+
+.status-chip .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #c2c2c9;
+}
+
+.status-chip--ok {
+  border-color: #7ac8a0;
+  color: #1d5b3c;
+  background: #e6f5ec;
+}
+
+.status-chip--ok .dot {
+  background: #4fa470;
+}
+
+.status-chip--muted {
+  border-color: #e2d8df;
+  background: #fdfbff;
+}
+
+.voucher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.voucher-section {
+  background: #fff;
+  border: 1px solid #ecebf4;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 14px 32px rgba(17, 26, 55, 0.04);
+}
+
+.section-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-top h2 {
+  margin: 4px 0 0;
+}
+
+.count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1eef9;
+  color: #433e5a;
+  font-weight: 700;
+}
+
+.voucher-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voucher-card {
+  border: 1px solid #ecebf4;
+  border-radius: 12px;
+  padding: 14px;
+  background: linear-gradient(135deg, #fffefe, #fff7f3);
+}
+
+.voucher-card--used {
+  background: #fafbfc;
+  border-style: dashed;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.code {
+  font-family: 'Space Grotesk', 'Manrope', Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.tag {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag--active {
+  background: #e6f6ef;
+  color: #1f5c3f;
+}
+
+.tag--used {
+  background: #f0eff5;
+  color: #4c475e;
+}
+
+.detail {
+  margin: 6px 0 10px;
+  color: #4a4856;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: #5a5768;
+}
+
+.empty-state {
+  border: 1px dashed #dcd7e7;
+  border-radius: 12px;
+  padding: 18px;
+  color: #6c6779;
+  background: #faf8ff;
+}
+
+.add-row {
+  margin-top: 18px;
+  text-align: right;
+}
+
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #ff9d7b, #ff7bb2);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  box-shadow: 0 12px 28px rgba(255, 126, 114, 0.25);
+}
+
+.add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(255, 126, 114, 0.32);
+}
+
+@media (max-width: 720px) {
+  .voucher-hero {
+    flex-direction: column;
+  }
+
+  .voucher-shell {
+    padding-top: 96px;
+  }
+}
