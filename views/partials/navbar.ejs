@@ -14,6 +14,11 @@
   ).toLowerCase();
   const isAdmin = resolvedRole === 'admin';
   const isShelter = resolvedRole === 'shelter';
+  const isLoggedIn =
+    Boolean(
+      (typeof currentUser !== 'undefined' && currentUser) ||
+      (typeof user !== 'undefined' && user)
+    );
 %>
 
 <header class="rp-nav">
@@ -60,6 +65,11 @@
       <a href="/">Home</a>
       <a href="/shopping">Product</a>
       <a href="/contact">Contact Us</a>
+    <% } %>
+
+    <% if (isLoggedIn) { %>
+      <span class="rp-links__push"></span>
+      <a href="/logout" class="rp-links__logout">Logout</a>
     <% } %>
   </nav>
 </header>

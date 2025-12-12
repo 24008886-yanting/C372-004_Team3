@@ -110,3 +110,12 @@
   /* Hover state */
   text-decoration: underline;
 }
+
+.rp-links__push {
+  /* Push trailing actions (e.g., logout) to the right */
+  flex: 1;
+}
+
+.rp-links__logout {
+  font-weight: 600;
+}
