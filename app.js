@@ -50,6 +50,9 @@ const upload = multer({ storage });
 
 // -------------------- ROUTES --------------------
 app.get('/', (req, res) => {
+    if (!req.session?.user_id) {
+        return res.redirect('/login');
+    }
     res.render('homepage');
 });
 
@@ -74,6 +77,9 @@ app.get('/login', (req, res) => {
     res.render('login', { success, error, identifier: '' });
 });
 app.post('/login', UserController.login);
+app.get('/register', UserController.renderRegister);
+app.post('/register', UserController.register);
+app.get('/logout', UserController.logout);
 
 // Users
 app.get('/users', UserController.listUsers);
@@ -113,6 +119,16 @@ app.post('/wishlist', WishlistController.add);
 app.delete('/wishlist/:id', WishlistController.remove);
 app.post('/wishlist/move-from-cart/:id', WishlistController.moveFromCart);
 app.post('/wishlist/:id/move-to-cart', WishlistController.moveToCart);
+
+// Admin dashboard (simple gate)
+app.get('/admin', (req, res) => {
+    if (req.session?.role !== 'admin') {
+        return res.status(403).send('Admin access required');
+    }
+    res.render('adminDashboard', {
+        user: req.session.user || null
+    });
+});
 
 // Profile
 app.get('/profile', (req, res) => {

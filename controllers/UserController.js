@@ -170,7 +170,17 @@ const UserController = {
       }
 
       try {
-        const match = await bcrypt.compare(password, user.password);
+        // Support both hashed passwords and seed data stored in plaintext
+        let match = false;
+        const stored = user.password || '';
+        const isBcrypt = stored.startsWith('$2');
+
+        if (isBcrypt) {
+          match = await bcrypt.compare(password, stored);
+        } else {
+          match = stored === password;
+        }
+
         if (!match) {
           if (req.flash) req.flash('error', 'Invalid credentials.');
           return res.redirect('/login');
@@ -186,12 +196,70 @@ const UserController = {
         };
 
         if (req.flash) req.flash('success', `Welcome back, ${user.username || 'user'}!`);
-        return res.redirect('/');
+        const destination = (user.role || '').toLowerCase() === 'admin' ? '/admin' : '/';
+        return res.redirect(destination);
       } catch (compareErr) {
         console.error('password compare error:', compareErr);
         if (req.flash) req.flash('error', 'Login failed. Please try again.');
         return res.redirect('/login');
       }
+    });
+  },
+
+  // Render register page
+  renderRegister(req, res) {
+    const success = (req.flash && req.flash('success')[0]) || undefined;
+    const error = (req.flash && req.flash('error')[0]) || undefined;
+    res.render('register', { success, error, form: {} });
+  },
+
+  // Register new user then log them in
+  register(req, res) {
+    const { username, email, phone, address, password, role } = req.body || {};
+    const allowedRoles = ['customer', 'adopter', 'shelter']; // admin stays internal-only
+
+    if (!username || !email || !phone || !password) {
+      if (req.flash) req.flash('error', 'All fields are required.');
+      return res.redirect('/register');
+    }
+
+    const userData = {
+      username: username.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      address: (address || '').trim(),
+      password: password.trim(),
+      role: allowedRoles.includes(role) ? role : 'customer'
+    };
+
+    User.addUser(userData, (err, result) => {
+      if (err) {
+        console.error('register error:', err);
+        if (req.flash) req.flash('error', 'Registration failed. Please try again.');
+        return res.redirect('/register');
+      }
+
+      const newUserId = result?.insertId;
+      // Auto-login after registration; preserve adopter vs customer role
+      const sessionRole = userData.role || 'customer';
+      req.session.user_id = newUserId;
+      req.session.role = sessionRole;
+      req.session.user = {
+        user_id: newUserId,
+        username: userData.username,
+        email: userData.email,
+        role: sessionRole
+      };
+
+      if (req.flash) req.flash('success', 'Account created successfully.');
+      res.redirect('/');
+    });
+  },
+
+  // Logout and destroy session
+  logout(req, res) {
+    req.session.destroy(() => {
+      res.redirect('/login');
     });
   }
 };
