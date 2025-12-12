@@ -56,6 +56,12 @@ app.get('/', (req, res) => {
 // Product views
 app.get('/shopping', ProductController.shoppingList);             // customer shopping list
 app.get('/product/:id', ProductController.getProductById);        // product detail
+app.get('/inventory', ProductController.listInventory);           // admin inventory list
+app.get('/products/new', ProductController.showAddForm);          // show add form
+app.post('/products/add', upload.fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]), ProductController.addProduct);  // add product
+app.get('/products/:id/edit', ProductController.showUpdateForm);  // show update form
+app.post('/products/:id/update', upload.fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]), ProductController.updateProduct); // update product
+app.post('/products/:id/delete', ProductController.deleteProduct); // delete product
 
 // Contact
 app.get('/contact', ContactController.showForm);

@@ -1,1 +1,363 @@
-ksfmnipvmq
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Product - Repawblic Pets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Patrick Hand', cursive;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .form-wrapper {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+
+        .form-title {
+            text-align: center;
+            color: #ff6b9d;
+            margin-bottom: 30px;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1em;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ff6b9d;
+            box-shadow: 0 0 8px rgba(255, 107, 157, 0.2);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 0;
+        }
+
+        .image-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .image-input-group .form-group {
+            margin-bottom: 0;
+        }
+
+        .input-hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #ff6b9d;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #ff4d7d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: #ccc;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #aaa;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .required {
+            color: #ff6b9d;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .form-row,
+            .image-input-group {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .form-wrapper {
+                padding: 20px;
+            }
+
+            .form-title {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <div class="container">
+        <div class="form-wrapper">
+            <h1 class="form-title">Add New Product</h1>
+
+            <!-- Flash messages -->
+            <% if (locals.messages?.error) { %>
+                <div class="alert alert-error">
+                    <% if (Array.isArray(messages.error)) { %>
+                        <% messages.error.forEach(msg => { %>
+                            <div><%= msg %></div>
+                        <% }); %>
+                    <% } else { %>
+                        <%= messages.error %>
+                    <% } %>
+                </div>
+            <% } %>
+
+            <% if (locals.messages?.success) { %>
+                <div class="alert alert-success">
+                    <% if (Array.isArray(messages.success)) { %>
+                        <% messages.success.forEach(msg => { %>
+                            <div><%= msg %></div>
+                        <% }); %>
+                    <% } else { %>
+                        <%= messages.success %>
+                    <% } %>
+                </div>
+            <% } %>
+
+            <form action="/products/add" method="POST" enctype="multipart/form-data">
+                <!-- Product Name -->
+                <div class="form-group">
+                    <label for="product_name">Product Name <span class="required">*</span></label>
+                    <input 
+                        type="text" 
+                        id="product_name" 
+                        name="product_name" 
+                        required 
+                        placeholder="e.g., Premium Dog Food"
+                        value="<%= locals.product?.product_name || '' %>"
+                    >
+                </div>
+
+                <!-- Category -->
+                <div class="form-group">
+                    <label for="category">Category <span class="required">*</span></label>
+                    <select id="category" name="category" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="Food & Treats" <%= locals.product?.category === 'Food & Treats' ? 'selected' : '' %>>Food & Treats</option>
+                        <option value="Toys" <%= locals.product?.category === 'Toys' ? 'selected' : '' %>>Toys</option>
+                        <option value="Accessories" <%= locals.product?.category === 'Accessories' ? 'selected' : '' %>>Accessories</option>
+                        <option value="Health & Wellness" <%= locals.product?.category === 'Health & Wellness' ? 'selected' : '' %>>Health & Wellness</option>
+                        <option value="Grooming" <%= locals.product?.category === 'Grooming' ? 'selected' : '' %>>Grooming</option>
+                        <option value="Clothing" <%= locals.product?.category === 'Clothing' ? 'selected' : '' %>>Clothing</option>
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                    <label for="description">Description <span class="required">*</span></label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        required 
+                        placeholder="Provide a detailed description of the product"
+                    ><%= locals.product?.description || '' %></textarea>
+                    <div class="input-hint">Include key features and benefits</div>
+                </div>
+
+                <!-- Ingredient List -->
+                <div class="form-group">
+                    <label for="ingredient_list">Ingredient List / Contents</label>
+                    <textarea 
+                        id="ingredient_list" 
+                        name="ingredient_list" 
+                        placeholder="List ingredients or main components (optional)"
+                    ><%= locals.product?.ingredient_list || '' %></textarea>
+                    <div class="input-hint">Separate ingredients with commas or line breaks</div>
+                </div>
+
+                <!-- Price and Stock -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="price">Price (NZD) <span class="required">*</span></label>
+                        <input 
+                            type="number" 
+                            id="price" 
+                            name="price" 
+                            required 
+                            step="0.01" 
+                            min="0" 
+                            placeholder="0.00"
+                            value="<%= locals.product?.price || '' %>"
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="stock">Stock Quantity <span class="required">*</span></label>
+                        <input 
+                            type="number" 
+                            id="stock" 
+                            name="stock" 
+                            required 
+                            min="0" 
+                            placeholder="0"
+                            value="<%= locals.product?.stock || '' %>"
+                        >
+                    </div>
+                </div>
+
+                <!-- Images -->
+                <div class="form-group">
+                    <label>Product Images</label>
+                    <div class="image-input-group">
+                        <div class="form-group">
+                            <label for="image1">Image 1</label>
+                            <input 
+                                type="file" 
+                                id="image1" 
+                                name="image1" 
+                                accept="image/*"
+                                placeholder="Upload primary image"
+                            >
+                            <div class="input-hint">Recommended: JPG, PNG, WebP</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="image2">Image 2</label>
+                            <input 
+                                type="file" 
+                                id="image2" 
+                                name="image2" 
+                                accept="image/*"
+                                placeholder="Upload secondary image"
+                            >
+                            <div class="input-hint">Optional second product image</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                    <a href="/inventory" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script>
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const price = parseFloat(document.getElementById('price').value);
+            const stock = parseInt(document.getElementById('stock').value);
+
+            if (isNaN(price) || price < 0) {
+                e.preventDefault();
+                alert('Please enter a valid price');
+                return false;
+            }
+
+            if (isNaN(stock) || stock < 0) {
+                e.preventDefault();
+                alert('Please enter a valid stock quantity');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>
