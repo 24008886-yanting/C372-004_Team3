@@ -196,8 +196,7 @@ const UserController = {
         };
 
         if (req.flash) req.flash('success', `Welcome back, ${user.username || 'user'}!`);
-        const destination = (user.role || '').toLowerCase() === 'admin' ? '/admin' : '/';
-        return res.redirect(destination);
+        return res.redirect('/');
       } catch (compareErr) {
         console.error('password compare error:', compareErr);
         if (req.flash) req.flash('error', 'Login failed. Please try again.');
