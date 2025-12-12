@@ -15,15 +15,15 @@ const User = {
     db.query(sql, [userId], callback);
   },
 
-  // Find a single user by email or username (for login)
-  findByEmailOrUsername(identifier, callback) {
-    const sql = 'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1';
-    db.query(sql, [identifier, identifier], (err, results) => {
+  // Find a single user by email (for login)
+  findByEmail(email, callback) {
+    const sql = 'SELECT * FROM users WHERE email = ? LIMIT 1';
+    db.query(sql, [email], (err, results) => {
       if (err) return callback(err);
       if (!results || results.length === 0) {
-        return callback(null, null); // no user found
+        return callback(null, null);
       }
-      callback(null, results[0]); // return single user row
+      callback(null, results[0]);
     });
   },
 

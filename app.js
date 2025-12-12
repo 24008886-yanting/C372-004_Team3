@@ -47,12 +47,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Require login for protected routes
+const requireAuth = (req, res, next) => {
+    if (req.session?.user_id) return next();
+    if (req.flash) req.flash('error', 'Please log in to continue.');
+    return res.redirect('/login');
+};
+
 
 // -------------------- ROUTES --------------------
 app.get('/', (req, res) => {
-    if (!req.session?.user_id) {
-        return res.redirect('/login');
-    }
     res.render('homepage');
 });
 
@@ -74,7 +78,7 @@ app.post('/contact', ContactController.submitMessage);
 app.get('/login', (req, res) => {
     const success = (req.flash && req.flash('success')[0]) || undefined;
     const error = (req.flash && req.flash('error')[0]) || undefined;
-    res.render('login', { success, error, identifier: '' });
+    res.render('login', { success, error, email: '' });
 });
 app.post('/login', UserController.login);
 app.get('/register', UserController.renderRegister);
@@ -106,19 +110,19 @@ app.delete('/vouchers/:id', VoucherController.delete);
 app.post('/vouchers/apply', VoucherController.apply);
 
 // Cart
-app.get('/cart', CartController.viewCart);
-app.post('/cart', CartController.addItem);
-app.put('/cart/:id', CartController.updateQuantity);
-app.delete('/cart/:id', CartController.removeItem);
-app.delete('/cart', CartController.clearCart);
-app.post('/cart/checkout', CartController.checkout);
+app.get('/cart', requireAuth, CartController.viewCart);
+app.post('/cart', requireAuth, CartController.addItem);
+app.put('/cart/:id', requireAuth, CartController.updateQuantity);
+app.delete('/cart/:id', requireAuth, CartController.removeItem);
+app.delete('/cart', requireAuth, CartController.clearCart);
+app.post('/cart/checkout', requireAuth, CartController.checkout);
 
 // Wishlist
-app.get('/wishlist', WishlistController.view);
-app.post('/wishlist', WishlistController.add);
-app.delete('/wishlist/:id', WishlistController.remove);
-app.post('/wishlist/move-from-cart/:id', WishlistController.moveFromCart);
-app.post('/wishlist/:id/move-to-cart', WishlistController.moveToCart);
+app.get('/wishlist', requireAuth, WishlistController.view);
+app.post('/wishlist', requireAuth, WishlistController.add);
+app.delete('/wishlist/:id', requireAuth, WishlistController.remove);
+app.post('/wishlist/move-from-cart/:id', requireAuth, WishlistController.moveFromCart);
+app.post('/wishlist/:id/move-to-cart', requireAuth, WishlistController.moveToCart);
 
 // Admin dashboard (simple gate)
 app.get('/admin', (req, res) => {
@@ -131,7 +135,7 @@ app.get('/admin', (req, res) => {
 });
 
 // Profile
-app.get('/profile', (req, res) => {
+app.get('/profile', requireAuth, (req, res) => {
     res.render('profile', {
         user: {},
         preferences: [],

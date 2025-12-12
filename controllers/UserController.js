@@ -149,15 +149,15 @@ const UserController = {
     });
   },
 
-  // Authenticate a user by email or username, set session and redirect
+  // Authenticate a user by email only, set session and redirect
   login(req, res) {
-    const { identifier, password } = req.body || {};
-    if (!identifier || !password) {
-      if (req.flash) req.flash('error', 'Username and password are required.');
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      if (req.flash) req.flash('error', 'Email and password are required.');
       return res.redirect('/login');
     }
 
-    User.findByEmailOrUsername(identifier, async (err, user) => {
+    User.findByEmail(email, async (err, user) => {
       if (err) {
         console.error('login error:', err);
         if (req.flash) req.flash('error', 'Login failed. Please try again.');
@@ -210,49 +210,85 @@ const UserController = {
   renderRegister(req, res) {
     const success = (req.flash && req.flash('success')[0]) || undefined;
     const error = (req.flash && req.flash('error')[0]) || undefined;
-    res.render('register', { success, error, form: {} });
+    res.render('register', { success, error, formData: {} });
   },
 
   // Register new user then log them in
   register(req, res) {
-    const { username, email, phone, address, password, role } = req.body || {};
-    const allowedRoles = ['customer', 'adopter', 'shelter']; // admin stays internal-only
-
-    if (!username || !email || !phone || !password) {
-      if (req.flash) req.flash('error', 'All fields are required.');
-      return res.redirect('/register');
-    }
-
-    const userData = {
-      username: username.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
+    const { username, email, phone, address, password } = req.body || {};
+    const trimmed = {
+      username: (username || '').trim(),
+      email: (email || '').trim(),
+      phone: (phone || '').trim(),
       address: (address || '').trim(),
-      password: password.trim(),
-      role: allowedRoles.includes(role) ? role : 'customer'
+      password: (password || '').trim()
+    };
+    const formData = {
+      username: trimmed.username,
+      email: trimmed.email,
+      phone: trimmed.phone,
+      address: trimmed.address
     };
 
-    User.addUser(userData, (err, result) => {
-      if (err) {
-        console.error('register error:', err);
-        if (req.flash) req.flash('error', 'Registration failed. Please try again.');
-        return res.redirect('/register');
+    if (!trimmed.username || !trimmed.email || !trimmed.phone || !trimmed.password) {
+      return res.status(400).render('register', {
+        success: undefined,
+        error: 'All fields are required.',
+        formData
+      });
+    }
+
+    User.findByEmail(trimmed.email, (findErr, existingUser) => {
+      if (findErr) {
+        console.error('email lookup error:', findErr);
+        return res.status(500).render('register', {
+          success: undefined,
+          error: 'Registration failed. Please try again.',
+          formData
+        });
       }
 
-      const newUserId = result?.insertId;
-      // Auto-login after registration; preserve adopter vs customer role
-      const sessionRole = userData.role || 'customer';
-      req.session.user_id = newUserId;
-      req.session.role = sessionRole;
-      req.session.user = {
-        user_id: newUserId,
-        username: userData.username,
-        email: userData.email,
-        role: sessionRole
+      if (existingUser) {
+        return res.status(400).render('register', {
+          success: undefined,
+          error: 'Email is already registered. Please log in.',
+          formData
+        });
+      }
+
+      const userData = {
+        username: trimmed.username,
+        email: trimmed.email,
+        phone: trimmed.phone,
+        address: trimmed.address,
+        password: trimmed.password,
+        role: 'customer' // public signup is customer-only
       };
 
-      if (req.flash) req.flash('success', 'Account created successfully.');
-      res.redirect('/');
+      User.addUser(userData, (err, result) => {
+        if (err) {
+          console.error('register error:', err);
+          return res.status(500).render('register', {
+            success: undefined,
+            error: 'Registration failed. Please try again.',
+            formData
+          });
+        }
+
+        const newUserId = result?.insertId;
+        const sessionRole = userData.role;
+        req.session.user_id = newUserId;
+        req.session.role = sessionRole;
+        req.session.user = {
+          user_id: newUserId,
+          username: userData.username,
+          email: userData.email,
+          role: sessionRole
+        };
+
+        if (req.flash) req.flash('success', 'Account created successfully.');
+        res.redirect('/');
+      });
     });
   },
 
