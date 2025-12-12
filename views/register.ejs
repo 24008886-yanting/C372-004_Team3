@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+  <link rel="stylesheet" href="/css/auth.css"><!-- optional -->
+</head>
+<body class="auth-body">
+  <%- include('partials/navbar') %>
+
+  <main class="auth-shell">
+    <section class="auth-card">
+      <h1>Create your account 🐾</h1>
+      <p class="auth-subtitle">Sign up to start shopping and tracking your pet orders.</p>
+
+      <% if (error) { %>
+        <div class="auth-alert auth-alert-error"><%= error %></div>
+      <% } %>
+      <% if (success) { %>
+        <div class="auth-alert auth-alert-success"><%= success %></div>
+      <% } %>
+
+      <% const data = formData || {}; %>
+
+      <form method="POST" action="/register" class="auth-form">
+        <div class="auth-field">
+          <label for="username">Username *</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            value="<%= data.username || '' %>"
+            placeholder="pawlover123"
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="email">Email *</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            value="<%= data.email || '' %>"
+            placeholder="you@example.com"
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="phone">Phone</label>
+          <input
+            type="text"
+            id="phone"
+            name="phone"
+            value="<%= data.phone || '' %>"
+            placeholder="Optional"
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="address">Address</label>
+          <textarea
+            id="address"
+            name="address"
+            rows="3"
+            placeholder="Optional"
+          ><%= data.address || '' %></textarea>
+        </div>
+
+        <div class="auth-field">
+          <label for="password">Password *</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            placeholder="••••••••"
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="confirmPassword">Confirm Password *</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            required
+            placeholder="••••••••"
+          >
+        </div>
+
+        <!-- default role -->
+        <input type="hidden" name="role" value="customer">
+
+        <button type="submit" class="auth-button">Create Account</button>
+      </form>
+
+      <p class="auth-footer-text">
+        Already have an account?
+        <a href="/login">Log in instead</a>
+      </p>
+    </section>
+  </main>
+
+  <%- include('partials/footer') %>
+</body>
+</html>
