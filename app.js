@@ -67,6 +67,14 @@ app.post('/products/:id/delete', ProductController.deleteProduct); // delete pro
 app.get('/contact', ContactController.showForm);
 app.post('/contact', ContactController.submitMessage);
 
+// Auth
+app.get('/login', (req, res) => {
+    const success = (req.flash && req.flash('success')[0]) || undefined;
+    const error = (req.flash && req.flash('error')[0]) || undefined;
+    res.render('login', { success, error, identifier: '' });
+});
+app.post('/login', UserController.login);
+
 // Users
 app.get('/users', UserController.listUsers);
 app.get('/users/:id', UserController.getUserById);

@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
 // Simple helper: try to render an EJS view; if not available, fall back to JSON.
@@ -145,6 +146,52 @@ const UserController = {
       if (req.flash) req.flash('account_success', 'Account details updated successfully.');
       const redirectUrl = `/accountDetails${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
       return res.redirect(redirectUrl);
+    });
+  },
+
+  // Authenticate a user by email or username, set session and redirect
+  login(req, res) {
+    const { identifier, password } = req.body || {};
+    if (!identifier || !password) {
+      if (req.flash) req.flash('error', 'Username and password are required.');
+      return res.redirect('/login');
+    }
+
+    User.findByEmailOrUsername(identifier, async (err, user) => {
+      if (err) {
+        console.error('login error:', err);
+        if (req.flash) req.flash('error', 'Login failed. Please try again.');
+        return res.redirect('/login');
+      }
+
+      if (!user) {
+        if (req.flash) req.flash('error', 'Invalid credentials.');
+        return res.redirect('/login');
+      }
+
+      try {
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+          if (req.flash) req.flash('error', 'Invalid credentials.');
+          return res.redirect('/login');
+        }
+
+        req.session.user_id = user.user_id;
+        req.session.role = user.role || 'customer';
+        req.session.user = {
+          user_id: user.user_id,
+          username: user.username,
+          email: user.email,
+          role: user.role || 'customer'
+        };
+
+        if (req.flash) req.flash('success', `Welcome back, ${user.username || 'user'}!`);
+        return res.redirect('/');
+      } catch (compareErr) {
+        console.error('password compare error:', compareErr);
+        if (req.flash) req.flash('error', 'Login failed. Please try again.');
+        return res.redirect('/login');
+      }
     });
   }
 };
