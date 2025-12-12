@@ -1,7 +1,7 @@
 .voucher-body {
   margin: 0;
   font-family: 'Manrope', 'Space Grotesk', Arial, sans-serif;
-  background: #f9f8fb;
+  background: radial-gradient(120% 80% at 10% 20%, #fce7d9 0%, #f6f1e9 42%, #eef1f6 100%);
   color: #1f1f2c;
 }
 
@@ -90,13 +90,7 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  width: 100%;
   padding: 0;
-}
-
-.nav-row--top {
-  margin-top: 0;
-  margin-bottom: 12px;
 }
 
 .nav-row--bottom {
@@ -229,15 +223,6 @@
   padding: 18px;
   color: #6c6779;
   background: #faf8ff;
-}
-
-.nav-row {
-  margin-top: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
 .add-btn {
