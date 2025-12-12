@@ -37,9 +37,11 @@
             : 'Voucher tracking is reserved for adopters. You can still browse this page.' %>
         </p>
       </div>
-      <div class="status-chip <%= isAdopter ? 'status-chip--ok' : 'status-chip--muted' %>">
-        <span class="dot"></span>
-        <span><%= isAdopter ? 'Adopter profile' : 'Not marked as adopter' %></span>
+      <div class="voucher-hero__actions">
+        <div class="status-chip <%= isAdopter ? 'status-chip--ok' : 'status-chip--muted' %>">
+          <span class="dot"></span>
+          <span><%= isAdopter ? 'Adopter profile' : 'Not marked as adopter' %></span>
+        </div>
       </div>
     </header>
 
@@ -115,11 +117,12 @@
       </article>
     </section>
 
-    <% if (isAdopter) { %>
-      <div class="add-row">
+    <div class="nav-row nav-row--bottom">
+      <a class="back-chip" href="/profile">&#60; Back to Profile</a>
+      <% if (isAdopter) { %>
         <a class="add-btn" href="/vouchers/new">Add new voucher</a>
-      </div>
-    <% } %>
+      <% } %>
+    </div>
   </main>
 </body>
 </html>

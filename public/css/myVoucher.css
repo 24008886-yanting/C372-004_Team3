@@ -22,6 +22,13 @@
   border-radius: 18px;
 }
 
+.voucher-hero__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
 .voucher-hero h1 {
   margin: 6px 0 4px;
   font-size: 34px;
@@ -74,6 +81,45 @@
 .status-chip--muted {
   border-color: #e2d8df;
   background: #fdfbff;
+}
+
+.nav-row {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 0;
+}
+
+.nav-row--top {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.nav-row--bottom {
+  margin-top: 24px;
+}
+
+.back-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1px solid #3d5a80;
+  border-radius: 16px;
+  background: rgba(61, 90, 128, 0.08);
+  color: #2f4561;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.back-chip:hover {
+  background: rgba(61, 90, 128, 0.16);
+  transform: translateY(-1px);
 }
 
 .voucher-grid {
@@ -185,9 +231,13 @@
   background: #faf8ff;
 }
 
-.add-row {
+.nav-row {
   margin-top: 18px;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .add-btn {
@@ -213,6 +263,10 @@
 @media (max-width: 720px) {
   .voucher-hero {
     flex-direction: column;
+  }
+
+  .voucher-hero__actions {
+    align-items: flex-start;
   }
 
   .voucher-shell {
