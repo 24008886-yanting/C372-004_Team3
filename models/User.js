@@ -27,6 +27,16 @@ const User = {
     });
   },
 
+  // Check if an email appears in the adoptions table (shelter-uploaded adopters)
+  isAdopterEmail(email, callback) {
+    const sql = 'SELECT adoption_id FROM adoptions WHERE adopter_email = ? LIMIT 1';
+    db.query(sql, [email], (err, results) => {
+      if (err) return callback(err);
+      const exists = Array.isArray(results) && results.length > 0;
+      callback(null, exists);
+    });
+  },
+
   
   // Create a new user with hashed password
   addUser(userData, callback) {

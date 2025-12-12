@@ -256,18 +256,9 @@ const UserController = {
         });
       }
 
-      const userData = {
-        username: trimmed.username,
-        email: trimmed.email,
-        phone: trimmed.phone,
-        address: trimmed.address,
-        password: trimmed.password,
-        role: 'customer' // public signup is customer-only
-      };
-
-      User.addUser(userData, (err, result) => {
-        if (err) {
-          console.error('register error:', err);
+      User.isAdopterEmail(trimmed.email, (adoptErr, isAdopterEmail) => {
+        if (adoptErr) {
+          console.error('adopter email lookup error:', adoptErr);
           return res.status(500).render('register', {
             success: undefined,
             error: 'Registration failed. Please try again.',
@@ -275,19 +266,39 @@ const UserController = {
           });
         }
 
-        const newUserId = result?.insertId;
-        const sessionRole = userData.role;
-        req.session.user_id = newUserId;
-        req.session.role = sessionRole;
-        req.session.user = {
-          user_id: newUserId,
-          username: userData.username,
-          email: userData.email,
-          role: sessionRole
+        const userData = {
+          username: trimmed.username,
+          email: trimmed.email,
+          phone: trimmed.phone,
+          address: trimmed.address,
+          password: trimmed.password,
+          role: isAdopterEmail ? 'adopter' : 'customer' // auto-upgrade if adopter email is on file
         };
 
-        if (req.flash) req.flash('success', 'Account created successfully.');
-        res.redirect('/');
+        User.addUser(userData, (err, result) => {
+          if (err) {
+            console.error('register error:', err);
+            return res.status(500).render('register', {
+              success: undefined,
+              error: 'Registration failed. Please try again.',
+              formData
+            });
+          }
+
+          const newUserId = result?.insertId;
+          const sessionRole = userData.role;
+          req.session.user_id = newUserId;
+          req.session.role = sessionRole;
+          req.session.user = {
+            user_id: newUserId,
+            username: userData.username,
+            email: userData.email,
+            role: sessionRole
+          };
+
+          if (req.flash) req.flash('success', 'Account created successfully.');
+          res.redirect('/');
+        });
       });
     });
   },

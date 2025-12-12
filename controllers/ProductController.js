@@ -8,7 +8,6 @@ const ProductController = {
                 req.flash('error', 'Failed to load inventory.');
                 return res.redirect('back');
             }
-            req.flash('success', 'Inventory loaded successfully.');
             res.render('inventory', { products });
         });
     },
@@ -20,7 +19,6 @@ const ProductController = {
                 req.flash('error', 'Failed to load products.');
                 return res.redirect('/');
             }
-            req.flash('success', 'Products loaded successfully.');
             res.render('shopping', { products });
         });
     },
@@ -38,7 +36,6 @@ const ProductController = {
                 req.flash('error', 'Product not found.');
                 return res.redirect('/shopping');
             }
-            req.flash('success', 'Product loaded successfully.');
             res.render('product', { product });
         });
     },
