@@ -15,6 +15,19 @@ const User = {
     db.query(sql, [userId], callback);
   },
 
+  // Find a single user by email or username (for login)
+  findByEmailOrUsername(identifier, callback) {
+    const sql = 'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1';
+    db.query(sql, [identifier, identifier], (err, results) => {
+      if (err) return callback(err);
+      if (!results || results.length === 0) {
+        return callback(null, null); // no user found
+      }
+      callback(null, results[0]); // return single user row
+    });
+  },
+
+  
   // Create a new user with hashed password
   addUser(userData, callback) {
     const { username, password, email, phone, address, role } = userData;
