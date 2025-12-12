@@ -165,7 +165,7 @@ const UserController = {
       }
 
       if (!user) {
-        if (req.flash) req.flash('error', 'Invalid credentials.');
+        if (req.flash) req.flash('error', 'Invalid email or password. Please try again.');
         return res.redirect('/login');
       }
 
@@ -182,7 +182,7 @@ const UserController = {
         }
 
         if (!match) {
-          if (req.flash) req.flash('error', 'Invalid credentials.');
+          if (req.flash) req.flash('error', 'Invalid email or password. Please try again.');
           return res.redirect('/login');
         }
 
