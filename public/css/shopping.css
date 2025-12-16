@@ -112,6 +112,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+  grid-auto-rows: 1fr;
 }
 
 .product-card {
@@ -124,6 +125,7 @@
   flex-direction: column;
   gap: 10px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  height: 100%;
 }
 
 .product-card:hover {
@@ -191,10 +193,19 @@
   color: var(--muted);
 }
 
+.product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
 .price-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: auto;
+  padding-top: 6px;
 }
 
 .product-price {

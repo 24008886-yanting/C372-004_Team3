@@ -115,7 +115,7 @@
                 <img src="<%= imageUrl %>" alt="<%= product.product_name %>">
                 <span class="stock-badge <%= inStock ? '' : 'out' %>"><%= inStock ? 'In stock' : 'Out of stock' %></span>
               </a>
-              <div>
+              <div class="product-info">
                 <h3 class="product-name">
                   <a href="/product/<%= product.product_id %>"><%= product.product_name %></a>
                 </h3>
