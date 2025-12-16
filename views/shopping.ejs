@@ -1,10 +1,18 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <%
-  const safeProducts = products || [];
-  const categorySet = new Set();
-  safeProducts.forEach(p => categorySet.add(p.category || 'Uncategorized'));
-  const categories = Array.from(categorySet).sort();
+  const safeProducts = Array.isArray(products) ? products : [];
+  const paginationInfo = pagination || {};
+  const totalProducts = Number(paginationInfo.totalProducts) || safeProducts.length;
+  const pageSize = Number(paginationInfo.pageSize) || 15;
+  const currentPage = Math.max(Number(paginationInfo.currentPage) || 1, 1);
+  const totalPages = Math.max(Number(paginationInfo.totalPages) || 1, 1);
+  const startItem = totalProducts ? ((currentPage - 1) * pageSize) + 1 : 0;
+  const endItem = totalProducts ? Math.min(currentPage * pageSize, totalProducts) : 0;
+
+  const providedCategories = Array.isArray(categories) ? categories.filter(Boolean) : [];
+  const categorySet = new Set(providedCategories.length ? providedCategories : safeProducts.map(p => p.category || 'Uncategorized'));
+  const categoriesList = Array.from(categorySet).sort();
 %>
 <head>
   <meta charset="UTF-8">
@@ -24,8 +32,8 @@
         <div class="filter-group">
           <h3>Category</h3>
           <div class="filter-options">
-            <% if (categories.length) { %>
-              <% categories.forEach((category) => { %>
+            <% if (categoriesList.length) { %>
+              <% categoriesList.forEach((category) => { %>
                 <label class="filter-option">
                   <input type="checkbox" name="category" value="<%= category %>">
                   <span><%= category %></span>
@@ -81,7 +89,12 @@
       <section class="products-area">
         <div class="products-header">
           <h2>All Products</h2>
-          <p class="muted"><%= safeProducts.length %> items</p>
+          <p class="muted">
+            <%= totalProducts %> items
+            <% if (totalProducts) { %>
+              - Showing <%= startItem %>-<%= endItem %>
+            <% } %>
+          </p>
         </div>
 
         <% if (!safeProducts.length) { %>
@@ -121,6 +134,24 @@
             </article>
           <% }); %>
         </div>
+
+        <% if (totalPages > 1) { %>
+          <nav class="pagination" aria-label="Product pages">
+            <a class="page-nav <%= currentPage === 1 ? 'disabled' : '' %>"
+               href="<%= currentPage === 1 ? '#' : '/shopping?page=' + (currentPage - 1) %>"
+               aria-disabled="<%= currentPage === 1 %>">Previous</a>
+
+            <div class="page-numbers">
+              <% for (let i = 1; i <= totalPages; i++) { %>
+                <a class="page-number <%= i === currentPage ? 'active' : '' %>" href="/shopping?page=<%= i %>"><%= i %></a>
+              <% } %>
+            </div>
+
+            <a class="page-nav <%= currentPage === totalPages ? 'disabled' : '' %>"
+               href="<%= currentPage === totalPages ? '#' : '/shopping?page=' + (currentPage + 1) %>"
+               aria-disabled="<%= currentPage === totalPages %>">Next</a>
+          </nav>
+        <% } %>
 
         <div id="empty-state" class="empty-state">
           <div>No products match these filters.</div>

@@ -14,12 +14,48 @@ const ProductController = {
 
     // List all products on the shopping page (customer view)
     shoppingList(req, res) {
-        Product.getAllProducts((err, products) => {
-            if (err) {
+        const pageSize = 15;
+        const requestedPage = Math.max(parseInt(req.query.page, 10) || 1, 1);
+
+        Product.getProductsCount((countErr, countResults) => {
+            if (countErr) {
                 req.flash('error', 'Failed to load products.');
                 return res.redirect('/');
             }
-            res.render('shopping', { products });
+
+            const totalProducts = (countResults && countResults[0] && Number(countResults[0].total)) || 0;
+            const totalPages = Math.max(Math.ceil(totalProducts / pageSize), 1);
+            const currentPage = Math.min(requestedPage, totalPages);
+            const offset = (currentPage - 1) * pageSize;
+
+            Product.getPaginatedProducts(pageSize, offset, (listErr, products) => {
+                if (listErr) {
+                    req.flash('error', 'Failed to load products.');
+                    return res.redirect('/');
+                }
+
+                Product.getDistinctCategories((catErr, categoryResults) => {
+                    if (catErr) {
+                        req.flash('error', 'Failed to load categories.');
+                        return res.redirect('/');
+                    }
+
+                    const categories = Array.isArray(categoryResults)
+                        ? categoryResults.map(row => row.category).filter(Boolean)
+                        : [];
+
+                    res.render('shopping', {
+                        products,
+                        categories,
+                        pagination: {
+                            currentPage,
+                            totalPages,
+                            totalProducts,
+                            pageSize
+                        }
+                    });
+                });
+            });
         });
     },
 

@@ -6,6 +6,19 @@ const ProductModel = {
         db.query(query, callback);
     },
 
+    getProductsCount(callback) {
+        const query = 'SELECT COUNT(*) AS total FROM products';
+        db.query(query, callback);
+    },
+
+    getPaginatedProducts(limit, offset, callback) {
+        const query = `SELECT product_id, product_name, description, ingredient_list, price, stock, category, image1, image2
+                       FROM products
+                       ORDER BY product_id
+                       LIMIT ? OFFSET ?`;
+        db.query(query, [limit, offset], callback);
+    },
+
     getProductById(productId, callback) {
         const query = 'SELECT product_id, product_name, description, ingredient_list, price, stock, category, image1, image2 FROM products WHERE product_id = ?';
         db.query(query, [productId], callback);

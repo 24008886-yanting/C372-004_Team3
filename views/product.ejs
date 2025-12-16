@@ -19,10 +19,12 @@
   const priceValue = Number(safeProduct.price) || 0;
   const stockValue = Number.isFinite(Number(safeProduct.stock)) ? Number(safeProduct.stock) : null;
   const inStock = stockValue === null ? true : stockValue > 0;
-  const ingredientItems = (safeProduct.ingredient_list || '')
-    .split(/[\n,]/)
+  const ingredientText = (safeProduct.ingredient_list || '').trim();
+  const descriptionItems = (safeProduct.description || '')
+    .split('.')
     .map(item => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(item => item.endsWith('.') ? item : item + '.');
 %>
 <head>
   <meta charset="UTF-8">
@@ -97,17 +99,23 @@
 
         <article class="detail-card" id="description">
           <h2>Description</h2>
-          <p><%= safeProduct.description || 'A detailed description will appear here once added.' %></p>
+          <% if (descriptionItems.length) { %>
+            <ul class="description-list">
+              <% descriptionItems.forEach((item) => { %>
+                <li><%= item %></li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p>A detailed description will appear here once added.</p>
+          <% } %>
         </article>
 
         <article class="detail-card" id="ingredients">
           <h2>Ingredients</h2>
-          <% if (ingredientItems.length) { %>
-            <ul class="ingredient-list">
-              <% ingredientItems.forEach((item) => { %>
-                <li><%= item %></li>
-              <% }) %>
-            </ul>
+          <% if (ingredientText) { %>
+            <div class="ingredient-list">
+              <span class="ingredient-item"><%= ingredientText %></span>
+            </div>
           <% } else { %>
             <p>No ingredients have been listed yet.</p>
           <% } %>
