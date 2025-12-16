@@ -29,6 +29,20 @@ const ProductModel = {
         db.query(query, [`%${productName}%`], callback);
     },
 
+    searchProductsByName(term, limit = 10, callback) {
+        const trimmedTerm = (term || '').toLowerCase();
+        const safeLimit = Math.max(Math.min(parseInt(limit, 10) || 10, 50), 1);
+        const likeTerm = `%${trimmedTerm}%`;
+
+        const query = `SELECT product_id, product_name, description, ingredient_list, price, stock, category, image1, image2
+                       FROM products
+                       WHERE LOWER(product_name) LIKE ? OR LOWER(category) LIKE ?
+                       ORDER BY product_name
+                       LIMIT ?`;
+
+        db.query(query, [likeTerm, likeTerm, safeLimit], callback);
+    },
+
     getDistinctCategories(callback) {
         const query = 'SELECT DISTINCT category FROM products';
         db.query(query, callback);

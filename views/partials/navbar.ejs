@@ -73,3 +73,137 @@
     <% } %>
   </nav>
 </header>
+
+<section id="product-search-overlay" class="search-overlay" aria-hidden="true">
+  <div class="search-dialog" role="dialog" aria-modal="true" aria-labelledby="product-search-label">
+    <div class="search-header">
+      <input id="product-search-input" class="search-input" type="search" placeholder="Search products..." aria-label="Search products">
+      <button class="search-close" type="button" data-close-search aria-label="Close search overlay">&times;</button>
+    </div>
+    <div class="search-status" id="product-search-label">Type to search for products.</div>
+    <div class="search-results" role="list"></div>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const searchButton = document.querySelector('.icon-btn--search');
+    const searchOverlay = document.getElementById('product-search-overlay');
+    const searchInput = document.getElementById('product-search-input');
+    const searchResults = document.querySelector('.search-results');
+    const searchStatus = document.querySelector('.search-status');
+    const closeSearchBtn = document.querySelector('[data-close-search]');
+    let searchAbort = null;
+    let searchTimer = null;
+
+    const clearSearchResults = (message) => {
+      if (searchResults) searchResults.innerHTML = '';
+      if (searchStatus) searchStatus.textContent = message;
+    };
+
+    const closeSearch = () => {
+      if (!searchOverlay) return;
+      searchOverlay.classList.remove('is-open');
+      searchOverlay.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('no-scroll');
+      clearSearchResults('Type to search for products.');
+      if (searchInput) searchInput.value = '';
+      if (searchAbort) searchAbort.abort();
+    };
+
+    const openSearch = () => {
+      if (!searchOverlay || !searchInput) return;
+      searchOverlay.classList.add('is-open');
+      searchOverlay.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('no-scroll');
+      clearSearchResults('Type to search for products.');
+      searchInput.value = '';
+      searchInput.focus();
+    };
+
+    const createResultItem = (product) => {
+      const imageUrl = product.image1 || product.image2 || '';
+      const price = Number(product.price) || 0;
+      const category = product.category || 'Uncategorized';
+      const inStock = Number(product.stock) > 0;
+
+      return `
+        <a class="search-result" href="/product/${product.product_id}" role="listitem">
+          <div class="search-thumb">
+            ${imageUrl ? `<img src="${imageUrl}" alt="${product.product_name || 'Product'}">` : '<div class="search-thumb__placeholder"></div>'}
+            <span class="search-thumb__stock ${inStock ? '' : 'out'}">${inStock ? 'In stock' : 'Out of stock'}</span>
+          </div>
+          <div class="search-copy">
+            <div class="search-name">${product.product_name || 'Product'}</div>
+            <div class="search-meta">${category}</div>
+          </div>
+          <div class="search-price">$${price.toFixed(2)}</div>
+        </a>
+      `;
+    };
+
+    const renderSearchResults = (items) => {
+      if (!searchResults) return;
+      searchResults.innerHTML = '';
+
+      if (!items.length) {
+        searchStatus.textContent = 'No products match that search.';
+        return;
+      }
+
+      searchStatus.textContent = `${items.length} product${items.length === 1 ? '' : 's'} found`;
+      const html = items.map(createResultItem).join('');
+      searchResults.innerHTML = html;
+    };
+
+    const runSearch = async (term) => {
+      if (searchAbort) searchAbort.abort();
+      searchAbort = new AbortController();
+
+      try {
+        const res = await fetch(`/products/search?q=${encodeURIComponent(term)}`, { signal: searchAbort.signal });
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        const items = Array.isArray(data.products) ? data.products : [];
+        renderSearchResults(items);
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error(err);
+        searchStatus.textContent = 'Could not search products right now.';
+      }
+    };
+
+    if (searchButton && searchOverlay && searchInput) {
+      searchButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        openSearch();
+      });
+
+      closeSearchBtn?.addEventListener('click', closeSearch);
+
+      searchOverlay.addEventListener('click', (e) => {
+        if (e.target === searchOverlay) closeSearch();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && searchOverlay.classList.contains('is-open')) {
+          closeSearch();
+        }
+      });
+
+      searchInput.addEventListener('input', () => {
+        const term = searchInput.value.trim();
+        if (!term) {
+          clearTimeout(searchTimer);
+          clearSearchResults('Type to search for products.');
+          if (searchAbort) searchAbort.abort();
+          return;
+        }
+
+        searchStatus.textContent = 'Searching...';
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => runSearch(term), 180);
+      });
+    }
+  })();
+</script>

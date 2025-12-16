@@ -64,6 +64,7 @@ app.get('/', (req, res) => {
 // Product views
 app.get('/shopping', ProductController.shoppingList);             // customer shopping list
 app.get('/product/:id', ProductController.getProductById);        // product detail
+app.get('/products/search', ProductController.search);            // live search endpoint
 app.get('/inventory', checkAuthenticated, checkAuthorised(['admin']), ProductController.listInventory);           // admin inventory list
 app.get('/products/new', checkAuthenticated, checkAuthorised(['admin']), ProductController.showAddForm);          // show add form
 app.post('/products/add', checkAuthenticated, checkAuthorised(['admin']), upload.fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]), ProductController.addProduct);  // add product

@@ -59,6 +59,23 @@ const ProductController = {
         });
     },
 
+    search(req, res) {
+        const query = (req.query.q || '').trim();
+        const limit = req.query.limit;
+
+        if (!query) {
+            return res.json({ products: [] });
+        }
+
+        Product.searchProductsByName(query, limit, (err, products) => {
+            if (err) {
+                console.error('Product search failed:', err);
+                return res.status(500).json({ error: 'Failed to search products.' });
+            }
+            res.json({ products: Array.isArray(products) ? products : [] });
+        });
+    },
+
     // Get a single product by ID and render product page
     getProductById(req, res) {
         const productId = req.params.id;
