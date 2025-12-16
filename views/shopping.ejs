@@ -185,6 +185,15 @@
 
       applyFilters();
 
+      const handleAuthFailure = (res) => {
+        if (res.status === 401) {
+          alert('Please log in to continue.');
+          window.location.href = '/login';
+          return true;
+        }
+        return false;
+      };
+
       const addToWishlist = async (btn) => {
         const card = btn.closest('.product-card');
         const productId = card?.dataset.productId;
@@ -194,12 +203,13 @@
         btn.classList.add('busy');
 
         try {
-          const res = await fetch('/wishlist/add', {
+          const res = await fetch('/wishlist', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId })
+            body: JSON.stringify({ product_id: productId })
           });
 
+          if (handleAuthFailure(res)) return;
           if (!res.ok) throw new Error('Failed to add to wishlist');
           btn.classList.add('added');
         } catch (err) {
@@ -227,12 +237,13 @@
         btn.classList.add('busy');
 
         try {
-          const res = await fetch('/cart/add', {
+          const res = await fetch('/cart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId, quantity: 1 })
+            body: JSON.stringify({ product_id: productId, quantity: 1 })
           });
 
+          if (handleAuthFailure(res)) return;
           if (!res.ok) throw new Error('Failed to add to cart');
           btn.classList.add('added');
         } catch (err) {

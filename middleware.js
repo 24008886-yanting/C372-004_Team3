@@ -1,6 +1,22 @@
 // Auth guard: checks authentication
 const checkAuthenticated = (req, res, next) => {
   if (req.session && req.session.user) return next();
+
+  // Detect AJAX/JSON requests so we can return a 401 payload instead of redirecting
+  const wantsJson =
+    req.xhr ||
+    req.headers['x-requested-with'] === 'XMLHttpRequest' ||
+    (req.headers.accept || '').includes('application/json') ||
+    (req.headers['content-type'] || '').includes('application/json');
+
+  if (wantsJson) {
+    return res.status(401).json({
+      error: 'Authentication required',
+      requiresLogin: true,
+      loginUrl: '/login'
+    });
+  }
+
   req.flash('error', 'Please log in to view this resource');
   return res.redirect('/login');
 };

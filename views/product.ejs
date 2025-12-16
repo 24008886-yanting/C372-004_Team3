@@ -164,12 +164,22 @@
 
       qtyInput.addEventListener('change', clampQuantity);
 
+      const handleAuthFailure = (res) => {
+        if (res.status === 401) {
+          setStatus('Please log in to continue.', 'error');
+          window.location.href = '/login';
+          return true;
+        }
+        return false;
+      };
+
       const postJSON = async (url, payload) => {
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        if (handleAuthFailure(res)) throw new Error('login required');
         if (!res.ok) {
           const text = await res.text();
           throw new Error(text || 'Request failed');
@@ -189,7 +199,7 @@
         setStatus('Adding to cart...', 'neutral');
 
         try {
-          await postJSON('/cart/add', { productId, quantity });
+          await postJSON('/cart', { product_id: productId, quantity });
           setStatus(redirectToCheckout ? 'Added! Redirecting to checkout...' : 'Added to cart.', 'ok');
           if (redirectToCheckout) {
             window.location.href = '/checkout';
@@ -208,7 +218,7 @@
         setStatus('Saving to wishlist...', 'neutral');
 
         try {
-          await postJSON('/wishlist/add', { productId });
+          await postJSON('/wishlist', { product_id: productId });
           wishlistBtn.classList.add('wishlist-icon--added');
           setStatus('Added to wishlist.', 'ok');
         } catch (err) {
