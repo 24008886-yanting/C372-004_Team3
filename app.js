@@ -14,6 +14,7 @@ const ReviewController = require('./controllers/ReviewController');
 const ContactController = require('./controllers/ContactController');
 const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
+const OrderItem = require('./models/OrderItem');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
 // -------------------- CONFIG --------------------
@@ -150,9 +151,24 @@ app.get('/digitalWallet', (req, res) => {
 app.get('/myVoucher', VoucherController.viewMine);
 
 // Alias with plural path
-app.get('/allTransactions', (req, res) => {
-    res.render('allTransaction', {
-        transactions: []
+app.get('/allTransactions', checkAuthenticated, (req, res) => {
+    const userId = req.session?.user_id;
+    if (!userId) {
+        return res.redirect('/login');
+    }
+
+    OrderItem.getByUser(userId, (err, transactions) => {
+        if (err) {
+            console.error('Failed to load transactions:', err);
+            return res.status(500).render('allTransaction', {
+                transactions: [],
+                error: 'Failed to load transactions. Please try again.'
+            });
+        }
+
+        res.render('allTransaction', {
+            transactions: transactions || []
+        });
     });
 });
 

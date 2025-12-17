@@ -11,6 +11,28 @@ const OrderItem = {
     db.query(sql, callback);
   },
 
+  // Fetch all order items belonging to a specific user (via orders)
+  getByUser(userId, callback) {
+    if (!userId) return callback(new Error('user_id is required'));
+
+    const sql = `
+      SELECT
+        oi.order_item_id,
+        oi.order_id,
+        oi.product_id,
+        p.product_name AS name,
+        oi.quantity,
+        oi.item_total AS total_price
+      FROM orders o
+      JOIN order_items oi ON o.order_id = oi.order_id
+      JOIN products p ON oi.product_id = p.product_id
+      WHERE o.user_id = ?
+      ORDER BY o.order_id DESC, oi.order_item_id DESC
+    `;
+
+    db.query(sql, [userId], callback);
+  },
+
   // Fetch a single order item by primary key
   getOrderItemById(orderItemId, callback) {
     const sql = `
