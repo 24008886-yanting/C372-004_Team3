@@ -60,3 +60,32 @@ h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: -0.01em; }
   color: #fff;
   border: 1px solid var(--accent);
 }
+
+/* Forms */
+.form-grid {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  max-width: 720px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-weight: 600;
+  color: var(--text);
+}
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 16px;
+}
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}

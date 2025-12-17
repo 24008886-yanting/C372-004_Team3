@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Shelter | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Admin • Shelter Management</p>
+      <h1>Add Shelter</h1>
+      <p class="muted">Create a new shelter entry with contact details</p>
+    </header>
+
+    <% if (currentRole !== 'admin') { %>
+      <section class="card">
+        <p class="muted">Access restricted. Admins only.</p>
+      </section>
+    <% } else { %>
+      <section class="card">
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert error"><%= error %></div>
+        <% } %>
+
+        <form action="/shelter" method="POST" class="form-grid">
+          <div class="form-group">
+            <label for="shelter_name">Shelter Name</label>
+            <input type="text" id="shelter_name" name="shelter_name" placeholder="e.g. Paws Haven" required>
+          </div>
+
+          <div class="form-group">
+            <label for="contact_number">Contact Number</label>
+            <input type="text" id="contact_number" name="contact_number" placeholder="e.g. +65 6123 4567" required>
+          </div>
+
+          <div class="form-actions">
+            <a class="btn outline" href="/shelter">Back</a>
+            <button type="submit" class="btn">Add Shelter</button>
+          </div>
+        </form>
+      </section>
+    <% } %>
+  </main>
+</body>
+</html>
