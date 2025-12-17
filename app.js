@@ -12,6 +12,7 @@ const OrderItemController = require('./controllers/OrderItemController');
 const CartController = require('./controllers/CartController');
 const ReviewController = require('./controllers/ReviewController');
 const ContactController = require('./controllers/ContactController');
+const ShelterController = require('./controllers/ShelterController');
 const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
 const OrderItem = require('./models/OrderItem');
@@ -81,6 +82,11 @@ app.post('/contact', ContactController.submitMessage);
 app.get('/shelter', checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
     res.render('shelter');
 });
+app.get('/shelterList', checkAuthenticated, checkAuthorised(['admin']), ShelterController.listShelters);
+app.get('/shelter/:id', checkAuthenticated, checkAuthorised(['admin']), ShelterController.getShelterById);
+app.post('/shelter', checkAuthenticated, checkAuthorised(['admin']), ShelterController.addShelter);
+app.post('/shelter/:id/update', checkAuthenticated, checkAuthorised(['admin']), ShelterController.updateShelter);
+app.post('/shelter/:id/delete', checkAuthenticated, checkAuthorised(['admin']), ShelterController.deleteShelter);
 
 // Auth
 app.get('/login', (req, res) => {
