@@ -45,6 +45,41 @@
               <article class="card">
                 <h2><%= shelter.shelter_name %></h2>
                 <p class="muted">Contact: <%= shelter.contact_number || 'N/A' %></p>
+
+                <form action="/shelter/<%= shelter.shelter_id %>/update" method="POST" class="form-grid" style="margin-top:10px;">
+                  <div class="form-group">
+                    <label for="shelter_name_<%= shelter.shelter_id %>">Shelter Name</label>
+                    <input
+                      type="text"
+                      id="shelter_name_<%= shelter.shelter_id %>"
+                      name="shelter_name"
+                      value="<%= shelter.shelter_name %>"
+                      required
+                    >
+                  </div>
+                  <div class="form-group">
+                    <label for="contact_number_<%= shelter.shelter_id %>">Contact Number</label>
+                    <input
+                      type="text"
+                      id="contact_number_<%= shelter.shelter_id %>"
+                      name="contact_number"
+                      value="<%= shelter.contact_number || '' %>"
+                      required
+                    >
+                  </div>
+                  <div class="form-actions" style="flex-wrap: wrap;">
+                    <button type="submit" class="btn">Update</button>
+                    <button
+                      type="submit"
+                      class="btn outline"
+                      formaction="/shelter/<%= shelter.shelter_id %>/delete"
+                      formmethod="POST"
+                      onclick="return confirm('Delete this shelter?');"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </form>
               </article>
             <% }) %>
           </div>
