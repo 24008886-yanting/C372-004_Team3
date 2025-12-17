@@ -77,6 +77,11 @@ app.post('/products/:id/delete', checkAuthenticated, checkAuthorised(['admin']),
 app.get('/contact', ContactController.showForm);
 app.post('/contact', ContactController.submitMessage);
 
+// Shelter management (admin)
+app.get('/shelter', checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+    res.render('shelter');
+});
+
 // Auth
 app.get('/login', (req, res) => {
     const success = (req.flash && req.flash('success')[0]) || undefined;

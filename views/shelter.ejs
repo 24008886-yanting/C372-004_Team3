@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shelter Hub | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Admin · Shelter Management</p>
+      <h1>Shelter Hub</h1>
+      <p class="muted">Add new shelters or review and manage the existing shelter directory.</p>
+    </header>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Add Shelter</h2>
+        <p>Create a new shelter entry with contact and location details.</p>
+        <a class="btn" href="/addShelter">Go to Add Shelter</a>
+      </article>
+
+      <article class="card">
+        <h2>Shelter List</h2>
+        <p>View and manage all shelters currently in the system.</p>
+        <a class="btn outline" href="/shelterList">Go to Shelter List</a>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
