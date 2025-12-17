@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shelter List | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Admin • Shelter Management</p>
+      <h1>Partner Shelters</h1>
+      <p class="muted">Directory of all current partnering shelters</p>
+    </header>
+
+    <% if (currentRole !== 'admin') { %>
+      <section class="card">
+        <p class="muted">Access restricted. Admins only</p>
+      </section>
+    <% } else { %>
+      <% if (error) { %>
+        <section class="card">
+          <div class="alert error"><%= error %></div>
+        </section>
+      <% } %>
+
+      <section class="card">
+        <div class="form-actions" style="justify-content: space-between; align-items: center; flex-wrap: wrap;">
+          <span class="muted">Total shelters: <%= shelters && shelters.length ? shelters.length : 0 %></span>
+          <div>
+            <a class="btn outline" href="/shelter">Back</a>
+            <a class="btn" href="/addShelter">Add Shelter</a>
+          </div>
+        </div>
+
+        <% if (!shelters || !shelters.length) { %>
+          <p class="muted" style="margin-top:12px;">No shelters found. Add the first partner shelter to get started</p>
+        <% } else { %>
+          <div class="grid" style="margin-top:16px;">
+            <% shelters.forEach((shelter) => { %>
+              <article class="card">
+                <h2><%= shelter.shelter_name %></h2>
+                <p class="muted">Contact: <%= shelter.contact_number || 'N/A' %></p>
+              </article>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+    <% } %>
+  </main>
+</body>
+</html>
