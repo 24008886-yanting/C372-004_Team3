@@ -141,6 +141,14 @@ app.delete('/wishlist/:id', checkAuthenticated, checkAuthorised(['customer', 'ad
 app.post('/wishlist/move-from-cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.moveFromCart);
 app.post('/wishlist/:id/move-to-cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.moveToCart);
 
+// Show new review form (from transactions)
+app.get('/reviews/new', checkAuthenticated, ReviewController.showAddForm);
+
+// Create review
+app.post('/reviews', checkAuthenticated, ReviewController.create);
+
+// User's reviews list
+app.get('/reviewList', checkAuthenticated, ReviewController.listByUser);
 
 
 // Profile
@@ -180,8 +188,12 @@ app.get('/allTransactions', checkAuthenticated, (req, res) => {
             });
         }
 
-        res.render('allTransaction', {
-            transactions: transactions || []
+        db.query('SELECT order_item_id FROM reviews WHERE user_id = ?', [userId], (revErr, revRows) => {
+          const reviewedIds = (revRows || []).map(r => r.order_item_id);
+          res.render('allTransaction', {
+            transactions: transactions || [],
+            reviewedIds
+          });
         });
     });
 });
