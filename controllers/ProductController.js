@@ -5,8 +5,8 @@ const ProductController = {
     listInventory(req, res) {
         Product.getAllProducts((err, products) => {
             if (err) {
-                req.flash('error', 'Failed to load inventory.');
-                return res.redirect('back');
+                console.error('Failed to load inventory:', err);
+                return res.status(500).send('Failed to load inventory.');
             }
             res.render('inventory', { products });
         });
@@ -19,8 +19,8 @@ const ProductController = {
 
         Product.getProductsCount((countErr, countResults) => {
             if (countErr) {
-                req.flash('error', 'Failed to load products.');
-                return res.redirect('/');
+                console.error('Failed to count products:', countErr);
+                return res.status(500).send('Failed to load products.');
             }
 
             const totalProducts = (countResults && countResults[0] && Number(countResults[0].total)) || 0;
@@ -30,14 +30,14 @@ const ProductController = {
 
             Product.getPaginatedProducts(pageSize, offset, (listErr, products) => {
                 if (listErr) {
-                    req.flash('error', 'Failed to load products.');
-                    return res.redirect('/');
+                    console.error('Failed to load products:', listErr);
+                    return res.status(500).send('Failed to load products.');
                 }
 
                 Product.getDistinctCategories((catErr, categoryResults) => {
                     if (catErr) {
-                        req.flash('error', 'Failed to load categories.');
-                        return res.redirect('/');
+                        console.error('Failed to load categories:', catErr);
+                        return res.status(500).send('Failed to load categories.');
                     }
 
                     const categories = Array.isArray(categoryResults)
@@ -81,13 +81,12 @@ const ProductController = {
         const productId = req.params.id;
         Product.getProductById(productId, (err, results) => {
             if (err) {
-                req.flash('error', 'Error retrieving product.');
-                return res.redirect('back');
+                console.error('Error retrieving product:', err);
+                return res.status(500).send('Error retrieving product.');
             }
             const product = results && results[0];
             if (!product) {
-                req.flash('error', 'Product not found.');
-                return res.redirect('/shopping');
+                return res.status(404).send('Product not found.');
             }
             res.render('product', { product });
         });
@@ -96,8 +95,7 @@ const ProductController = {
     // Render add-product form (admin only)
     showAddForm(req, res) {
         if (req.session?.role !== 'admin') {
-            req.flash('error', 'Unauthorized: admin role required.');
-            return res.redirect('back');
+            return res.status(403).send('Unauthorized: admin role required.');
         }
         res.render('addProduct');
     },
@@ -106,10 +104,10 @@ const ProductController = {
     addProduct(req, res) {
         const role = req.session?.role;
         if (role !== 'admin') {
-            req.flash('error', 'Unauthorized: admin role required.');
-            return res.redirect('back');
+            return res.status(403).send('Unauthorized: admin role required.');
         }
 
+        const files = req.files || {};
         const product = {
             product_name: req.body.product_name,
             description: req.body.description,
@@ -117,14 +115,18 @@ const ProductController = {
             price: req.body.price,
             stock: req.body.stock,
             category: req.body.category,
-            image1: req.body.image1,
-            image2: req.body.image2
+            image1: files.image1?.[0]?.filename || null,
+            image2: files.image2?.[0]?.filename || null
         };
+
+        if (!product.image1) {
+            return res.status(400).send('Primary image is required.');
+        }
 
         Product.addProduct(product, role, (err, result) => {
             if (err) {
-                req.flash('error', 'Failed to add product.');
-                return res.redirect('back');
+                console.error('Failed to add product:', err);
+                return res.status(500).send('Failed to add product.');
             }
             req.flash('success', 'Product added successfully.');
             res.redirect('/inventory');
@@ -134,20 +136,18 @@ const ProductController = {
     // Render update-product form with existing data (admin only)
     showUpdateForm(req, res) {
         if (req.session?.role !== 'admin') {
-            req.flash('error', 'Unauthorized: admin role required.');
-            return res.redirect('back');
+            return res.status(403).send('Unauthorized: admin role required.');
         }
 
         const productId = req.params.id;
         Product.getProductById(productId, (err, results) => {
             if (err) {
-                req.flash('error', 'Error retrieving product.');
-                return res.redirect('back');
+                console.error('Error retrieving product:', err);
+                return res.status(500).send('Error retrieving product.');
             }
             const product = results && results[0];
             if (!product) {
-                req.flash('error', 'Product not found.');
-                return res.redirect('back');
+                return res.status(404).send('Product not found.');
             }
             res.render('updateProduct', { product });
         });
@@ -157,11 +157,11 @@ const ProductController = {
     updateProduct(req, res) {
         const role = req.session?.role;
         if (role !== 'admin') {
-            req.flash('error', 'Unauthorized: admin role required.');
-            return res.redirect('back');
+            return res.status(403).send('Unauthorized: admin role required.');
         }
 
         const productId = req.params.id;
+        const files = req.files || {};
         const product = {
             product_name: req.body.product_name,
             description: req.body.description,
@@ -169,14 +169,14 @@ const ProductController = {
             price: req.body.price,
             stock: req.body.stock,
             category: req.body.category,
-            image1: req.body.image1,
-            image2: req.body.image2
+            image1: files.image1?.[0]?.filename || req.body.image1 || null,
+            image2: files.image2?.[0]?.filename || req.body.image2 || null
         };
 
         Product.updateProduct(productId, product, role, (err) => {
             if (err) {
-                req.flash('error', 'Failed to update product.');
-                return res.redirect('back');
+                console.error('Failed to update product:', err);
+                return res.status(500).send('Failed to update product.');
             }
             req.flash('success', 'Product updated successfully.');
             res.redirect('/inventory');
@@ -187,15 +187,14 @@ const ProductController = {
     deleteProduct(req, res) {
         const role = req.session?.role;
         if (role !== 'admin') {
-            req.flash('error', 'Unauthorized: admin role required.');
-            return res.redirect('back');
+            return res.status(403).send('Unauthorized: admin role required.');
         }
 
         const productId = req.params.id;
         Product.deleteProduct(productId, role, (err) => {
             if (err) {
-                req.flash('error', 'Failed to delete product.');
-                return res.redirect('back');
+                console.error('Failed to delete product:', err);
+                return res.status(500).send('Failed to delete product.');
             }
             req.flash('success', 'Product deleted successfully.');
             res.redirect('/inventory');

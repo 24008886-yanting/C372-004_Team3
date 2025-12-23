@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Wishlist | Repawblic Pets</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <%
+    const resolveImage = (src) => {
+      if (!src) return '/images/placeholder.png';
+      if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/images/')) return src;
+      return '/images/' + src;
+    };
+  %>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -108,7 +115,7 @@
       <div class="list">
         <% items.forEach(item => { %>
           <div class="card" data-id="<%= item.wishlist_id %>">
-            <img class="thumb" src="<%= item.image1 || '/images/placeholder.png' %>" alt="<%= item.product_name %>">
+            <img class="thumb" src="<%= resolveImage(item.image1) %>" alt="<%= item.product_name %>">
             <div>
               <p class="title"><%= item.product_name %></p>
               <p class="price">$<%= Number(item.price).toFixed(2) %></p>

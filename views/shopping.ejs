@@ -10,6 +10,13 @@
   const startItem = totalProducts ? ((currentPage - 1) * pageSize) + 1 : 0;
   const endItem = totalProducts ? Math.min(currentPage * pageSize, totalProducts) : 0;
 
+  // Ensure stored filenames resolve to the /images path served by Express.
+  const resolveImage = (src) => {
+    if (!src) return '';
+    if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/images/')) return src;
+    return '/images/' + src;
+  };
+
   const providedCategories = Array.isArray(categories) ? categories.filter(Boolean) : [];
   const categorySet = new Set(providedCategories.length ? providedCategories : safeProducts.map(p => p.category || 'Uncategorized'));
   const categoriesList = Array.from(categorySet).sort();
@@ -108,7 +115,7 @@
                const inStock = Number(product.stock) > 0;
                const category = product.category || 'Uncategorized';
                const price = Number(product.price) || 0;
-               const imageUrl = product.image1 || product.image2 || '';
+               const imageUrl = resolveImage(product.image1) || resolveImage(product.image2) || '';
           %>
             <article class="product-card" data-product-id="<%= product.product_id %>" data-category="<%= category %>" data-instock="<%= inStock %>" data-price="<%= price %>">
               <a class="product-image" href="/product/<%= product.product_id %>">

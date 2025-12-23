@@ -96,6 +96,12 @@
     let searchAbort = null;
     let searchTimer = null;
 
+    const resolveImage = (src) => {
+      if (!src) return '';
+      if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/images/')) return src;
+      return '/images/' + src;
+    };
+
     const clearSearchResults = (message) => {
       if (searchResults) searchResults.innerHTML = '';
       if (searchStatus) searchStatus.textContent = message;
@@ -122,7 +128,7 @@
     };
 
     const createResultItem = (product) => {
-      const imageUrl = product.image1 || product.image2 || '';
+      const imageUrl = resolveImage(product.image1) || resolveImage(product.image2) || '';
       const price = Number(product.price) || 0;
       const category = product.category || 'Uncategorized';
       const inStock = Number(product.stock) > 0;
