@@ -28,13 +28,6 @@
             <span><%= tx.name || tx.product_name || 'Item' %></span>
             <span><%= tx.quantity %></span>
             <span>S$<%= Number(tx.total_price || tx.item_total || 0).toFixed(2) %></span>
-            <span>
-              <% if (! (reviewedIds || []).includes(tx.order_item_id) ) { %>
-                <a class="btn" href="/reviews/new?order_item_id=<%= tx.order_item_id %>&product_id=<%= tx.product_id %>">Write review</a>
-              <% } else { %>
-                <span class="muted">Reviewed</span>
-              <% } %>
-            </span>
           </div>
         <% }); %>
       <% } else { %>

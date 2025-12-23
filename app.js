@@ -17,7 +17,7 @@ const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
 const OrderItem = require('./models/OrderItem');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
-const db = require('./db');
+
 
 // -------------------- CONFIG --------------------
 app.set('view engine', 'ejs');
@@ -189,12 +189,8 @@ app.get('/allTransactions', checkAuthenticated, (req, res) => {
             });
         }
 
-        db.query('SELECT order_item_id FROM reviews WHERE user_id = ?', [userId], (revErr, revRows) => {
-          const reviewedIds = (revRows || []).map(r => r.order_item_id);
-          res.render('allTransaction', {
-            transactions: transactions || [],
-            reviewedIds
-          });
+        res.render('allTransaction', {
+            transactions: transactions || []
         });
     });
 });
