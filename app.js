@@ -17,6 +17,7 @@ const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
 const OrderItem = require('./models/OrderItem');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
+const db = require('./db');
 
 // -------------------- CONFIG --------------------
 app.set('view engine', 'ejs');
