@@ -16,6 +16,7 @@ const ShelterController = require('./controllers/ShelterController');
 const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
 const OrderItem = require('./models/OrderItem');
+const User = require('./models/User');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
 
@@ -195,6 +196,54 @@ app.get('/allTransactions', checkAuthenticated, (req, res) => {
     });
 });
 
+
+// Admin Setup (for initial admin account creation)
+app.get('/admin/setup', (req, res) => {
+    const success = (req.flash && req.flash('success')[0]) || undefined;
+    const error = (req.flash && req.flash('error')[0]) || undefined;
+    res.render('adminSetup', { success, error });
+});
+
+app.post('/admin/setup', (req, res) => {
+    const { username, email, password, confirmPassword } = req.body;
+
+    // Validation
+    if (!username || !email || !password || !confirmPassword) {
+        if (req.flash) req.flash('error', 'All fields are required.');
+        return res.redirect('/admin/setup');
+    }
+
+    if (password !== confirmPassword) {
+        if (req.flash) req.flash('error', 'Passwords do not match.');
+        return res.redirect('/admin/setup');
+    }
+
+    if (password.length < 6) {
+        if (req.flash) req.flash('error', 'Password must be at least 6 characters long.');
+        return res.redirect('/admin/setup');
+    }
+
+    // Create admin account using User model
+    const adminData = {
+        username,
+        email,
+        password,
+        phone: '',
+        address: '',
+        role: 'admin'
+    };
+
+    User.addUser(adminData, (err, result) => {
+        if (err) {
+            console.error('Admin setup error:', err);
+            if (req.flash) req.flash('error', err.message || 'Failed to create admin account.');
+            return res.redirect('/admin/setup');
+        }
+
+        if (req.flash) req.flash('success', 'Admin account created successfully! Please login.');
+        res.redirect('/login');
+    });
+});
 
 // -------------------- START SERVER --------------------
 app.listen(PORT, () => {
