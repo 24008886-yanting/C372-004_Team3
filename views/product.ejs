@@ -20,6 +20,9 @@
   const priceValue = Number(safeProduct.price) || 0;
   const stockValue = Number.isFinite(Number(safeProduct.stock)) ? Number(safeProduct.stock) : null;
   const inStock = stockValue === null ? true : stockValue > 0;
+  const wishlistEntry = wishlistItem || null;
+  const wishlistId = wishlistEntry ? wishlistEntry.wishlist_id : null;
+  const isWishlisted = Boolean(wishlistId);
 
   // Prepare text for ingredients + description bullet list
   const ingredientText = (safeProduct.ingredient_list || '').trim();
@@ -87,7 +90,13 @@
               <h1 class="product-title"><%= safeProduct.product_name || 'Product Name' %></h1>
             </div>
             <!-- Wishlist icon -->
-            <button id="wishlist-btn" class="wishlist-icon" type="button" aria-label="Add to wishlist">
+            <button
+              id="wishlist-btn"
+              class="wishlist-icon <%= isWishlisted ? 'wishlist-icon--added' : '' %>"
+              type="button"
+              aria-label="<%= isWishlisted ? 'Remove from wishlist' : 'Add to wishlist' %>"
+              aria-pressed="<%= isWishlisted ? 'true' : 'false' %>"
+              data-wishlist-id="<%= wishlistId || '' %>">
               <img src="/images/wishlist-logo.jpg" alt="">
             </button>
           </div>
@@ -276,7 +285,7 @@
       const postJSON = async (url, payload) => {
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload)
         });
         if (handleAuthFailure(res)) throw new Error('login required');
@@ -302,6 +311,7 @@
 
         try {
           await postJSON('/cart', { product_id: productId, quantity });
+          addBtn.classList.add('is-added');
           setStatus(redirectToCheckout ? 'Added! Redirecting to checkout...' : 'Added to cart.', 'ok');
           if (redirectToCheckout) {
             window.location.href = '/checkout';
@@ -315,18 +325,53 @@
       };
 
       // Wishlist handler toggling icon state
-      const handleWishlist = async () => {
-        if (!productId) return;
+      const setWishlistState = (isAdded, id) => {
+        if (!wishlistBtn) return;
+        wishlistBtn.classList.toggle('wishlist-icon--added', isAdded);
+        wishlistBtn.setAttribute('aria-pressed', isAdded ? 'true' : 'false');
+        wishlistBtn.setAttribute('aria-label', isAdded ? 'Remove from wishlist' : 'Add to wishlist');
+        if (id) {
+          wishlistBtn.dataset.wishlistId = id;
+        } else {
+          delete wishlistBtn.dataset.wishlistId;
+        }
+      };
+
+      const handleWishlistAdd = async () => {
+        if (!productId || !wishlistBtn) return;
         wishlistBtn.disabled = true;
         setStatus('Saving to wishlist...', 'neutral');
 
         try {
-          await postJSON('/wishlist', { product_id: productId });
-          wishlistBtn.classList.add('wishlist-icon--added');
+          const data = await postJSON('/wishlist', { product_id: productId });
+          setWishlistState(true, data.wishlist_id);
           setStatus('Added to wishlist.', 'ok');
         } catch (err) {
           console.error(err);
           setStatus('Could not add to wishlist. Please try again.', 'error');
+        } finally {
+          wishlistBtn.disabled = false;
+        }
+      };
+
+      const handleWishlistRemove = async () => {
+        const wishlistId = wishlistBtn?.dataset?.wishlistId;
+        if (!wishlistId) return;
+        wishlistBtn.disabled = true;
+        setStatus('Removing from wishlist...', 'neutral');
+
+        try {
+          const res = await fetch(`/wishlist/${wishlistId}`, {
+            method: 'DELETE',
+            headers: { 'Accept': 'application/json' }
+          });
+          if (handleAuthFailure(res)) return;
+          if (!res.ok) throw new Error('Request failed');
+          setWishlistState(false, '');
+          setStatus('Removed from wishlist.', 'ok');
+        } catch (err) {
+          console.error(err);
+          setStatus('Could not remove from wishlist. Please try again.', 'error');
         } finally {
           wishlistBtn.disabled = false;
         }
@@ -343,7 +388,13 @@
 
       // Hook wishlist button
       if (wishlistBtn) {
-        wishlistBtn.addEventListener('click', handleWishlist);
+        wishlistBtn.addEventListener('click', () => {
+          if (wishlistBtn.classList.contains('wishlist-icon--added')) {
+            handleWishlistRemove();
+          } else {
+            handleWishlistAdd();
+          }
+        });
       }
 
       // Image slider wiring: arrows, thumbnails, keyboard, swipe

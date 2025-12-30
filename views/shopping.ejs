@@ -20,6 +20,7 @@
   const providedCategories = Array.isArray(categories) ? categories.filter(Boolean) : [];
   const categorySet = new Set(providedCategories.length ? providedCategories : safeProducts.map(p => p.category || 'Uncategorized'));
   const categoriesList = Array.from(categorySet).sort();
+  const wishlistLookup = wishlistMap || {};
 %>
 <head>
   <meta charset="UTF-8">
@@ -116,6 +117,8 @@
                const category = product.category || 'Uncategorized';
                const price = Number(product.price) || 0;
                const imageUrl = resolveImage(product.image1) || resolveImage(product.image2) || '';
+               const wishlistId = wishlistLookup[product.product_id];
+               const isWishlisted = Boolean(wishlistId);
           %>
             <article class="product-card" data-product-id="<%= product.product_id %>" data-category="<%= category %>" data-instock="<%= inStock %>" data-price="<%= price %>">
               <a class="product-image" href="/product/<%= product.product_id %>">
@@ -130,7 +133,13 @@
               </div>
               <div class="price-row">
                 <span class="product-price">$<%= price.toFixed(2) %></span>
-                <button class="wishlist-btn" type="button" aria-label="Add <%= product.product_name %> to wishlist">
+                <button
+                  class="wishlist-btn <%= isWishlisted ? 'added' : '' %>"
+                  type="button"
+                  aria-label="<%= isWishlisted ? 'Remove ' + product.product_name + ' from wishlist' : 'Add ' + product.product_name + ' to wishlist' %>"
+                  aria-pressed="<%= isWishlisted ? 'true' : 'false' %>"
+                  data-wishlist-id="<%= wishlistId || '' %>"
+                  data-product-name="<%= product.product_name %>">
                   <img src="/images/wishlist-logo.jpg" alt="">
                 </button>
                 <button class="cart-btn" type="button" aria-label="Add <%= product.product_name %> to cart">
@@ -307,6 +316,22 @@
         return false;
       };
 
+      const setWishlistState = (btn, isAdded, wishlistId) => {
+        if (!btn) return;
+        const productName = btn.dataset.productName || 'item';
+        btn.classList.toggle('added', isAdded);
+        btn.setAttribute('aria-pressed', isAdded ? 'true' : 'false');
+        btn.setAttribute(
+          'aria-label',
+          isAdded ? `Remove ${productName} from wishlist` : `Add ${productName} to wishlist`
+        );
+        if (wishlistId) {
+          btn.dataset.wishlistId = wishlistId;
+        } else {
+          delete btn.dataset.wishlistId;
+        }
+      };
+
       const addToWishlist = async (btn) => {
         const card = btn.closest('.product-card');
         const productId = card?.dataset.productId;
@@ -318,13 +343,14 @@
         try {
           const res = await fetch('/wishlist', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({ product_id: productId })
           });
 
           if (handleAuthFailure(res)) return;
           if (!res.ok) throw new Error('Failed to add to wishlist');
-          btn.classList.add('added');
+          const data = await res.json().catch(() => ({}));
+          setWishlistState(btn, true, data.wishlist_id);
         } catch (err) {
           console.error(err);
           alert('Could not add to wishlist. Please try again.');
@@ -334,10 +360,39 @@
         }
       };
 
+      const removeFromWishlist = async (btn) => {
+        const wishlistId = btn.dataset.wishlistId;
+        if (!wishlistId) return;
+
+        btn.disabled = true;
+        btn.classList.add('busy');
+
+        try {
+          const res = await fetch(`/wishlist/${wishlistId}`, {
+            method: 'DELETE',
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (handleAuthFailure(res)) return;
+          if (!res.ok) throw new Error('Failed to remove from wishlist');
+          setWishlistState(btn, false, '');
+        } catch (err) {
+          console.error(err);
+          alert('Could not remove from wishlist. Please try again.');
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove('busy');
+        }
+      };
+
       wishlistButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
-          addToWishlist(btn);
+          if (btn.classList.contains('added')) {
+            removeFromWishlist(btn);
+          } else {
+            addToWishlist(btn);
+          }
         });
       });
 
@@ -352,7 +407,7 @@
         try {
           const res = await fetch('/cart', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({ product_id: productId, quantity: 1 })
           });
 

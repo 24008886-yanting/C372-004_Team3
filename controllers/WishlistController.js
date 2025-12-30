@@ -1,7 +1,13 @@
 const Wishlist = require('../models/Wishlist');
 
 // Helper: render EJS if present; otherwise JSON
-const renderOrJson = (res, view, payload) => {
+const renderOrJson = (req, res, view, payload) => {
+  const accept = req.headers.accept || '';
+  const wantsJson = req.xhr || accept.includes('application/json');
+  if (wantsJson) {
+    return res.json(payload);
+  }
+
   res.render(view, payload, (err, html) => {
     if (err) {
       return res.json(payload);
@@ -26,7 +32,7 @@ const WishlistController = {
     Wishlist.getByUser(userId, (err, items) => {
       if (err) return res.status(500).json({ error: 'Failed to load wishlist', details: err });
       // Render main wishlist page; fall back to JSON if view missing
-      renderOrJson(res, 'wishlist', { items });
+      renderOrJson(req, res, 'wishlist', { items });
     });
   },
 
@@ -44,7 +50,20 @@ const WishlistController = {
         const status = message.includes('not found') ? 404 : 500;
         return res.status(status).json({ error: 'Failed to add to wishlist', details: message });
       }
-      renderOrJson(res, 'wishlist/add-success', { message: 'Added to wishlist', result });
+
+      Wishlist.getItemByUserAndProduct(userId, product_id, (findErr, rows) => {
+        if (findErr) {
+          console.error('Failed to load wishlist item:', findErr);
+        }
+        const wishlistItem = rows && rows[0];
+        const wishlistId = wishlistItem ? wishlistItem.wishlist_id : null;
+        renderOrJson(req, res, 'wishlist/add-success', {
+          message: 'Added to wishlist',
+          wishlist_id: wishlistId,
+          product_id,
+          result
+        });
+      });
     });
   },
 
@@ -59,7 +78,7 @@ const WishlistController = {
     Wishlist.removeItem(id, userId, (err, result) => {
       if (err) return res.status(500).json({ error: 'Failed to remove wishlist item', details: err.message || err });
       if (result?.affectedRows === 0) return res.status(404).json({ error: 'Wishlist item not found' });
-      renderOrJson(res, 'wishlist/delete-success', { message: 'Removed from wishlist', wishlist_id: id });
+      renderOrJson(req, res, 'wishlist/delete-success', { message: 'Removed from wishlist', wishlist_id: id });
     });
   },
 
@@ -77,7 +96,7 @@ const WishlistController = {
         const status = message.toLowerCase().includes('not found') ? 404 : 500;
         return res.status(status).json({ error: 'Failed to move item to wishlist', details: message });
       }
-      renderOrJson(res, 'wishlist/move-success', { message: 'Moved to wishlist', cart_id: id, result });
+      renderOrJson(req, res, 'wishlist/move-success', { message: 'Moved to wishlist', cart_id: id, result });
     });
   },
 
@@ -97,7 +116,7 @@ const WishlistController = {
         const status = message.toLowerCase().includes('not found') ? 404 : message.toLowerCase().includes('stock') ? 400 : 500;
         return res.status(status).json({ error: 'Failed to move item to cart', details: message });
       }
-      renderOrJson(res, 'wishlist/move-to-cart-success', { message: 'Moved to cart', wishlist_id: id, result });
+      renderOrJson(req, res, 'wishlist/move-to-cart-success', { message: 'Moved to cart', wishlist_id: id, result });
     });
   }
 };

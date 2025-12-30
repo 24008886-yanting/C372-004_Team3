@@ -6,6 +6,7 @@
   --radius: 14px;
   --warm: #f6a444;
   --pink: pink;
+  --affirm: #66c98a;
 }
 
 * {
@@ -273,7 +274,9 @@
 }
 
 .wishlist-icon--added {
-  box-shadow: inset 0 0 0 2px rgba(244, 111, 168, 0.4);
+  background: #f2fff7;
+  border-color: var(--affirm);
+  box-shadow: 0 0 0 2px var(--affirm);
 }
 
 .price-stock-row {
@@ -395,6 +398,11 @@
 
 .cta-btn--cart {
   background: #ffaf53;
+}
+
+.cta-btn--cart.is-added {
+  box-shadow: 0 0 0 2px var(--affirm);
+  font-weight: 700;
 }
 
 .cta-btn--buy {

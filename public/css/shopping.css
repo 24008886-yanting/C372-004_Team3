@@ -5,6 +5,7 @@
   --muted: #5f6b76;
   --accent: #5c7cfa;
   --accent-2: #2fbdaa;
+  --affirm: #66c98a;
   --border: #e4e8ee;
   --shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
   --radius: 16px;
@@ -237,9 +238,11 @@
 }
 
 .cart-btn.added {
-  background: #e8fff8;
-  color: var(--accent-2);
-  border-color: rgba(47, 189, 170, 0.4);
+  background: #f2fff7;
+  color: #166534;
+  border-color: var(--affirm);
+  box-shadow: 0 0 0 2px var(--affirm);
+  font-weight: 800;
 }
 
 .wishlist-btn {
@@ -257,7 +260,9 @@
 }
 
 .wishlist-btn.added {
-  box-shadow: inset 0 0 0 2px rgba(244, 111, 168, 0.4);
+  background: #f2fff7;
+  border-color: var(--affirm);
+  box-shadow: 0 0 0 2px var(--affirm);
 }
 
 .wishlist-btn.busy {

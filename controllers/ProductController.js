@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const Wishlist = require('../models/Wishlist');
 
 const ProductController = {
     // List all products on the inventory page (admin view)
@@ -44,15 +45,37 @@ const ProductController = {
                         ? categoryResults.map(row => row.category).filter(Boolean)
                         : [];
 
-                    res.render('shopping', {
-                        products,
-                        categories,
-                        pagination: {
-                            currentPage,
-                            totalPages,
-                            totalProducts,
-                            pageSize
+                    const renderShopping = (wishlistMap) => {
+                        res.render('shopping', {
+                            products,
+                            categories,
+                            pagination: {
+                                currentPage,
+                                totalPages,
+                                totalProducts,
+                                pageSize
+                            },
+                            wishlistMap
+                        });
+                    };
+
+                    const userId = req.session?.user_id;
+                    if (!userId) {
+                        renderShopping({});
+                        return;
+                    }
+
+                    Wishlist.getByUser(userId, (wishErr, items) => {
+                        if (wishErr) {
+                            console.error('Failed to load wishlist:', wishErr);
+                            return renderShopping({});
                         }
+
+                        const wishlistMap = {};
+                        (items || []).forEach(item => {
+                            wishlistMap[item.product_id] = item.wishlist_id;
+                        });
+                        renderShopping(wishlistMap);
                     });
                 });
             });
@@ -88,7 +111,21 @@ const ProductController = {
             if (!product) {
                 return res.status(404).send('Product not found.');
             }
-            res.render('product', { product });
+            const userId = req.session?.user_id;
+            if (!userId) {
+                res.render('product', { product, wishlistItem: null });
+                return;
+            }
+
+            Wishlist.getByUser(userId, (wishErr, items) => {
+                if (wishErr) {
+                    console.error('Failed to load wishlist:', wishErr);
+                    return res.render('product', { product, wishlistItem: null });
+                }
+
+                const wishlistItem = (items || []).find(item => String(item.product_id) === String(productId)) || null;
+                res.render('product', { product, wishlistItem });
+            });
         });
     },
 

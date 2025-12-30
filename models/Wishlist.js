@@ -31,6 +31,17 @@ const WishlistModel = {
     });
   },
 
+  // Get wishlist item by user + product
+  getItemByUserAndProduct(userId, productId, callback) {
+    const sql = `
+      SELECT wishlist_id, product_id
+      FROM wishlist
+      WHERE user_id = ? AND product_id = ?
+      LIMIT 1
+    `;
+    db.query(sql, [userId, productId], callback);
+  },
+
   // Remove a wishlist item by wishlist_id (ensures ownership)
   removeItem(wishlistId, userId, callback) {
     const sql = 'DELETE FROM wishlist WHERE wishlist_id = ? AND user_id = ?';
