@@ -1,29 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <%
+  // Safely unwrap product data so template won't break if undefined
   const safeProduct = product || {};
+
+  // Build a usable image path: allow absolute URLs, data URIs, or already-prefixed /images
   const resolveImage = (src) => {
     if (!src) return '';
     if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/images/')) return src;
     return '/images/' + src;
   };
-  const fallbackImage = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="700" height="700" viewBox="0 0 700 700">
-      <defs>
-        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#ffe7d1" />
-          <stop offset="100%" stop-color="#ffd6e8" />
-        </linearGradient>
-      </defs>
-      <rect width="700" height="700" rx="28" fill="url(#grad)" />
-      <text x="50%" y="52%" font-size="36" font-family="Manrope, Arial, sans-serif" fill="#b35335" text-anchor="middle">Repawblic Pets</text>
-      <text x="50%" y="60%" font-size="20" font-family="Manrope, Arial, sans-serif" fill="#b35335" text-anchor="middle">Image coming soon</text>
-    </svg>
-  `);
-  const heroImage = resolveImage(safeProduct.image1) || resolveImage(safeProduct.image2) || fallbackImage;
+
+  // Collect unique images (image1 + image2)
+  const imageList = [resolveImage(safeProduct.image1), resolveImage(safeProduct.image2)]
+    .filter(Boolean)
+    .filter((src, idx, arr) => arr.indexOf(src) === idx);
+
+  // Numeric helpers with fallbacks for price and stock
   const priceValue = Number(safeProduct.price) || 0;
   const stockValue = Number.isFinite(Number(safeProduct.stock)) ? Number(safeProduct.stock) : null;
   const inStock = stockValue === null ? true : stockValue > 0;
+
+  // Prepare text for ingredients + description bullet list
   const ingredientText = (safeProduct.ingredient_list || '').trim();
   const descriptionItems = (safeProduct.description || '')
     .split('.')
@@ -32,6 +30,7 @@
     .map(item => item.endsWith('.') ? item : item + '.');
 %>
 <head>
+  <!-- Document metadata and styles -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= safeProduct.product_name || 'Product' %> | Repawblic Pets</title>
@@ -41,31 +40,54 @@
 <body class="product-body">
   <%- include('partials/navbar') %>
 
-  <main class="product-page" data-product-id="<%= safeProduct.product_id %>" data-stock="<%= stockValue ?? '' %>">
+  <!-- Page wrapper with data hooks for scripts -->
+  <main
+    class="product-page"
+    data-product-id="<%= safeProduct.product_id %>"
+    data-stock="<%= stockValue ?? '' %>"
+    data-images='<%- JSON.stringify(imageList) %>'
+    data-alt="<%= safeProduct.product_name || 'Product image' %>">
     <section class="product-layout">
       <aside class="media-column">
-        <div class="hero-image">
-          <img src="<%= heroImage %>" alt="<%= safeProduct.product_name || 'Product image' %>">
-        </div>
-        <% if (safeProduct.image2 && safeProduct.image2 !== safeProduct.image1) { %>
-          <div class="secondary-image">
-            <img src="<%= resolveImage(safeProduct.image2) %>" alt="<%= safeProduct.product_name || 'Product image alternate view' %>">
+        <div class="media-slider">
+          <!-- Main image viewport with prev/next arrows and live region -->
+          <div class="slider-main" tabindex="0" aria-label="Product image gallery">
+            <button class="slider-arrow slider-arrow--prev" type="button" aria-label="Previous image">&#8249;</button>
+            <img src="<%= imageList[0] %>" alt="<%= (safeProduct.product_name || 'Product image') + ' image 1' %>">
+            <button class="slider-arrow slider-arrow--next" type="button" aria-label="Next image">&#8250;</button>
+            <div class="slider-live" aria-live="polite" aria-atomic="true"></div>
           </div>
-        <% } %>
+          <!-- Thumbnail strip for direct image selection -->
+          <div class="slider-thumbs" aria-label="Product image thumbnails">
+            <ul class="thumbs-list">
+              <% imageList.forEach((src, idx) => { %>
+                <li>
+                  <button type="button" class="thumb-btn <%= idx === 0 ? 'is-active' : '' %>" data-index="<%= idx %>" aria-label="View image <%= idx + 1 %>">
+                    <img src="<%= src %>" alt="Thumbnail <%= idx + 1 %> for <%= safeProduct.product_name || 'product' %>">
+                  </button>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+        </div>
       </aside>
 
       <section class="content-column">
+        <!-- Product title, wishlist toggle, price, stock chip, quantity, and CTA buttons -->
         <article class="detail-card sticky-info">
           <div class="title-row">
             <div class="title-text">
+              <!-- Category label and main product name -->
               <p class="product-kicker"><%= safeProduct.category || 'Featured product' %></p>
               <h1 class="product-title"><%= safeProduct.product_name || 'Product Name' %></h1>
             </div>
+            <!-- Wishlist icon -->
             <button id="wishlist-btn" class="wishlist-icon" type="button" aria-label="Add to wishlist">
               <img src="/images/wishlist-logo.jpg" alt="">
             </button>
           </div>
 
+          <!-- Price and stock status -->
           <div class="price-stock-row">
             <div class="price-block">
               <span class="price-value">$<%= priceValue.toFixed(2) %></span>
@@ -75,8 +97,7 @@
             </span>
           </div>
 
-
-
+          <!-- Quantity selector -->
           <div class="quantity-row">
             <label for="quantity-input">Quantity</label>
             <div class="qty-control">
@@ -86,6 +107,7 @@
             </div>
           </div>
 
+          <!-- Add to Cart / Buy Now or disabled when out of stock -->
           <div class="actions-row">
             <% if (inStock) { %>
               <button id="add-to-cart-btn" class="cta-btn cta-btn--cart" type="button">
@@ -99,11 +121,14 @@
             <% } %>
           </div>
 
+          <!-- Live status text for cart/wishlist actions -->
           <div id="action-status" class="action-status" role="status" aria-live="polite"></div>
         </article>
 
+        <!-- Product description list -->
         <article class="detail-card" id="description">
           <h2>Description</h2>
+          <!-- Render bullet points if description exists -->
           <% if (descriptionItems.length) { %>
             <ul class="description-list">
               <% descriptionItems.forEach((item) => { %>
@@ -111,12 +136,15 @@
               <% }) %>
             </ul>
           <% } else { %>
+            <!-- Fallback text when description is missing -->
             <p>A detailed description will appear here once added.</p>
           <% } %>
         </article>
 
+        <!-- Ingredient section -->
         <article class="detail-card" id="ingredients">
           <h2>Ingredients</h2>
+          <!-- Single ingredient line or placeholder -->
           <% if (ingredientText) { %>
             <div class="ingredient-list">
               <span class="ingredient-item"><%= ingredientText %></span>
@@ -126,22 +154,30 @@
           <% } %>
         </article>
 
+        <!-- Placeholder reviews block -->
         <article class="detail-card" id="reviews">
           <h2>Reviews</h2>
           <div class="reviews-placeholder">
             <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <p>Reviews will show up here. Be the first to share feedback on this product.</p>
+            <p>Reviews will show up here.</p>
           </div>
         </article>
       </section>
     </section>
   </main>
 
+  <!-- Client-side interactions: quantity controls, cart/wishlist, slider -->
   <script>
     (() => {
+      // Grab main page element; stop if missing
       const page = document.querySelector('.product-page');
       if (!page) return;
 
+      // Data for slider and labels
+      const productImages = JSON.parse(page.dataset.images || '[]');
+      const sliderAltText = page.dataset.alt || 'Product image';
+
+      // Core elements reused by handlers
       const productId = page.dataset.productId;
       const stock = Number(page.dataset.stock);
       const qtyInput = document.getElementById('quantity-input');
@@ -151,12 +187,14 @@
       const wishlistBtn = document.getElementById('wishlist-btn');
       const statusEl = document.getElementById('action-status');
 
+      // Update status text with optional tone modifier
       const setStatus = (msg, tone = 'neutral') => {
         if (!statusEl) return;
         statusEl.textContent = msg;
         statusEl.className = 'action-status ' + tone;
       };
 
+      // Keep quantity within 1..stock (if stock is known)
       const clampQuantity = () => {
         let val = parseInt(qtyInput.value, 10);
         if (!Number.isFinite(val) || val < 1) val = 1;
@@ -167,6 +205,7 @@
         return val;
       };
 
+      // Increment/decrement quantity buttons
       qtyButtons.forEach(btn => {
         btn.addEventListener('click', () => {
           const step = parseInt(btn.dataset.step, 10) || 0;
@@ -175,8 +214,10 @@
         });
       });
 
+      // Normalize quantity if user types a value
       qtyInput.addEventListener('change', clampQuantity);
 
+      // Redirect to login when server says unauthorized
       const handleAuthFailure = (res) => {
         if (res.status === 401) {
           setStatus('Please log in to continue.', 'error');
@@ -186,6 +227,7 @@
         return false;
       };
 
+      // POST helper returning parsed JSON (or empty object)
       const postJSON = async (url, payload) => {
         const res = await fetch(url, {
           method: 'POST',
@@ -200,11 +242,13 @@
         return res.json().catch(() => ({}));
       };
 
+      // Enable/disable cart buttons together
       const setButtonsDisabled = (state) => {
         if (addBtn) addBtn.disabled = state;
         if (buyBtn) buyBtn.disabled = state;
       };
 
+      // Add to cart handler; optionally redirect straight to checkout
       const handleCart = async ({ redirectToCheckout = false } = {}) => {
         if (!productId || !addBtn || !buyBtn) return;
         const quantity = clampQuantity();
@@ -225,6 +269,7 @@
         }
       };
 
+      // Wishlist handler toggling icon state
       const handleWishlist = async () => {
         if (!productId) return;
         wishlistBtn.disabled = true;
@@ -242,6 +287,7 @@
         }
       };
 
+      // Hook cart buttons
       if (addBtn) {
         addBtn.addEventListener('click', () => handleCart({ redirectToCheckout: false }));
       }
@@ -250,9 +296,85 @@
         buyBtn.addEventListener('click', () => handleCart({ redirectToCheckout: true }));
       }
 
+      // Hook wishlist button
       if (wishlistBtn) {
         wishlistBtn.addEventListener('click', handleWishlist);
       }
+
+      // Image slider wiring: arrows, thumbnails, keyboard, swipe
+      const initSlider = () => {
+        const slider = document.querySelector('.media-slider');
+        if (!slider || !productImages.length) return;
+
+        const mainImg = slider.querySelector('.slider-main img');
+        const liveRegion = slider.querySelector('.slider-live');
+        const thumbList = slider.querySelector('.thumbs-list');
+        const thumbButtons = Array.from(slider.querySelectorAll('.thumb-btn'));
+        const prevBtn = slider.querySelector('.slider-arrow--prev');
+        const nextBtn = slider.querySelector('.slider-arrow--next');
+        const mainArea = slider.querySelector('.slider-main');
+        let currentIndex = 0;
+        const total = productImages.length;
+
+        // Render the current image and status text
+        const render = () => {
+          const src = productImages[currentIndex] || '';
+          if (mainImg) {
+            mainImg.src = src;
+            mainImg.alt = `${sliderAltText} image ${currentIndex + 1}`;
+          }
+          thumbButtons.forEach(btn => {
+            btn.classList.toggle('is-active', Number(btn.dataset.index) === currentIndex);
+          });
+          if (liveRegion) {
+            liveRegion.textContent = `Image ${currentIndex + 1} of ${total}`;
+          }
+        };
+
+        // Move to specific index with wraparound
+        const show = (nextIndex) => {
+          currentIndex = (nextIndex + total) % total;
+          render();
+        };
+
+        // Arrow buttons
+        if (prevBtn) {
+          prevBtn.addEventListener('click', () => show(currentIndex - 1));
+        }
+        if (nextBtn) {
+          nextBtn.addEventListener('click', () => show(currentIndex + 1));
+        }
+
+        // Thumbnail clicks
+        if (thumbList) {
+          thumbList.addEventListener('click', (event) => {
+            const btn = event.target.closest('.thumb-btn');
+            if (!btn) return;
+            const idx = Number(btn.dataset.index);
+            if (!Number.isNaN(idx)) {
+              show(idx);
+            }
+          });
+        }
+
+        // Keyboard support on main area
+        if (mainArea) {
+          mainArea.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowLeft') {
+              event.preventDefault();
+              show(currentIndex - 1);
+            } else if (event.key === 'ArrowRight') {
+              event.preventDefault();
+              show(currentIndex + 1);
+            }
+          });
+        }
+
+        render();
+      };
+
+      // Initialize slider on load
+      initSlider();
     })();
   </script>
 </body>
