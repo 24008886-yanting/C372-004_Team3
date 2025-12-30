@@ -47,6 +47,11 @@
     data-stock="<%= stockValue ?? '' %>"
     data-images='<%- JSON.stringify(imageList) %>'
     data-alt="<%= safeProduct.product_name || 'Product image' %>">
+    <div class="back-row">
+      <a id="back-to-products" class="back-link" href="/shopping" aria-label="Back to products">
+        &lt; Back to Products
+      </a>
+    </div>
     <section class="product-layout">
       <aside class="media-column">
         <div class="media-slider">
@@ -186,6 +191,46 @@
       const buyBtn = document.getElementById('buy-now-btn');
       const wishlistBtn = document.getElementById('wishlist-btn');
       const statusEl = document.getElementById('action-status');
+      const backLink = document.getElementById('back-to-products');
+
+      const safeSameOriginPath = (value) => {
+        try {
+          const target = new URL(value, window.location.origin);
+          if (target.origin !== window.location.origin) return '';
+          return target.pathname + target.search + target.hash;
+        } catch (err) {
+          return '';
+        }
+      };
+
+      if (backLink) {
+        const params = new URLSearchParams(window.location.search);
+        const returnToParam = params.get('returnTo');
+        const returnToPath = returnToParam ? safeSameOriginPath(returnToParam) : '';
+
+        if (returnToPath) {
+          backLink.href = returnToPath;
+        } else {
+          backLink.href = '/shopping';
+          backLink.addEventListener('click', (event) => {
+            const referrer = document.referrer || '';
+            let sameOriginReferrer = false;
+
+            if (referrer) {
+              try {
+                sameOriginReferrer = new URL(referrer).origin === window.location.origin;
+              } catch (err) {
+                sameOriginReferrer = false;
+              }
+            }
+
+            if (sameOriginReferrer && window.history.length > 1) {
+              event.preventDefault();
+              window.history.back();
+            }
+          });
+        }
+      }
 
       // Update status text with optional tone modifier
       const setStatus = (msg, tone = 'neutral') => {

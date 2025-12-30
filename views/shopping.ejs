@@ -173,6 +173,8 @@
       const filterPanel = document.querySelector('.filter-panel');
       const productCards = Array.from(document.querySelectorAll('.product-card'));
       const emptyState = document.getElementById('empty-state');
+      const productLinks = Array.from(document.querySelectorAll('.product-card a'));
+      const paginationLinks = Array.from(document.querySelectorAll('.pagination a'));
       const wishlistButtons = Array.from(document.querySelectorAll('.wishlist-btn'));
       const cartButtons = Array.from(document.querySelectorAll('.cart-btn'));
 
@@ -189,6 +191,77 @@
         const min = parts[0] || 0;
         const max = parts[1];
         return price >= min && price < (Number.isFinite(max) ? max : Infinity);
+      };
+
+      const updateProductLinks = (returnTo) => {
+        if (!productLinks.length) return;
+        productLinks.forEach(link => {
+          const href = link.getAttribute('href');
+          if (!href) return;
+          const url = new URL(href, window.location.origin);
+          url.searchParams.set('returnTo', returnTo);
+          link.setAttribute('href', url.pathname + url.search);
+        });
+      };
+
+      const updatePaginationLinks = (params) => {
+        if (!paginationLinks.length) return;
+        paginationLinks.forEach(link => {
+          const href = link.getAttribute('href');
+          if (!href || href === '#') return;
+          const url = new URL(href, window.location.origin);
+          const keys = Array.from(new Set(params.keys()));
+          keys.forEach((key) => {
+            if (key === 'page') return;
+            url.searchParams.delete(key);
+            params.getAll(key).forEach((value) => {
+              url.searchParams.append(key, value);
+            });
+          });
+          link.setAttribute('href', url.pathname + url.search);
+        });
+      };
+
+      const syncUrlAndLinks = (activeCategories, availability, priceRange) => {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('category');
+        params.delete('availability');
+        params.delete('priceRange');
+
+        activeCategories.forEach(category => params.append('category', category));
+        if (availability && availability !== 'all') params.set('availability', availability);
+        if (priceRange && priceRange !== 'all') params.set('priceRange', priceRange);
+
+        const query = params.toString();
+        const returnTo = window.location.pathname + (query ? `?${query}` : '');
+        window.history.replaceState({}, '', returnTo);
+        updateProductLinks(returnTo);
+        updatePaginationLinks(params);
+      };
+
+      const hydrateFiltersFromUrl = () => {
+        const params = new URLSearchParams(window.location.search);
+        const selectedCategories = params.getAll('category');
+        const availability = params.get('availability');
+        const priceRange = params.get('priceRange');
+
+        if (selectedCategories.length) {
+          categoryInputs.forEach(input => {
+            input.checked = selectedCategories.includes(input.value);
+          });
+        }
+
+        if (availability) {
+          availabilityInputs.forEach(input => {
+            input.checked = input.value === availability;
+          });
+        }
+
+        if (priceRange) {
+          priceInputs.forEach(input => {
+            input.checked = input.value === priceRange;
+          });
+        }
       };
 
       const applyFilters = () => {
@@ -216,11 +289,13 @@
         });
 
         emptyState.style.display = visible ? 'none' : 'flex';
+        syncUrlAndLinks(activeCategories, availability, priceRange);
       };
 
       const controls = [...categoryInputs, ...availabilityInputs, ...priceInputs];
       controls.forEach(ctrl => ctrl.addEventListener('change', applyFilters));
 
+      hydrateFiltersFromUrl();
       applyFilters();
 
       const handleAuthFailure = (res) => {
