@@ -28,6 +28,10 @@
   margin: 0 auto 48px;
 }
 
+.page-alert {
+  margin: 0 0 18px;
+}
+
 .shopping-page {
   display: grid;
   grid-template-columns: 280px 1fr;

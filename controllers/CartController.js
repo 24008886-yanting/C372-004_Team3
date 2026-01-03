@@ -46,7 +46,9 @@ const CartController = {
         const status = message.includes('not enough stock') ? 400 : message.includes('Product not found') ? 404 : 500;
         return res.status(status).json({ error: 'Failed to add item to cart', details: message });
       }
-      renderOrJson(res, 'cart/add-success', { message: 'Item added to cart', result });
+      const action = result?.action === 'updated' ? 'updated' : 'added';
+      const message = action === 'updated' ? 'Item quantity updated in cart.' : 'Item added to cart successfully.';
+      renderOrJson(res, 'cart/add-success', { message, action, result });
     });
   },
 

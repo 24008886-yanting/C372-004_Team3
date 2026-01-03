@@ -38,6 +38,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= safeProduct.product_name || 'Product' %> | Repawblic Pets</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="/css/product.css">
 </head>
 <body class="product-body">
@@ -50,6 +51,10 @@
     data-stock="<%= stockValue ?? '' %>"
     data-images='<%- JSON.stringify(imageList) %>'
     data-alt="<%= safeProduct.product_name || 'Product image' %>">
+    <div id="page-alert" class="alert alert-success alert-dismissible fade show d-none page-alert" role="alert">
+      <span class="page-alert__message"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     <div class="back-row">
       <a id="back-to-products" class="back-link" href="/shopping" aria-label="Back to products">
         &lt; Back to Products
@@ -201,6 +206,9 @@
       const wishlistBtn = document.getElementById('wishlist-btn');
       const statusEl = document.getElementById('action-status');
       const backLink = document.getElementById('back-to-products');
+      const pageAlert = document.getElementById('page-alert');
+      const pageAlertMessage = pageAlert?.querySelector('.page-alert__message');
+      const pageAlertParent = pageAlert?.parentElement;
 
       const safeSameOriginPath = (value) => {
         try {
@@ -248,6 +256,19 @@
         statusEl.className = 'action-status ' + tone;
       };
 
+      const showAlert = (message, tone = 'info') => {
+        if (!pageAlert) return;
+        if (!pageAlert.isConnected && pageAlertParent) {
+          pageAlertParent.prepend(pageAlert);
+        }
+        if (pageAlertMessage) {
+          pageAlertMessage.textContent = message;
+        }
+        pageAlert.className = `alert alert-${tone} alert-dismissible fade show page-alert`;
+        pageAlert.classList.remove('d-none');
+        pageAlert.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+
       // Keep quantity within 1..stock (if stock is known)
       const clampQuantity = () => {
         let val = parseInt(qtyInput.value, 10);
@@ -275,6 +296,7 @@
       const handleAuthFailure = (res) => {
         if (res.status === 401) {
           setStatus('Please log in to continue.', 'error');
+          showAlert('Please log in to continue.', 'danger');
           window.location.href = '/login';
           return true;
         }
@@ -310,15 +332,23 @@
         setStatus('Adding to cart...', 'neutral');
 
         try {
-          await postJSON('/cart', { product_id: productId, quantity });
+          const data = await postJSON('/cart', { product_id: productId, quantity });
+          const action = data.action === 'updated' ? 'updated' : 'added';
           addBtn.classList.add('is-added');
-          setStatus(redirectToCheckout ? 'Added! Redirecting to checkout...' : 'Added to cart.', 'ok');
+          if (action === 'updated') {
+            setStatus('Cart quantity updated.', 'ok');
+            showAlert('Item quantity updated in cart.', 'info');
+          } else {
+            setStatus('Added to cart.', 'ok');
+            showAlert('Item added to cart successfully.', 'success');
+          }
           if (redirectToCheckout) {
             window.location.href = '/checkout';
           }
         } catch (err) {
           console.error(err);
           setStatus('Could not add to cart. Please try again.', 'error');
+          showAlert('An error occurred. Please try again.', 'danger');
         } finally {
           setButtonsDisabled(false);
         }
@@ -346,9 +376,11 @@
           const data = await postJSON('/wishlist', { product_id: productId });
           setWishlistState(true, data.wishlist_id);
           setStatus('Added to wishlist.', 'ok');
+          showAlert('Item added to wishlist.', 'info');
         } catch (err) {
           console.error(err);
           setStatus('Could not add to wishlist. Please try again.', 'error');
+          showAlert('An error occurred. Please try again.', 'danger');
         } finally {
           wishlistBtn.disabled = false;
         }
@@ -369,9 +401,11 @@
           if (!res.ok) throw new Error('Request failed');
           setWishlistState(false, '');
           setStatus('Removed from wishlist.', 'ok');
+          showAlert('Item removed from wishlist.', 'warning');
         } catch (err) {
           console.error(err);
           setStatus('Could not remove from wishlist. Please try again.', 'error');
+          showAlert('An error occurred. Please try again.', 'danger');
         } finally {
           wishlistBtn.disabled = false;
         }
@@ -473,5 +507,6 @@
       initSlider();
     })();
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

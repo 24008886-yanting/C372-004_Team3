@@ -41,7 +41,15 @@ const CartModel = {
           }
 
           const updateSql = 'UPDATE cart SET quantity = ? WHERE cart_id = ?';
-          return db.query(updateSql, [newQty, existing.cart_id], callback);
+          return db.query(updateSql, [newQty, existing.cart_id], (updateErr, updateResult) => {
+            if (updateErr) return callback(updateErr);
+            callback(null, {
+              action: 'updated',
+              cart_id: existing.cart_id,
+              quantity: newQty,
+              db_result: updateResult
+            });
+          });
         }
 
         if (safeQty > product.stock) {
@@ -52,7 +60,15 @@ const CartModel = {
           INSERT INTO cart (user_id, product_id, quantity)
           VALUES (?, ?, ?)
         `;
-        db.query(insertSql, [userId, productId, safeQty], callback);
+        db.query(insertSql, [userId, productId, safeQty], (insertErr, insertResult) => {
+          if (insertErr) return callback(insertErr);
+          callback(null, {
+            action: 'added',
+            cart_id: insertResult?.insertId,
+            quantity: safeQty,
+            db_result: insertResult
+          });
+        });
       });
     });
   },
