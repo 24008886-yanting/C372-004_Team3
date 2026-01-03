@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Contact Messages | Repawblic Pets</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+    <link rel="stylesheet" href="/css/adminContact.css">
+  </head>
+  <body class="admin-contact-body">
+    <%- include('partials/navbar') %>
+
+    <main class="admin-contact-main">
+      <header class="page-header">
+        <p class="subhead">Your inbox</p>
+        <h1>Contact Messages</h1>
+        <p class="muted">Track your submissions and replies from our team.</p>
+      </header>
+
+      <section class="card">
+        <% if (typeof error !== 'undefined') { %>
+          <div class="alert error"><%= error %></div>
+        <% } %>
+
+        <% if (messages && messages.length) { %>
+          <div class="message-list">
+            <% messages.forEach(function(message) { %>
+              <article class="message-card">
+                <div class="message-header">
+                  <div>
+                    <p class="eyebrow">Message</p>
+                    <h2><%= message.subject || 'No subject' %></h2>
+                  </div>
+                  <span class="status <%= (message.status || 'pending').toLowerCase() %>">
+                    <%= message.status || 'Pending' %>
+                  </span>
+                </div>
+
+                <div class="meta-grid">
+                  <div>
+                    <span class="label">Submitted</span>
+                    <span>
+                      <%= message.created_at
+                        ? new Date(message.created_at).toLocaleString('en-GB', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : 'N/A' %>
+                    </span>
+                  </div>
+                  <div>
+                    <span class="label">Email</span>
+                    <span><%= message.email || 'N/A' %></span>
+                  </div>
+                </div>
+                
+
+                <p class="message-body"><%= message.message || '' %></p>
+
+                <% if (!message.admin_notes) { %>
+                  <div class="no-reply-notice">
+                    <p>No reply yet. Don't worry, we will get back to you within 2 business days after your submission.</p>
+                  </div>
+                <% } %>
+
+                <% if (message.admin_notes) { %>
+                  <div class="reply-display">
+                    <span class="label">Admin reply</span>
+                    <p><%= message.admin_notes %></p>
+                  </div>
+                <% } %>
+              </article>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <p class="muted">No contact messages yet.</p>
+        <% } %>
+      </section>
+    </main>
+  </body>
+</html>

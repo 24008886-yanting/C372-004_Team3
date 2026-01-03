@@ -78,8 +78,11 @@ app.post('/products/:id/update', checkAuthenticated, checkAuthorised(['admin']),
 app.post('/products/:id/delete', checkAuthenticated, checkAuthorised(['admin']), ProductController.deleteProduct); // delete product
 
 // Contact
-app.get('/contact', ContactController.showForm);
-app.post('/contact', ContactController.submitMessage);
+app.get('/contact', checkAuthenticated, checkAuthorised(['customer', 'adopter', 'shelter']), ContactController.showForm);
+app.post('/contact', checkAuthenticated, checkAuthorised(['customer', 'adopter', 'shelter']), ContactController.submitMessage);
+app.get('/userContactMessages', checkAuthenticated, checkAuthorised(['customer', 'adopter', 'shelter']), ContactController.viewInbox);
+app.get('/admin/messages', checkAuthenticated, checkAuthorised(['admin']), ContactController.viewAllMessages);
+app.post('/admin/messages/:id/reply', checkAuthenticated, checkAuthorised(['admin']), ContactController.submitReply);
 
 // Shelter management (admin)
 app.get('/shelter', checkAuthenticated, checkAuthorised(['admin']), (req, res) => {

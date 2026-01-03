@@ -1,34 +1,68 @@
 const db = require('../db');
 
-// Contact model with basic CRUD helpers for contact_messages table.
+// Contact model helpers for contact_messages table.
 const Contact = {
   /**
-   * Create a new contact message. userId is optional (visitors allowed).
+   * Create a new contact message (logged-in users only).
    */
-  createMessage: ({ userId = null, email, subject, message }, callback) => {
-    // Let DB defaults handle status/admin_notes to avoid type mismatches.
+  createMessage: ({ userId, email, subject, message }, callback) => {
+    if (!userId) {
+      return callback(new Error('userId is required to create a contact message'));
+    }
     const sql = `
-      INSERT INTO contact_messages (user_id, email, subject, message, created_at)
-      VALUES (?, ?, ?, ?, NOW())
+      INSERT INTO contact_messages (
+        user_id,
+        email,
+        subject,
+        message,
+        status,
+        admin_notes,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, 'Pending', NULL, NOW())
     `;
     const params = [userId, email, subject, message];
     db.query(sql, params, callback);
   },
 
   /**
-   * Fetch all contact messages (latest first).
+   * Admin: fetch all contact messages (latest first), include username when available.
    */
   getAllMessages: (callback) => {
     const sql = `
-      SELECT message_id, user_id, email, subject, message, status, admin_notes, created_at
-      FROM contact_messages
+      SELECT
+        cm.message_id,
+        cm.user_id,
+        u.username,
+        u.role AS user_role,
+        cm.email,
+        cm.subject,
+        cm.message,
+        cm.status,
+        cm.admin_notes,
+        cm.created_at
+      FROM contact_messages cm
+      LEFT JOIN users u ON cm.user_id = u.user_id
       ORDER BY created_at DESC
     `;
     db.query(sql, callback);
   },
 
   /**
-   * Fetch a single message by ID.
+   * User: fetch messages for a specific user (latest first).
+   */
+  getMessagesByUserId: (userId, callback) => {
+    const sql = `
+      SELECT message_id, user_id, email, subject, message, status, admin_notes, created_at
+      FROM contact_messages
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `;
+    db.query(sql, [userId], callback);
+  },
+
+  /**
+   * Fetch a single message by ID (admin use for reply validation).
    */
   getMessageById: (messageId, callback) => {
     const sql = `
@@ -41,24 +75,13 @@ const Contact = {
   },
 
   /**
-   * Admin: update message status.
+   * Admin: update message with reply (admin notes + status).
    */
-  updateStatus: (messageId, status, callback) => {
+  replyToMessage: (messageId, adminNotes, callback) => {
     const sql = `
       UPDATE contact_messages
-      SET status = ?
-      WHERE message_id = ?
-    `;
-    db.query(sql, [status, messageId], callback);
-  },
-
-  /**
-   * Admin: update admin notes.
-   */
-  updateAdminNotes: (messageId, adminNotes, callback) => {
-    const sql = `
-      UPDATE contact_messages
-      SET admin_notes = ?
+      SET admin_notes = ?,
+          status = 'Replied'
       WHERE message_id = ?
     `;
     db.query(sql, [adminNotes, messageId], callback);
