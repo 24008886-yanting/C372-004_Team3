@@ -89,3 +89,50 @@ h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: -0.01em; }
   gap: 12px;
   margin-top: 4px;
 }
+.alert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.alert.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+.alert.success {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.table-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+.table th,
+.table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.table th {
+  background: #f9fafb;
+  font-weight: 700;
+  color: var(--text);
+}
+.table-empty {
+  margin-top: 10px;
+}

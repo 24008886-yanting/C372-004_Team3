@@ -13,6 +13,7 @@ const CartController = require('./controllers/CartController');
 const ReviewController = require('./controllers/ReviewController');
 const ContactController = require('./controllers/ContactController');
 const ShelterController = require('./controllers/ShelterController');
+const AdoptionController = require('./controllers/AdoptionController');
 const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
 const OrderItem = require('./models/OrderItem');
@@ -92,6 +93,11 @@ app.get('/shelter/:id', checkAuthenticated, checkAuthorised(['admin']), ShelterC
 app.post('/shelter', checkAuthenticated, checkAuthorised(['admin']), ShelterController.addShelter);
 app.post('/shelter/:id/update', checkAuthenticated, checkAuthorised(['admin']), ShelterController.updateShelter);
 app.post('/shelter/:id/delete', checkAuthenticated, checkAuthorised(['admin']), ShelterController.deleteShelter);
+
+// Adoption management (shelter)
+app.get('/addAdopter', checkAuthenticated, checkAuthorised(['shelter']), AdoptionController.showAddForm);
+app.post('/addAdopter', checkAuthenticated, checkAuthorised(['shelter']), AdoptionController.addAdoption);
+app.get('/adoptedList', checkAuthenticated, checkAuthorised(['shelter']), AdoptionController.listAdoptions);
 
 // Auth
 app.get('/login', (req, res) => {

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adopted Details | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Shelter - Adoptions</p>
+      <h1>List of Adopted Details</h1>
+      <p class="muted">Review the cats adopted through your shelter</p>
+    </header>
+
+    <% if (currentRole !== 'shelter') { %>
+      <section class="card">
+        <p class="muted">Access restricted. Shelter admins only.</p>
+      </section>
+    <% } else { %>
+      <section class="card">
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert error"><%= error %></div>
+        <% } %>
+
+        <div class="table-header">
+          <div>
+            <h2>Adoption Records</h2>
+            <p class="muted">
+              <% if (shelterId) { %>
+                Showing shelter ID <%= shelterId %>.
+              <% } else { %>
+                Showing all shelter records.
+              <% } %>
+            </p>
+          </div>
+          <div class="form-actions">
+            <a class="btn outline" href="/addAdopter">Add New Adopter</a>
+          </div>
+        </div>
+
+        <% if (!adoptions || !adoptions.length) { %>
+          <p class="muted table-empty">No adoption records yet.</p>
+        <% } else { %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Adoption ID</th>
+                  <th>Shelter ID</th>
+                  <th>Cat ID</th>
+                  <th>Cat Name</th>
+                  <th>Adopter Email</th>
+                  <th>Adoption Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% adoptions.forEach((adoption) => { %>
+                  <tr>
+                    <td><%= adoption.adoption_id %></td>
+                    <td><%= adoption.shelter_id %></td>
+                    <td><%= adoption.cat_id %></td>
+                    <td><%= adoption.cat_name %></td>
+                    <td><%= adoption.adopter_email %></td>
+                    <td><%= adoption.adoption_date || '-' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </section>
+    <% } %>
+  </main>
+</body>
+</html>

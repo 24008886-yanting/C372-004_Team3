@@ -192,7 +192,8 @@ const UserController = {
           user_id: user.user_id,
           username: user.username,
           email: user.email,
-          role: user.role || 'customer'
+          role: user.role || 'customer',
+          shelter_id: user.shelter_id
         };
 
         if (req.flash) req.flash('success', `Welcome back, ${user.username || 'user'}!`);

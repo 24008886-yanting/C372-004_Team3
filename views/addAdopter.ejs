@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Adopter | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Shelter - Adoptions</p>
+      <h1>Add New Adopter</h1>
+      <p class="muted">Upload adopter details and link the adopted cat</p>
+    </header>
+
+    <% if (currentRole !== 'shelter') { %>
+      <section class="card">
+        <p class="muted">Access restricted. Shelter admins only.</p>
+      </section>
+    <% } else { %>
+      <section class="card">
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert error"><%= error %></div>
+        <% } %>
+        <% if (typeof success !== 'undefined' && success) { %>
+          <div class="alert success">
+            Adopter details saved successfully.
+            <% if (adoptionId) { %>
+              Adopter ID: <strong><%= adoptionId %></strong>
+            <% } %>
+          </div>
+        <% } %>
+
+        <form action="/addAdopter" method="POST" class="form-grid">
+          <div class="form-group">
+            <label for="shelter_id">Shelter ID</label>
+            <input
+              type="number"
+              id="shelter_id"
+              name="shelter_id"
+              placeholder="e.g. 1"
+              value="<%= formData?.shelter_id || '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="cat_id">Cat ID</label>
+            <input
+              type="number"
+              id="cat_id"
+              name="cat_id"
+              placeholder="e.g. 101"
+              value="<%= formData?.cat_id || '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="cat_name">Cat Name</label>
+            <input
+              type="text"
+              id="cat_name"
+              name="cat_name"
+              placeholder="e.g. Milo"
+              value="<%= formData?.cat_name || '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="adopter_email">Adopter Email</label>
+            <input
+              type="email"
+              id="adopter_email"
+              name="adopter_email"
+              placeholder="e.g. adopter@example.com"
+              value="<%= formData?.adopter_email || '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="adoption_date">Adoption Date</label>
+            <input
+              type="date"
+              id="adoption_date"
+              name="adoption_date"
+              value="<%= formData?.adoption_date || '' %>"
+            >
+          </div>
+
+          <div class="form-actions">
+            <a class="btn outline" href="/adoptedList">View Adopted List</a>
+            <button type="submit" class="btn">Save Adopter</button>
+          </div>
+        </form>
+      </section>
+    <% } %>
+  </main>
+</body>
+</html>
