@@ -120,6 +120,12 @@ app.post('/users', UserController.addUser);
 app.put('/users/:id', UserController.updateUser);
 app.delete('/users/:id', UserController.deleteUser);
 
+// Admin manage users
+app.get('/manageUsers', checkAuthenticated, checkAuthorised(['admin']), UserController.showManageUsersPage);
+app.post('/manageUsers/add', checkAuthenticated, checkAuthorised(['admin']), UserController.addUserAdmin);
+app.post('/manageUsers/:userId/update', checkAuthenticated, checkAuthorised(['admin']), UserController.updateUserAdmin);
+app.post('/manageUsers/:userId/delete', checkAuthenticated, checkAuthorised(['admin']), UserController.deleteUserAdmin);
+
 // Order items
 app.get('/orderItems', OrderItemController.listOrderItems);
 app.get('/orderItems/:id', OrderItemController.getOrderItemById);
@@ -136,6 +142,9 @@ app.put('/vouchers/:id', VoucherController.update);
 app.delete('/vouchers/:id', VoucherController.delete);
 // Apply voucher (user)
 app.post('/vouchers/apply', VoucherController.apply);
+
+// Orders dashboard (admin)
+app.get('/orderDashboard', checkAuthenticated, checkAuthorised(['admin']), OrderController.listDashboard);
 
 // Cart
 app.get('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.viewCart);
@@ -160,6 +169,7 @@ app.post('/reviews', checkAuthenticated, ReviewController.create);
 
 // User's reviews list
 app.get('/reviewList', checkAuthenticated, ReviewController.listByUser);
+app.get('/reviews/admin', checkAuthenticated, checkAuthorised(['admin']), ReviewController.listAll);
 
 
 // Profile

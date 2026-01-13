@@ -103,6 +103,20 @@ const ReviewController = {
       if (err) return res.status(500).send('Server error');
       res.render('reviewList', { reviews: rows || [] });
     });
+  },
+
+  // Admin: list all reviews
+  listAll(req, res) {
+    const role = (req.session?.role || '').toLowerCase();
+    if (role !== 'admin') return res.status(403).send('Forbidden');
+
+    Review.getAll((err, rows) => {
+      if (err) {
+        console.error('Failed to load reviews:', err);
+        return res.status(500).send('Failed to load reviews');
+      }
+      res.render('reviewList', { reviews: rows || [], isAdminView: true });
+    });
   }
 };
 

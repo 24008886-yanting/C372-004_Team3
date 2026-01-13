@@ -326,6 +326,120 @@ const UserController = {
     req.session.destroy(() => {
       res.redirect('/login');
     });
+  },
+
+  // Admin: Show manage users page
+  showManageUsersPage(req, res) {
+    User.getAllUsers((err, users) => {
+      if (err) {
+        console.error('Failed to fetch users:', err);
+        return res.render('manageUsers', {
+          users: [],
+          success: undefined,
+          error: 'Failed to load users. Please try again.'
+        });
+      }
+
+      const success = (req.flash && req.flash('success')[0]) || undefined;
+      const error = (req.flash && req.flash('error')[0]) || undefined;
+
+      res.render('manageUsers', {
+        users: users || [],
+        success,
+        error
+      });
+    });
+  },
+
+  // Admin: Add user via admin panel
+  addUserAdmin(req, res) {
+    const { username, email, phone, address, role, password } = req.body;
+
+    // Validation
+    if (!username || !email || !phone || !role || !password) {
+      if (req.flash) req.flash('error', 'Username, email, phone, role, and password are required.');
+      return res.redirect('/manageUsers');
+    }
+
+    const userData = {
+      username: username.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      address: address ? address.trim() : '',
+      role: role.toLowerCase(),
+      password: password.trim()
+    };
+
+    User.addUser(userData, (err, result) => {
+      if (err) {
+        console.error('Admin add user error:', err);
+        if (req.flash) req.flash('error', 'Failed to add user. Email may already exist.');
+        return res.redirect('/manageUsers');
+      }
+
+      if (req.flash) req.flash('success', `User "${username}" created successfully.`);
+      res.redirect('/manageUsers');
+    });
+  },
+
+  // Admin: Update user via admin panel
+  updateUserAdmin(req, res) {
+    const { userId } = req.params;
+    const { username, email, phone, address, role, password } = req.body;
+
+    if (!username || !email || !phone || !role) {
+      if (req.flash) req.flash('error', 'Username, email, phone, and role are required.');
+      return res.redirect('/manageUsers');
+    }
+
+    const updates = {
+      username: username.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      address: address ? address.trim() : '',
+      role: role.toLowerCase()
+    };
+
+    if (password && password.trim()) {
+      updates.password = password.trim();
+    }
+
+    User.updateUser(userId, updates, (err, result) => {
+      if (err) {
+        console.error('Admin update user error:', err);
+        if (req.flash) req.flash('error', 'Failed to update user.');
+        return res.redirect('/manageUsers');
+      }
+
+      if (result?.affectedRows === 0) {
+        if (req.flash) req.flash('error', 'User not found.');
+        return res.redirect('/manageUsers');
+      }
+
+      if (req.flash) req.flash('success', `User "${username}" updated successfully.`);
+      res.redirect('/manageUsers');
+    });
+  },
+
+  // Admin: Delete user via admin panel
+  deleteUserAdmin(req, res) {
+    const { userId } = req.params;
+
+    User.deleteUser(userId, (err, result) => {
+      if (err) {
+        console.error('Admin delete user error:', err);
+        if (req.flash) req.flash('error', 'Failed to delete user.');
+        return res.redirect('/manageUsers');
+      }
+
+      if (result?.affectedRows === 0) {
+        if (req.flash) req.flash('error', 'User not found.');
+        return res.redirect('/manageUsers');
+      }
+
+      if (req.flash) req.flash('success', 'User deleted successfully.');
+      res.redirect('/manageUsers');
+    });
   }
 };
 

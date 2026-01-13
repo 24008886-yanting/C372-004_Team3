@@ -25,7 +25,26 @@ const VoucherController = {
     if (!requireAdmin(req, res)) return;
     Voucher.getAll((err, vouchers) => {
       if (err) return res.status(500).json({ error: 'Failed to fetch vouchers', details: err });
-      renderOrJson(res, 'vouchers/list', { vouchers });
+      const now = new Date();
+      const mapped = (vouchers || []).map(v => {
+        const expiry = v.expiry_date ? new Date(v.expiry_date) : null;
+        const isExpired = expiry ? expiry < now : false;
+        const usageLimit = Number(v.usage_limit ?? 0);
+        const used = Number(v.used_count ?? 0);
+        const isDepleted = usageLimit > 0 && used >= usageLimit;
+        let status = 'Active';
+        let statusReason = '';
+        if (isExpired) {
+          status = 'Expired';
+          statusReason = 'Past expiry date';
+        } else if (isDepleted) {
+          status = 'Used Up';
+          statusReason = 'Usage limit reached';
+        }
+        return { ...v, status, statusReason };
+      });
+
+      return res.render('vouchers', { vouchers: mapped });
     });
   },
 

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users - Repawblic Pets Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Patrick Hand', cursive;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-header h1 {
+            color: #ff6b9d;
+            font-size: 2em;
+        }
+
+        .btn-primary {
+            background-color: #ff6b9d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #ff4a7f;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.9em;
+            transition: background-color 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-edit {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.85em;
+            margin-right: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-edit:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-delete {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.85em;
+            transition: background-color 0.3s;
+        }
+
+        .btn-delete:hover {
+            background-color: #dc2626;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .users-table-wrapper {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .users-table thead {
+            background-color: #f3f4f6;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .users-table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9em;
+        }
+
+        .users-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .users-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .users-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .user-row-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-admin {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .role-shelter {
+            background-color: #dbeafe;
+            color: #1e3a8a;
+        }
+
+        .role-customer {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .role-adopter {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            color: #ff6b9d;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #6b7280;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: #111827;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ff6b9d;
+            box-shadow: 0 0 8px rgba(255, 107, 157, 0.2);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            justify-content: flex-end;
+        }
+
+        .modal-footer {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .users-table {
+                font-size: 0.9em;
+            }
+
+            .users-table th,
+            .users-table td {
+                padding: 12px;
+            }
+
+            .user-row-actions {
+                flex-direction: column;
+            }
+
+            .btn-edit,
+            .btn-delete {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Manage Users</h1>
+            <button class="btn-primary" onclick="openAddUserModal()">+ Add New User</button>
+        </div>
+
+        <!-- Alerts -->
+        <% if (success) { %>
+            <div class="alert alert-success">
+                <%= success %>
+            </div>
+        <% } %>
+
+        <% if (error) { %>
+            <div class="alert alert-error">
+                <%= error %>
+            </div>
+        <% } %>
+
+        <!-- Users Table -->
+        <div class="users-table-wrapper">
+            <% if (users && users.length > 0) { %>
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach(user => { %>
+                            <tr>
+                                <td><strong><%= user.username %></strong></td>
+                                <td><%= user.email %></td>
+                                <td><%= user.phone %></td>
+                                <td>
+                                    <span class="role-badge role-<%= user.role.toLowerCase() %>">
+                                        <%= user.role %>
+                                    </span>
+                                </td>
+                                <td><%= new Date(user.created_at).toLocaleDateString() %></td>
+                                <td>
+                                    <div class="user-row-actions">
+                                        <button class="btn-edit" onclick="openEditUserModal(<%= JSON.stringify(user).replace(/"/g, '&quot;') %>)">Edit</button>
+                                        <button class="btn-delete" onclick="openDeleteModal('<%= user.user_id %>', '<%= user.username %>)">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            <% } else { %>
+                <div class="empty-state">
+                    <p>No users found</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New User</h2>
+                <button class="close-btn" onclick="closeAddUserModal()">&times;</button>
+            </div>
+            <form method="POST" action="/manageUsers/add">
+                <div class="form-group">
+                    <label for="addUsername">Username *</label>
+                    <input type="text" id="addUsername" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="addEmail">Email *</label>
+                    <input type="email" id="addEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="addPhone">Phone *</label>
+                    <input type="text" id="addPhone" name="phone" required placeholder="e.g., 12345678">
+                </div>
+                <div class="form-group">
+                    <label for="addAddress">Address</label>
+                    <input type="text" id="addAddress" name="address">
+                </div>
+                <div class="form-group">
+                    <label for="addRole">Role *</label>
+                    <select id="addRole" name="role" required>
+                        <option value="">Select a role</option>
+                        <option value="admin">Admin</option>
+                        <option value="shelter">Shelter</option>
+                        <option value="customer">Customer</option>
+                        <option value="adopter">Adopter</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="addPassword">Password *</label>
+                    <input type="password" id="addPassword" name="password" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddUserModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit User</h2>
+                <button class="close-btn" onclick="closeEditUserModal()">&times;</button>
+            </div>
+            <form method="POST" id="editUserForm">
+                <div class="form-group">
+                    <label for="editUsername">Username *</label>
+                    <input type="text" id="editUsername" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">Email *</label>
+                    <input type="email" id="editEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPhone">Phone *</label>
+                    <input type="text" id="editPhone" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="editAddress">Address</label>
+                    <input type="text" id="editAddress" name="address">
+                </div>
+                <div class="form-group">
+                    <label for="editRole">Role *</label>
+                    <select id="editRole" name="role" required>
+                        <option value="admin">Admin</option>
+                        <option value="shelter">Shelter</option>
+                        <option value="customer">Customer</option>
+                        <option value="adopter">Adopter</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editPassword">Password (leave blank to keep current)</label>
+                    <input type="password" id="editPassword" name="password">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeEditUserModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete User</h2>
+                <button class="close-btn" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; font-size: 1.05em;">
+                Are you sure you want to delete <strong id="deleteUsername"></strong>? This action cannot be undone.
+            </p>
+            <form method="POST" id="deleteUserForm">
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                    <button type="submit" class="btn-delete">Delete User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Add User Modal
+        function openAddUserModal() {
+            document.getElementById('addUserModal').classList.add('active');
+        }
+
+        function closeAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('active');
+            document.getElementById('addUserForm').reset();
+        }
+
+        // Edit User Modal
+        function openEditUserModal(user) {
+            document.getElementById('editUsername').value = user.username;
+            document.getElementById('editEmail').value = user.email;
+            document.getElementById('editPhone').value = user.phone;
+            document.getElementById('editAddress').value = user.address || '';
+            document.getElementById('editRole').value = user.role;
+            document.getElementById('editPassword').value = '';
+
+            const form = document.getElementById('editUserForm');
+            form.action = `/manageUsers/${user.user_id}/update`;
+
+            document.getElementById('editUserModal').classList.add('active');
+        }
+
+        function closeEditUserModal() {
+            document.getElementById('editUserModal').classList.remove('active');
+            document.getElementById('editUserForm').reset();
+        }
+
+        // Delete Modal
+        function openDeleteModal(userId, username) {
+            document.getElementById('deleteUsername').textContent = username;
+            const form = document.getElementById('deleteUserForm');
+            form.action = `/manageUsers/${userId}/delete`;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const addModal = document.getElementById('addUserModal');
+            const editModal = document.getElementById('editUserModal');
+            const deleteModal = document.getElementById('deleteModal');
+
+            if (event.target === addModal) {
+                closeAddUserModal();
+            }
+            if (event.target === editModal) {
+                closeEditUserModal();
+            }
+            if (event.target === deleteModal) {
+                closeDeleteModal();
+            }
+        };
+
+        // Close alerts after 5 seconds
+        window.addEventListener('load', () => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    alert.style.transition = 'opacity 0.3s ease-out';
+                    setTimeout(() => {
+                        alert.style.display = 'none';
+                    }, 300);
+                }, 5000);
+            });
+        });
+    </script>
+
+    <%- include('partials/footer') %>
+</body>
+</html>

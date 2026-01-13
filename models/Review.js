@@ -38,6 +38,18 @@ const Review = {
       ORDER BY r.created_at DESC
     `;
     db.query(sql, [user_id], cb);
+  },
+
+  // Admin: fetch all reviews with user and product info
+  getAll(cb) {
+    const sql = `
+      SELECT r.*, u.username, u.email, p.product_name
+      FROM reviews r
+      LEFT JOIN users u ON r.user_id = u.user_id
+      LEFT JOIN products p ON r.product_id = p.product_id
+      ORDER BY r.created_at DESC
+    `;
+    db.query(sql, cb);
   }
 };
 
