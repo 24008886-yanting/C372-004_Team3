@@ -112,6 +112,8 @@ app.post('/login', UserController.login);
 app.get('/register', UserController.renderRegister);
 app.post('/register', UserController.register);
 app.get('/logout', UserController.logout);
+app.get('/forgot-password', UserController.renderForgotPassword);
+app.post('/forgot-password', UserController.resetPassword);
 
 // Users
 app.get('/users', UserController.listUsers);
