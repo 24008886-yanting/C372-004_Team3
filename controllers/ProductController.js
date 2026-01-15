@@ -154,8 +154,7 @@ const ProductController = {
             product_name: (req.body.product_name || '').trim(),
             description: (req.body.description || '').trim(),
             ingredient_list: (req.body.ingredient_list || '').trim(),
-            // store price in cents to match display logic that divides by 100
-            price: Math.round(Number(req.body.price || 0) * 100),
+            price: Number(req.body.price || 0),
             stock: Number(req.body.stock || 0),
             category: (req.body.category || '').trim(),
             image1: files.image1?.[0]?.filename || null,
@@ -206,7 +205,7 @@ const ProductController = {
             product_name: (req.body.product_name || '').trim(),
             description: (req.body.description || '').trim(),
             ingredient_list: (req.body.ingredient_list || '').trim(),
-            price: Math.round(Number(req.body.price || 0) * 100),
+            price: Number(req.body.price || 0),
             stock: Number(req.body.stock || 0),
             category: (req.body.category || '').trim(),
             image1: files.image1?.[0]?.filename || req.body.image1 || null,

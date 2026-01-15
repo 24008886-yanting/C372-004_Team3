@@ -40,7 +40,7 @@
               >
               <div class="product-name"><%= product.product_name %></div>
               <div class="product-category"><%= product.category %></div>
-              <div class="product-price">$<%= (product.price / 100).toFixed(2) %></div>
+              <div class="product-price">$<%= Number(product.price || 0).toFixed(2) %></div>
               <span class="stock-badge <%= product.stock > 10 ? 'stock-in' : product.stock > 0 ? 'stock-low' : 'stock-out' %>">
                 Stock: <%= product.stock %>
               </span>
