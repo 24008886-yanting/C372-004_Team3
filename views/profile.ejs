@@ -8,6 +8,23 @@
   <link rel="stylesheet" href="/css/profile.css">
 </head>
 <body class="profile-body">
+<%
+  const resolvedRole = (
+    (typeof currentRole !== 'undefined' && currentRole) ||
+    (typeof currentUser !== 'undefined' && currentUser?.role) ||
+    (typeof user !== 'undefined' && user?.role) ||
+    (typeof userRole !== 'undefined' && userRole) ||
+    ''
+  ).toLowerCase();
+  const isAdmin = resolvedRole === 'admin';
+  const isShelter = resolvedRole === 'shelter';
+  const isCustomer = resolvedRole === 'customer';
+  const isAdopter = resolvedRole === 'adopter';
+  const showContact = !isAdmin; // shelter/customers/adopters see
+  const showWallet = isCustomer || isAdopter;
+  const showVouchers = isCustomer || isAdopter;
+  const showTransactions = isCustomer || isAdopter;
+%>
   <%- include('partials/navbar') %>
 
   <main class="profile-shell">
@@ -29,25 +46,33 @@
           <span>Account Details</span>
           <span aria-hidden="true">&#8250;</span>
         </a>
-        <a class="profile-link" href="/userContactMessages">
-          <span class="profile-link-text">
-            <span>Contact Messages</span>
-            <span class="profile-link-sub">Your contact-us submissions and admin replies.</span>
-          </span>
-          <span aria-hidden="true">&#8250;</span>
-        </a>
-        <a class="profile-link" href="/digitalWallet">
-          <span>Digital Wallet</span>
-          <span aria-hidden="true">&#8250;</span>
-        </a>
-        <a class="profile-link" href="/myVoucher">
-          <span>My Voucher</span>
-          <span aria-hidden="true">&#8250;</span>
-        </a>
-        <a class="profile-link" href="/allTransactions">
-          <span>All Transactions</span>
-          <span aria-hidden="true">&#8250;</span>
-        </a>
+        <% if (showContact) { %>
+          <a class="profile-link" href="/userContactMessages">
+            <span class="profile-link-text">
+              <span>Contact Messages</span>
+              <span class="profile-link-sub">Your contact-us submissions and admin replies.</span>
+            </span>
+            <span aria-hidden="true">&#8250;</span>
+          </a>
+        <% } %>
+        <% if (showWallet) { %>
+          <a class="profile-link" href="/digitalWallet">
+            <span>Digital Wallet</span>
+            <span aria-hidden="true">&#8250;</span>
+          </a>
+        <% } %>
+        <% if (showVouchers) { %>
+          <a class="profile-link" href="/myVoucher">
+            <span>My Voucher</span>
+            <span aria-hidden="true">&#8250;</span>
+          </a>
+        <% } %>
+        <% if (showTransactions) { %>
+          <a class="profile-link" href="/allTransactions">
+            <span>All Transactions</span>
+            <span aria-hidden="true">&#8250;</span>
+          </a>
+        <% } %>
       </div>
     </section>
   </main>
