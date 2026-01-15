@@ -6,86 +6,48 @@
   <title>Inventory - Repawblic Pets</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
   <link rel="stylesheet" href="/css/shelter.css">
-  <style>
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-    .product-card {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .product-card img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      border-radius: 10px;
-      background: #f9fafb;
-    }
-    .product-name {
-      font-weight: 700;
-      color: var(--text);
-    }
-    .product-price {
-      color: #10b981;
-      font-weight: 600;
-    }
-    .stock-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .stock-in { background: #d1fae5; color: #065f46; }
-    .stock-low { background: #fef3c7; color: #92400e; }
-    .stock-out { background: #fee2e2; color: #991b1b; }
-  </style>
+  <link rel="stylesheet" href="/css/inventory.css">
 </head>
 <body>
   <%- include('partials/navbar') %>
 
   <main>
     <header>
-      <p class=\"muted\">Admin · Product Management</p>
+      <p class="muted">Admin · Product Management</p>
       <h1>Inventory</h1>
-      <p class=\"muted\">Manage all products in your store</p>
+      <p class="muted">Manage all products in your store</p>
     </header>
 
-    <section class=\"card\">
-      <div class=\"form-actions\" style=\"justify-content: space-between; align-items: center;\">
-        <div style=\"display:flex; gap:20px;\">
-          <span class=\"muted\">Total: <%= products ? products.length : 0 %></span>
-          <span class=\"muted\">In Stock: <%= products ? products.filter(p => p.stock > 0).length : 0 %></span>
-          <span class=\"muted\">Out: <%= products ? products.filter(p => p.stock === 0).length : 0 %></span>
+    <section class="card">
+      <div class="table-header">
+        <div class="inventory-stats">
+          <span class="muted">Total: <%= products ? products.length : 0 %></span>
+          <span class="muted">In Stock: <%= products ? products.filter(p => p.stock > 0).length : 0 %></span>
+          <span class="muted">Out: <%= products ? products.filter(p => p.stock === 0).length : 0 %></span>
         </div>
-        <a class=\"btn\" href=\"/products/new\">+ Add Product</a>
+        <a class="btn" href="/products/new">+ Add Product</a>
       </div>
 
       <% if (!products || !products.length) { %>
-        <p class=\"muted\" style=\"margin-top:20px; text-align:center;\">No products found</p>
+        <p class="muted table-empty">No products found</p>
       <% } else { %>
-        <div class=\"product-grid\">
+        <div class="product-grid">
           <% products.forEach(product => { %>
-            <article class=\"card product-card\">
+            <article class="card product-card">
               <img 
-                src=\"<%= product.image1 ? `/images/${product.image1}` : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22180%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22200%22 height=%22180%22/%3E%3C/svg%3E' %>\" 
-                alt=\"<%= product.product_name %>\"
-                onerror=\"this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22180%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22200%22 height=%22180%22/%3E%3C/svg%3E'\"
+                src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22180%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22200%22 height=%22180%22/%3E%3C/svg%3E" 
+                alt="<%= product.product_name %>"
               >
-              <div class=\"product-name\"><%= product.product_name %></div>
-              <div class=\"muted\" style=\"font-size:12px;\"><%= product.category %></div>
-              <div class=\"product-price\">$<%= (product.price / 100).toFixed(2) %></div>
-              <span class=\"stock-badge <%= product.stock > 10 ? 'stock-in' : product.stock > 0 ? 'stock-low' : 'stock-out' %>\">
+              <div class="product-name"><%= product.product_name %></div>
+              <div class="product-category"><%= product.category %></div>
+              <div class="product-price">$<%= (product.price / 100).toFixed(2) %></div>
+              <span class="stock-badge <%= product.stock > 10 ? 'stock-in' : product.stock > 0 ? 'stock-low' : 'stock-out' %>">
                 Stock: <%= product.stock %>
               </span>
-              <div class=\"form-actions\" style=\"margin-top:8px;\">
-                <a href=\"/products/<%= product.product_id %>/edit\" class=\"btn outline\">Edit</a>
-                <form method=\"POST\" action=\"/products/<%= product.product_id %>/delete\" style=\"flex:1; margin:0;\" onsubmit=\"return confirm('Delete this product?');\">
-                  <button type=\"submit\" class=\"btn\" style=\"width:100%; background:#ef4444; border-color:#ef4444;\">Delete</button>
+              <div class="form-actions">
+                <a href="/products/<%= product.product_id %>/edit" class="btn outline">Edit</a>
+                <form method="POST" action="/products/<%= product.product_id %>/delete" class="delete-form" onsubmit="return confirm('Delete this product?');">
+                  <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
               </div>
             </article>

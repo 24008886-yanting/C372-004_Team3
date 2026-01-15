@@ -25,7 +25,8 @@ const checkAuthenticated = (req, res, next) => {
 const checkAuthorised = (roles = []) => {
   return (req, res, next) => {
     // Only check authorisation, assume authentication is already checked
-    if (roles.length === 0 || roles.includes(req.session.user.role)) {
+    const userRole = req.session.role || (req.session.user && req.session.user.role);
+    if (roles.length === 0 || roles.includes(userRole)) {
       return next();
     }
     req.flash('error', 'You do not have permission to view this resource');
