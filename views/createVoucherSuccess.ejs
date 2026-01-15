@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voucher Created | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Admin - Voucher Management</p>
+      <h1>Voucher Created</h1>
+      <p class="muted">Your new voucher is ready for use</p>
+    </header>
+
+    <section class="card">
+      <p class="muted"><%= message || 'Voucher created successfully.' %></p>
+      <div class="form-actions">
+        <a class="btn outline" href="/vouchers/new">Create another</a>
+        <a class="btn" href="/vouchers">Back to vouchers</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

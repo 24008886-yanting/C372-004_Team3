@@ -140,6 +140,9 @@ app.post('/vouchers', VoucherController.create);
 app.get('/vouchers/:id/edit', VoucherController.showEditForm);
 app.put('/vouchers/:id', VoucherController.update);
 app.delete('/vouchers/:id', VoucherController.delete);
+// Support HTML form submissions without method override
+app.post('/vouchers/:id', VoucherController.update);
+app.post('/vouchers/:id/delete', VoucherController.delete);
 // Apply voucher (user)
 app.post('/vouchers/apply', VoucherController.apply);
 

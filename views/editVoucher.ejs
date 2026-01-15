@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Voucher | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Admin - Voucher Management</p>
+      <h1>Edit Voucher</h1>
+      <p class="muted">Update voucher details or remove a voucher from the list</p>
+    </header>
+
+    <% const expiryValue = voucher.expiry_date ? new Date(voucher.expiry_date).toISOString().split('T')[0] : ''; %>
+    <section class="card">
+      <form action="/vouchers/<%= voucher.voucher_id %>" method="post" class="form-grid">
+        <div class="form-group">
+          <label for="voucher_code">Voucher code</label>
+          <input id="voucher_code" name="voucher_code" type="text" value="<%= voucher.voucher_code %>" required>
+        </div>
+
+        <div class="form-group">
+          <label for="discount_type">Discount type</label>
+          <select id="discount_type" name="discount_type" required>
+            <option value="percentage" <%= voucher.discount_type === 'percentage' ? 'selected' : '' %>>Percentage</option>
+            <option value="fixed" <%= voucher.discount_type === 'fixed' ? 'selected' : '' %>>Fixed amount</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="discount_value">Discount value</label>
+          <input id="discount_value" name="discount_value" type="number" step="0.01" min="0" value="<%= voucher.discount_value %>" required>
+        </div>
+
+        <div class="form-group">
+          <label for="expiry_date">Expiry date</label>
+          <input id="expiry_date" name="expiry_date" type="date" value="<%= expiryValue %>" required>
+        </div>
+
+        <div class="form-group">
+          <label for="usage_limit">Usage limit (optional)</label>
+          <input id="usage_limit" name="usage_limit" type="number" min="1" value="<%= voucher.usage_limit || '' %>">
+        </div>
+
+        <div class="form-actions" style="flex-wrap: wrap;">
+          <a class="btn outline" href="/vouchers">Back</a>
+          <button class="btn" type="submit">Save changes</button>
+          <button
+            type="submit"
+            class="btn outline"
+            formaction="/vouchers/<%= voucher.voucher_id %>/delete"
+            formmethod="post"
+            onclick="return confirm('Delete this voucher?');"
+          >
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

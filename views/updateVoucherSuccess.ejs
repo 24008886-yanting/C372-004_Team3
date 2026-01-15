@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voucher Updated | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Admin - Voucher Management</p>
+      <h1>Voucher Updated</h1>
+      <p class="muted">Your voucher changes have been saved</p>
+    </header>
+
+    <section class="card">
+      <p class="muted"><%= message || 'Voucher updated successfully.' %></p>
+      <div class="form-actions">
+        <a class="btn outline" href="/vouchers">Back to vouchers</a>
+        <% if (voucher_id) { %>
+          <a class="btn" href="/vouchers/<%= voucher_id %>/edit">Edit again</a>
+        <% } %>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

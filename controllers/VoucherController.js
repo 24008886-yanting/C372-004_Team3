@@ -12,7 +12,8 @@ const renderOrJson = (res, view, payload) => {
 
 // Require admin role for protected operations
 const requireAdmin = (req, res) => {
-  if (req.session?.role !== 'admin') {
+  const role = (req.session?.role || '').toLowerCase();
+  if (role !== 'admin') {
     res.status(403).json({ error: 'Admin access required' });
     return false;
   }
@@ -51,7 +52,7 @@ const VoucherController = {
   // Admin: show create form
   showCreateForm(req, res) {
     if (!requireAdmin(req, res)) return;
-    renderOrJson(res, 'vouchers/create', {});
+    renderOrJson(res, 'createVoucher', {});
   },
 
   // Admin: create voucher
@@ -63,9 +64,14 @@ const VoucherController = {
       return res.status(400).json({ error: 'voucher_code, discount_type, discount_value, and expiry_date are required' });
     }
 
-    Voucher.create({ voucher_code, discount_type, discount_value, expiry_date, usage_limit }, (err, result) => {
+    const normalizedUsageLimit =
+      usage_limit === undefined || usage_limit === null || String(usage_limit).trim() === ''
+        ? undefined
+        : Number(usage_limit);
+
+    Voucher.create({ voucher_code, discount_type, discount_value, expiry_date, usage_limit: normalizedUsageLimit }, (err, result) => {
       if (err) return res.status(500).json({ error: 'Failed to create voucher', details: err });
-      renderOrJson(res, 'vouchers/create-success', { message: 'Voucher created', voucher_id: result?.insertId });
+      renderOrJson(res, 'createVoucherSuccess', { message: 'Voucher created', voucher_id: result?.insertId });
     });
   },
 
@@ -76,7 +82,7 @@ const VoucherController = {
     Voucher.getById(id, (err, rows) => {
       if (err) return res.status(500).json({ error: 'Failed to load voucher', details: err });
       if (!rows || rows.length === 0) return res.status(404).json({ error: 'Voucher not found' });
-      renderOrJson(res, 'vouchers/edit', { voucher: rows[0] });
+      renderOrJson(res, 'editVoucher', { voucher: rows[0] });
     });
   },
 
@@ -84,10 +90,14 @@ const VoucherController = {
   update(req, res) {
     if (!requireAdmin(req, res)) return;
     const { id } = req.params;
-    Voucher.update(id, req.body || {}, (err, result) => {
+    const updates = { ...(req.body || {}) };
+    if (updates.usage_limit !== undefined && String(updates.usage_limit).trim() === '') {
+      delete updates.usage_limit;
+    }
+    Voucher.update(id, updates, (err, result) => {
       if (err) return res.status(500).json({ error: 'Failed to update voucher', details: err });
       if (result?.affectedRows === 0) return res.status(404).json({ error: 'Voucher not found' });
-      renderOrJson(res, 'vouchers/update-success', { message: 'Voucher updated', voucher_id: id });
+      renderOrJson(res, 'updateVoucherSuccess', { message: 'Voucher updated', voucher_id: id });
     });
   },
 
@@ -98,7 +108,7 @@ const VoucherController = {
     Voucher.delete(id, (err, result) => {
       if (err) return res.status(500).json({ error: 'Failed to delete voucher', details: err });
       if (result?.affectedRows === 0) return res.status(404).json({ error: 'Voucher not found' });
-      renderOrJson(res, 'vouchers/delete-success', { message: 'Voucher deleted', voucher_id: id });
+      renderOrJson(res, 'deleteVoucherSuccess', { message: 'Voucher deleted', voucher_id: id });
     });
   },
 
