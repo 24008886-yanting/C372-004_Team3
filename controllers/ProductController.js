@@ -137,9 +137,8 @@ const ProductController = {
         if (req.session?.role !== 'admin') {
             return res.status(403).send('Unauthorized: admin role required.');
         }
-        const success = (req.flash && req.flash('success')[0]) || undefined;
         const error = (req.flash && req.flash('error')[0]) || undefined;
-        res.render('addProduct', { messages: { success, error } });
+        res.render('addProduct', { messages: { error } });
     },
 
     // Add a new product (admin only)

@@ -31,11 +31,16 @@
       <% if (!products || !products.length) { %>
         <p class="muted table-empty">No products found</p>
       <% } else { %>
+        <% const resolveImage = (src) => { %>
+          <% if (!src) return ''; %>
+          <% if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/images/')) return src; %>
+          <% return '/images/' + src; %>
+        <% }; %>
         <div class="product-grid">
           <% products.forEach(product => { %>
             <article class="card product-card">
               <img 
-                src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22180%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22200%22 height=%22180%22/%3E%3C/svg%3E" 
+                src="<%= resolveImage(product.image1) || resolveImage(product.image2) || '' %>" 
                 alt="<%= product.product_name %>"
               >
               <div class="product-name"><%= product.product_name %></div>
