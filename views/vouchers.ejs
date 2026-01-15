@@ -1,62 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Vouchers - Admin</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="/css/navbar.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vouchers - Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family:Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
 	<style>
-		* { box-sizing: border-box; }
-		body {
-			margin: 0;
-			font-family: 'Patrick Hand', cursive;
-			background: #f5f5f5;
-			color: #111827;
-		}
-		.container {
-			max-width: 1200px;
-			margin: 40px auto;
-			padding: 0 20px 60px;
-		}
-		.page-header {
-			background: #fff;
-			border-radius: 12px;
-			padding: 20px 24px;
-			margin-bottom: 18px;
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-		}
-		h1 { margin: 0; color: #ff6b9d; font-size: 28px; }
-		.muted { color: #6b7280; font-size: 14px; }
-		.card {
-			background: #fff;
-			border-radius: 12px;
-			box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-			overflow: hidden;
-		}
-		.table {
-			width: 100%;
-			border-collapse: collapse;
-		}
-		.table thead {
-			background: #f3f4f6;
-		}
-		.table th, .table td {
-			padding: 14px 16px;
-			text-align: left;
-			border-bottom: 1px solid #e5e7eb;
-		}
-		.table tbody tr:hover { background: #f9fafb; }
 		.badge {
 			display: inline-flex;
 			align-items: center;
-			padding: 6px 10px;
-			border-radius: 999px;
+			padding: 4px 10px;
+			border-radius: 10px;
 			font-size: 12px;
 			font-weight: 600;
 			text-transform: uppercase;
@@ -64,89 +19,77 @@
 		.badge-active { background: #d1fae5; color: #065f46; }
 		.badge-used { background: #fee2e2; color: #991b1b; }
 		.badge-expired { background: #fef3c7; color: #92400e; }
-		.pill {
-			display: inline-block;
-			padding: 4px 10px;
-			border-radius: 10px;
-			background: #f3f4f6;
-			font-size: 13px;
-		}
-		.status-note { color: #6b7280; font-size: 12px; margin-top: 4px; }
-		.empty {
-			padding: 40px;
-			text-align: center;
-			color: #6b7280;
-		}
-		@media (max-width: 768px) {
-			.table th:nth-child(5), .table td:nth-child(5),
-			.table th:nth-child(6), .table td:nth-child(6) {
-				display: none;
-			}
-		}
 	</style>
 </head>
 <body>
 	<%- include('partials/navbar') %>
-	<div class="container">
-		<div class="page-header">
-			<div>
-				<h1>Vouchers</h1>
-				<div class="muted">View voucher codes and their validity</div>
-			</div>
-			<a href="/vouchers/new" class="pill" style="background:#ff6b9d;color:#fff;text-decoration:none;">+ Create Voucher</a>
-		</div>
 
-		<div class="card">
-			<% if (vouchers && vouchers.length) { %>
-				<table class="table">
-					<thead>
-						<tr>
-							<th>Code</th>
-							<th>Discount</th>
-							<th>Expires</th>
-							<th>Status</th>
-							<th>Usage</th>
-							<th>Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						<% vouchers.forEach(v => { %>
-							<tr>
-								<td><strong><%= v.voucher_code %></strong></td>
-								<td>
-									<%= v.discount_type === 'percentage' ? v.discount_value + '% off' : '$' + Number(v.discount_value).toFixed(2) + ' off' %>
-								</td>
-								<td>
-									<%= v.expiry_date ? new Date(v.expiry_date).toLocaleDateString() : 'No expiry' %>
-								</td>
-								<td>
-									<% if (v.status === 'Expired') { %>
-										<span class="badge badge-expired">Expired</span>
-									<% } else if (v.status === 'Used Up') { %>
-										<span class="badge badge-used">Used Up</span>
-									<% } else { %>
-										<span class="badge badge-active">Active</span>
-									<% } %>
-									<% if (v.statusReason) { %>
-										<div class="status-note"><%= v.statusReason %></div>
-									<% } %>
-								</td>
-								<td>
-									<% const limit = Number(v.usage_limit || 0); const used = Number(v.used_count || 0); %>
-									<%= used %> / <%= limit || '∞' %>
-								</td>
-								<td>
-									<a href="/vouchers/<%= v.voucher_id %>/edit" class="pill">Edit</a>
-								</td>
-							</tr>
-						<% }); %>
-					</tbody>
-				</table>
+	<main>
+		<header>
+			<p class="muted">Admin · Voucher Management</p>
+			<h1>Vouchers</h1>
+			<p class="muted">View and manage all voucher codes</p>
+		</header>
+
+		<section class="card">
+			<div class="form-actions" style="justify-content: space-between; align-items: center;">
+				<span class="muted">Total vouchers: <%= vouchers && vouchers.length ? vouchers.length : 0 %></span>
+				<a class="btn" href="/vouchers/new">+ Create Voucher</a>
+			</div>
+
+			<% if (!vouchers || !vouchers.length) { %>
+				<p class="muted" style="margin-top:20px; text-align:center;">No vouchers found</p>
 			<% } else { %>
-				<div class="empty">No vouchers found.</div>
+				<div class="table-wrap" style="margin-top:16px;">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Code</th>
+								<th>Discount</th>
+								<th>Expires</th>
+								<th>Status</th>
+								<th>Usage</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							<% vouchers.forEach(v => { %>
+								<tr>
+									<td><strong><%= v.voucher_code %></strong></td>
+									<td>
+										<%= v.discount_type === 'percentage' ? v.discount_value + '% off' : '$' + Number(v.discount_value).toFixed(2) + ' off' %>
+									</td>
+									<td>
+										<%= v.expiry_date ? new Date(v.expiry_date).toLocaleDateString() : 'No expiry' %>
+									</td>
+									<td>
+										<% if (v.status === 'Expired') { %>
+											<span class="badge badge-expired">Expired</span>
+										<% } else if (v.status === 'Used Up') { %>
+											<span class="badge badge-used">Used Up</span>
+										<% } else { %>
+											<span class="badge badge-active">Active</span>
+										<% } %>
+										<% if (v.statusReason) { %>
+											<div class="muted" style="font-size:11px; margin-top:4px;"><%= v.statusReason %></div>
+										<% } %>
+									</td>
+									<td>
+										<% const limit = Number(v.usage_limit || 0); const used = Number(v.used_count || 0); %>
+										<%= used %> / <%= limit || '∞' %>
+									</td>
+									<td>
+										<a href="/vouchers/<%= v.voucher_id %>/edit" class="btn outline" style="padding:6px 12px; font-size:13px;">Edit</a>
+									</td>
+								</tr>
+							<% }); %>
+						</tbody>
+					</table>
+				</div>
 			<% } %>
-		</div>
-	</div>
+		</section>
+	</main>
+
 	<%- include('partials/footer') %>
 </body>
 </html>

@@ -134,7 +134,9 @@ const ProductController = {
         if (req.session?.role !== 'admin') {
             return res.status(403).send('Unauthorized: admin role required.');
         }
-        res.render('addProduct');
+        const success = (req.flash && req.flash('success')[0]) || undefined;
+        const error = (req.flash && req.flash('error')[0]) || undefined;
+        res.render('addProduct', { messages: { success, error } });
     },
 
     // Add a new product (admin only)
@@ -146,24 +148,22 @@ const ProductController = {
 
         const files = req.files || {};
         const product = {
-            product_name: req.body.product_name,
-            description: req.body.description,
-            ingredient_list: req.body.ingredient_list,
-            price: req.body.price,
-            stock: req.body.stock,
-            category: req.body.category,
+            product_name: (req.body.product_name || '').trim(),
+            description: (req.body.description || '').trim(),
+            ingredient_list: (req.body.ingredient_list || '').trim(),
+            // store price in cents to match display logic that divides by 100
+            price: Math.round(Number(req.body.price || 0) * 100),
+            stock: Number(req.body.stock || 0),
+            category: (req.body.category || '').trim(),
             image1: files.image1?.[0]?.filename || null,
             image2: files.image2?.[0]?.filename || null
         };
 
-        if (!product.image1) {
-            return res.status(400).send('Primary image is required.');
-        }
-
         Product.addProduct(product, role, (err, result) => {
             if (err) {
                 console.error('Failed to add product:', err);
-                return res.status(500).send('Failed to add product.');
+                if (req.flash) req.flash('error', 'Failed to add product.');
+                return res.redirect('/products/new');
             }
             req.flash('success', 'Product added successfully.');
             res.redirect('/inventory');
@@ -200,12 +200,12 @@ const ProductController = {
         const productId = req.params.id;
         const files = req.files || {};
         const product = {
-            product_name: req.body.product_name,
-            description: req.body.description,
-            ingredient_list: req.body.ingredient_list,
-            price: req.body.price,
-            stock: req.body.stock,
-            category: req.body.category,
+            product_name: (req.body.product_name || '').trim(),
+            description: (req.body.description || '').trim(),
+            ingredient_list: (req.body.ingredient_list || '').trim(),
+            price: Math.round(Number(req.body.price || 0) * 100),
+            stock: Number(req.body.stock || 0),
+            category: (req.body.category || '').trim(),
             image1: files.image1?.[0]?.filename || req.body.image1 || null,
             image2: files.image2?.[0]?.filename || req.body.image2 || null
         };
@@ -213,7 +213,8 @@ const ProductController = {
         Product.updateProduct(productId, product, role, (err) => {
             if (err) {
                 console.error('Failed to update product:', err);
-                return res.status(500).send('Failed to update product.');
+                if (req.flash) req.flash('error', 'Failed to update product.');
+                return res.redirect(`/products/${productId}/edit`);
             }
             req.flash('success', 'Product updated successfully.');
             res.redirect('/inventory');

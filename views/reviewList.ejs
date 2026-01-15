@@ -1,21 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Reviews</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="/css/navbar.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reviews - Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
 	<style>
-		* { box-sizing: border-box; }
-		body {
-			margin: 0;
-			font-family: 'Patrick Hand', cursive;
-			background: #f5f5f5;
-			color: #111827;
+		.stars {
+			display: inline-flex;
+			gap: 2px;
+			font-size: 16px;
+			color: #f59e0b;
 		}
+		.review-card {
+			margin-bottom: 12px;
+		}
+	</style>
+</head>
+<body>
+	<%- include('partials/navbar') %>
+
+	<main>
+		<header>
+			<p class="muted">Admin · Review Management</p>
+			<h1><%= isAdminView ? 'All Reviews' : 'My Reviews' %></h1>
+			<p class="muted"><%= isAdminView ? 'Reviews from all users' : 'Reviews you have written' %></p>
+		</header>
+
+		<% if (!reviews || !reviews.length) { %>
+			<section class="card">
+				<p class="muted" style="text-align:center; padding:40px;">No reviews found</p>
+			</section>
+		<% } else { %>
+			<div style="display:flex; flex-direction:column; gap:12px;">
+				<% reviews.forEach(r => { %>
+					<article class="card review-card">
+						<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+							<div>
+								<div style="font-weight:700; color:var(--text);"><%= r.product_name || 'Product #' + r.product_id %></div>
+								<div class="muted" style="font-size:13px;">
+									<%= new Date(r.created_at || Date.now()).toLocaleDateString() %>
+									<% if (isAdminView) { %>
+										• <%= r.username || ('User #' + r.user_id) %>
+										<% if (r.email) { %> (<%= r.email %>) <% } %>
+									<% } %>
+								</div>
+							</div>
+							<div>
+								<span class="stars">
+									<% for (let i = 1; i <= 5; i++) { %>
+										<% if (i <= Number(r.rating || 0)) { %>
+											★
+										<% } else { %>
+											☆
+										<% } %>
+									<% } %>
+								</span>
+							</div>
+						</div>
+						<% if (r.comment) { %>
+							<div style="margin-top:10px; white-space:pre-wrap; line-height:1.5;"><%= r.comment %></div>
+						<% } else { %>
+							<div class="muted" style="margin-top:8px;">No comment provided.</div>
+						<% } %>
+					</article>
+				<% }); %>
+			</div>
+		<% } %>
+	</main>
+
+	<%- include('partials/footer') %>
 		.container {
 			max-width: 1100px;
 			margin: 40px auto;

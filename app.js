@@ -3,6 +3,7 @@ const session = require('express-session');
 const flash = require('connect-flash');
 const path = require('path');
 const multer = require('multer');
+require('dotenv').config();
 const app = express();
 
 const ProductController = require('./controllers/ProductController');
@@ -25,7 +26,7 @@ const { checkAuthenticated, checkAuthorised } = require('./middleware');
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // -------------------- MIDDLEWARE --------------------
 app.use(express.urlencoded({ extended: true }));
@@ -34,7 +35,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Session MUST come before flash
 app.use(session({
-    secret: "yourSecretKey123",
+    secret: process.env.SESSION_SECRET || 'fallback-dev-secret-change-in-production',
     resave: false,
     saveUninitialized: true
 }));

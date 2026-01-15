@@ -1,21 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Order Dashboard - Admin</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="/css/navbar.css">
-	<style>
-		* { box-sizing: border-box; }
-		body {
-			margin: 0;
-			font-family: 'Patrick Hand', cursive;
-			background: #f5f5f5;
-			color: #111827;
-		}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Dashboard - Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+	<%- include('partials/navbar') %>
+
+	<main>
+		<header>
+			<p class="muted">Admin · Order Management</p>
+			<h1>Order Dashboard</h1>
+			<p class="muted">Overview of all customer orders</p>
+		</header>
+
+		<div class="grid" style="margin-bottom:18px;">
+			<article class="card">
+				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Orders</h2>
+				<div style="font-size:26px; font-weight:700; color:var(--text);"><%= totals.orders %></div>
+			</article>
+			<article class="card">
+				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Revenue</h2>
+				<div style="font-size:26px; font-weight:700; color:var(--text);">$<%= (Number(totals.revenue || 0) / 100).toFixed(2) %></div>
+			</article>
+			<article class="card">
+				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Discounts</h2>
+				<div style="font-size:26px; font-weight:700; color:var(--text);">$<%= (Number(totals.discount || 0) / 100).toFixed(2) %></div>
+			</article>
+			<article class="card">
+				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Items Sold</h2>
+				<div style="font-size:26px; font-weight:700; color:var(--text);"><%= totals.items %></div>
+			</article>
+		</div>
+
+		<section class="card">
+			<% if (!orders || !orders.length) { %>
+				<p class="muted" style="text-align:center; padding:40px;">No orders found</p>
+			<% } else { %>
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Order #</th>
+								<th>Customer</th>
+								<th>Voucher</th>
+								<th>Items</th>
+								<th>Subtotal</th>
+								<th>Total</th>
+								<th>Created</th>
+							</tr>
+						</thead>
+						<tbody>
+							<% orders.forEach(o => { %>
+								<tr>
+									<td><strong>#<%= o.order_id %></strong></td>
+									<td><%= o.username || `User #${o.user_id}` %></td>
+									<td><%= o.voucher_code || '—' %></td>
+									<td><%= o.item_count || 0 %></td>
+									<td>$<%= (Number(o.subtotal || 0) / 100).toFixed(2) %></td>
+									<td>$<%= (Number(o.total || 0) / 100).toFixed(2) %></td>
+									<td><%= new Date(o.created_at).toLocaleDateString() %></td>
+								</tr>
+							<% }); %>
+						</tbody>
+					</table>
+				</div>
+			<% } %>
+		</section>
+	</main>
+
+	<%- include('partials/footer') %>
 		.container {
 			max-width: 1200px;
 			margin: 40px auto;
