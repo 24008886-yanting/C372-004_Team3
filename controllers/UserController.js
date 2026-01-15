@@ -206,6 +206,71 @@ const UserController = {
     });
   },
 
+  // Render forgot password form
+  renderForgotPassword(req, res) {
+    const success = (req.flash && req.flash('success')[0]) || undefined;
+    const error = (req.flash && req.flash('error')[0]) || undefined;
+    res.render('forgetPassword', {
+      success,
+      error,
+      formData: { email: '' }
+    });
+  },
+
+  // Handle password reset by email
+  resetPassword(req, res) {
+    const email = (req.body?.email || '').trim();
+    const password = (req.body?.password || '').trim();
+    const confirmPassword = (req.body?.confirmPassword || '').trim();
+
+    const renderError = (message) => {
+      return res.status(400).render('forgetPassword', {
+        success: undefined,
+        error: message,
+        formData: { email }
+      });
+    };
+
+    if (!email || !password || !confirmPassword) {
+      return renderError('Email, new password, and confirmation are required.');
+    }
+
+    if (password.length < 6) {
+      return renderError('Password must be at least 6 characters long.');
+    }
+
+    if (password !== confirmPassword) {
+      return renderError('Passwords do not match. Please try again.');
+    }
+
+    User.findByEmail(email, (findErr, user) => {
+      if (findErr) {
+        console.error('password reset lookup error:', findErr);
+        return renderError('Failed to reset password. Please try again.');
+      }
+
+      if (!user) {
+        return renderError('No account found with that email.');
+      }
+
+      User.updateUser(user.user_id, { password }, (updateErr, result) => {
+        if (updateErr) {
+          console.error('password reset update error:', updateErr);
+          return renderError('Failed to reset password. Please try again.');
+        }
+
+        if (result?.affectedRows === 0) {
+          return renderError('Could not update password. Please try again.');
+        }
+
+        if (req.flash) {
+          req.flash('success', 'Password has been reset successfully. Please log in with your new password.');
+        }
+        return res.redirect('/forgot-password');
+      });
+    });
+  },
+
   // Render register page
   renderRegister(req, res) {
     const success = (req.flash && req.flash('success')[0]) || undefined;
