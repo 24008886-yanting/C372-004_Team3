@@ -4,11 +4,14 @@ const Wishlist = require('../models/Wishlist');
 const ProductController = {
     // List all products on the inventory page (admin view)
     listInventory(req, res) {
+        console.log('listInventory called - user:', req.session?.user, 'role:', req.session?.role);
         Product.getAllProducts((err, products) => {
             if (err) {
                 console.error('Failed to load inventory:', err);
+                console.error('Error details:', err.message, err.stack);
                 return res.status(500).send('Failed to load inventory.');
             }
+            console.log('Products loaded successfully:', products?.length || 0, 'products');
             res.render('inventory', { products });
         });
     },
