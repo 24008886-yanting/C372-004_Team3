@@ -9,7 +9,9 @@ const ProductModel = {
             ingredient_list, 
             price, 
             stock, 
-            category
+            category,
+            image1,
+            image2
         FROM products`;
         db.query(query, callback);
     },
@@ -27,7 +29,9 @@ const ProductModel = {
             ingredient_list, 
             price, 
             stock, 
-            category
+            category,
+            image1,
+            image2
         FROM products
         ORDER BY product_id
         LIMIT ? OFFSET ?`;
@@ -42,7 +46,9 @@ const ProductModel = {
             ingredient_list, 
             price, 
             stock, 
-            category
+            category,
+            image1,
+            image2
         FROM products
         WHERE product_id = ?`;
         db.query(query, [productId], callback);
@@ -56,7 +62,9 @@ const ProductModel = {
             ingredient_list, 
             price, 
             stock, 
-            category
+            category,
+            image1,
+            image2
         FROM products
         WHERE product_name LIKE ?`;
         db.query(query, [`%${productName}%`], callback);
@@ -74,7 +82,9 @@ const ProductModel = {
             ingredient_list, 
             price, 
             stock, 
-            category
+            category,
+            image1,
+            image2
         FROM products
         WHERE LOWER(product_name) LIKE ? OR LOWER(category) LIKE ?
         ORDER BY product_name
