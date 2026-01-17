@@ -208,18 +208,6 @@
                 </div>
             <% } %>
 
-            <% if (locals.messages?.success) { %>
-                <div class="alert alert-success">
-                    <% if (Array.isArray(messages.success)) { %>
-                        <% messages.success.forEach(msg => { %>
-                            <div><%= msg %></div>
-                        <% }); %>
-                    <% } else { %>
-                        <%= messages.success %>
-                    <% } %>
-                </div>
-            <% } %>
-
             <form action="/products/add" method="POST" enctype="multipart/form-data">
                 <!-- Product Name -->
                 <div class="form-group">
@@ -239,12 +227,12 @@
                     <label for="category">Category <span class="required">*</span></label>
                     <select id="category" name="category" required>
                         <option value="">-- Select Category --</option>
-                        <option value="Food & Treats" <%= locals.product?.category === 'Food & Treats' ? 'selected' : '' %>>Food & Treats</option>
-                        <option value="Toys" <%= locals.product?.category === 'Toys' ? 'selected' : '' %>>Toys</option>
-                        <option value="Accessories" <%= locals.product?.category === 'Accessories' ? 'selected' : '' %>>Accessories</option>
-                        <option value="Health & Wellness" <%= locals.product?.category === 'Health & Wellness' ? 'selected' : '' %>>Health & Wellness</option>
-                        <option value="Grooming" <%= locals.product?.category === 'Grooming' ? 'selected' : '' %>>Grooming</option>
-                        <option value="Clothing" <%= locals.product?.category === 'Clothing' ? 'selected' : '' %>>Clothing</option>
+                        <option value="Dry Food" <%= locals.product?.category === 'Dry Food' ? 'selected' : '' %>>Dry Food</option>
+                        <option value="Wet Food" <%= locals.product?.category === 'Wet Food' ? 'selected' : '' %>>Wet Food</option>
+                        <option value="Dehydrated Food" <%= locals.product?.category === 'Dehydrated Food' ? 'selected' : '' %>>Dehydrated Food</option>
+                        <option value="Air Dried Food" <%= locals.product?.category === 'Air Dried Food' ? 'selected' : '' %>>Air Dried Food</option>
+                        <option value="Freeze Dried Food" <%= locals.product?.category === 'Freeze Dried Food' ? 'selected' : '' %>>Freeze Dried Food</option>
+                        <option value="Toppers & Mixers" <%= locals.product?.category === 'Toppers & Mixers' ? 'selected' : '' %>>Toppers & Mixers</option>
                     </select>
                 </div>
 
@@ -274,7 +262,7 @@
                 <!-- Price and Stock -->
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="price">Price (NZD) <span class="required">*</span></label>
+                        <label for="price">Price <span class="required">*</span></label>
                         <input 
                             type="number" 
                             id="price" 
