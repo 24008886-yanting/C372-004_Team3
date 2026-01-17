@@ -106,7 +106,7 @@ const ProductModel = {
         const { product_name, description, ingredient_list, price, stock, category, image1, image2 } = product;
         const query = `INSERT INTO products (product_name, description, ingredient_list, price, stock, category, image1, image2)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        const params = [product_name, description, ingredient_list, price, stock, category, image1, image2];
+         const params = [product_name, description, ingredient_list, price, stock, category, image1, image2];
 
         db.query(query, params, (err, result) => {
             if (err) return callback(err);
@@ -122,8 +122,8 @@ const ProductModel = {
         const { product_name, description, ingredient_list, price, stock, category, image1, image2 } = product;
         const query = `UPDATE products
                SET product_name = ?, description = ?, ingredient_list = ?, price = ?, stock = ?, category = ?, image1 = ?, image2 = ?
-               WHERE product_id = ?`;
-        const params = [product_name, description, ingredient_list, price, stock, category, image1, image2, productId];
+             WHERE product_id = ?`;
+         const params = [product_name, description, ingredient_list, price, stock, category, image1, image2, productId];
 
         db.query(query, params, callback);
     },
