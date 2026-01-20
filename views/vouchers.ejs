@@ -3,93 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vouchers - Repawblic Pets</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family:Manrope:wght@500;600;700&display=swap">
+  <title>Vouchers | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
   <link rel="stylesheet" href="/css/shelter.css">
-	<style>
-		.badge {
-			display: inline-flex;
-			align-items: center;
-			padding: 4px 10px;
-			border-radius: 10px;
-			font-size: 12px;
-			font-weight: 600;
-			text-transform: uppercase;
-		}
-		.badge-active { background: #d1fae5; color: #065f46; }
-		.badge-used { background: #fee2e2; color: #991b1b; }
-		.badge-expired { background: #fef3c7; color: #92400e; }
-	</style>
+  <style>
+    .status-note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-active { background: #dcfce7; color: #15803d; }
+    .badge-used { background: #fee2e2; color: #991b1b; }
+    .badge-expired { background: #fef3c7; color: #92400e; }
+    .action-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .inline-form { margin: 0; }
+  </style>
 </head>
 <body>
   <%- include('partials/navbar') %>
 
-	<main>
-		<header>
-			<p class="muted">Admin · Voucher Management</p>
-			<h1>Vouchers</h1>
-			<p class="muted">View and manage all voucher codes</p>
-		</header>
+  <main>
+    <header>
+      <p class="muted">Admin - Voucher Management</p>
+      <h1>Vouchers</h1>
+      <p class="muted">View voucher codes and their validity</p>
+    </header>
 
-		<section class="card">
-			<div class="form-actions" style="justify-content: space-between; align-items: center;">
-				<span class="muted">Total vouchers: <%= vouchers && vouchers.length ? vouchers.length : 0 %></span>
-				<a class="btn" href="/vouchers/new">+ Create Voucher</a>
-			</div>
+    <section class="card">
+      <div class="table-header">
+        <span class="muted">Total vouchers: <%= vouchers && vouchers.length ? vouchers.length : 0 %></span>
+        <a href="/vouchers/new" class="btn">Create Voucher</a>
+      </div>
 
-			<% if (!vouchers || !vouchers.length) { %>
-				<p class="muted" style="margin-top:20px; text-align:center;">No vouchers found</p>
-			<% } else { %>
-				<div class="table-wrap" style="margin-top:16px;">
-					<table class="table">
-						<thead>
-							<tr>
-								<th>Code</th>
-								<th>Discount</th>
-								<th>Expires</th>
-								<th>Status</th>
-								<th>Usage</th>
-								<th>Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							<% vouchers.forEach(v => { %>
-								<tr>
-									<td><strong><%= v.voucher_code %></strong></td>
-									<td>
-										<%= v.discount_type === 'percentage' ? v.discount_value + '% off' : '$' + Number(v.discount_value).toFixed(2) + ' off' %>
-									</td>
-									<td>
-										<%= v.expiry_date ? new Date(v.expiry_date).toLocaleDateString() : 'No expiry' %>
-									</td>
-									<td>
-										<% if (v.status === 'Expired') { %>
-											<span class="badge badge-expired">Expired</span>
-										<% } else if (v.status === 'Used Up') { %>
-											<span class="badge badge-used">Used Up</span>
-										<% } else { %>
-											<span class="badge badge-active">Active</span>
-										<% } %>
-										<% if (v.statusReason) { %>
-											<div class="muted" style="font-size:11px; margin-top:4px;"><%= v.statusReason %></div>
-										<% } %>
-									</td>
-									<td>
-										<% const limit = Number(v.usage_limit || 0); const used = Number(v.used_count || 0); %>
-										<%= used %> / <%= limit || '∞' %>
-									</td>
-									<td>
-										<a href="/vouchers/<%= v.voucher_id %>/edit" class="btn outline" style="padding:6px 12px; font-size:13px;">Edit</a>
-									</td>
-								</tr>
-							<% }); %>
-						</tbody>
-					</table>
-				</div>
-			<% } %>
-		</section>
-	</main>
-
-	<%- include('partials/footer') %>
+      <% if (vouchers && vouchers.length) { %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Discount</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th>Usage</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% vouchers.forEach(v => { %>
+                <tr>
+                  <td><strong><%= v.voucher_code %></strong></td>
+                  <td>
+                    <%= v.discount_type === 'percentage' ? v.discount_value + '% off' : '$' + Number(v.discount_value).toFixed(2) + ' off' %>
+                  </td>
+                  <td>
+                    <%= v.expiry_date ? new Date(v.expiry_date).toLocaleDateString() : 'No expiry' %>
+                  </td>
+                  <td>
+                    <% if (v.status === 'Expired') { %>
+                      <span class="badge badge-expired">Expired</span>
+                    <% } else if (v.status === 'Used Up') { %>
+                      <span class="badge badge-used">Used Up</span>
+                    <% } else { %>
+                      <span class="badge badge-active">Active</span>
+                    <% } %>
+                    <% if (v.statusReason) { %>
+                      <div class="status-note"><%= v.statusReason %></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% const limit = Number(v.usage_limit || 0); const used = Number(v.used_count || 0); %>
+                    <%= used %> / <%= limit || 'Unlimited' %>
+                  </td>
+                  <td>
+                    <div class="action-group">
+                      <a href="/vouchers/<%= v.voucher_id %>/edit" class="btn outline">Edit</a>
+                      <form class="inline-form" action="/vouchers/<%= v.voucher_id %>/delete" method="post" onsubmit="return confirm('Delete this voucher?');">
+                        <button class="btn btn-danger" type="submit">Delete</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <p class="muted table-empty">No vouchers found.</p>
+      <% } %>
+    </section>
+  </main>
 </body>
 </html>

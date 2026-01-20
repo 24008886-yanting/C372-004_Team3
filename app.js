@@ -137,12 +137,14 @@ app.put('/orderItems/:id', OrderItemController.updateOrderItem);
 app.delete('/orderItems/:id', OrderItemController.deleteOrderItem);
 
 // Vouchers (admin CRUD)
-app.get('/vouchers', VoucherController.list);
-app.get('/vouchers/new', VoucherController.showCreateForm);
-app.post('/vouchers', VoucherController.create);
-app.get('/vouchers/:id/edit', VoucherController.showEditForm);
-app.put('/vouchers/:id', VoucherController.update);
-app.delete('/vouchers/:id', VoucherController.delete);
+app.get('/vouchers', checkAuthenticated, checkAuthorised(['admin']), VoucherController.list);
+app.get('/vouchers/new', checkAuthenticated, checkAuthorised(['admin']), VoucherController.showCreateForm);
+app.post('/vouchers', checkAuthenticated, checkAuthorised(['admin']), VoucherController.create);
+app.get('/vouchers/:id/edit', checkAuthenticated, checkAuthorised(['admin']), VoucherController.showEditForm);
+app.post('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), VoucherController.update);
+app.post('/vouchers/:id/delete', checkAuthenticated, checkAuthorised(['admin']), VoucherController.delete);
+app.put('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), VoucherController.update);
+app.delete('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), VoucherController.delete);
 // Apply voucher (user)
 app.post('/vouchers/apply', VoucherController.apply);
 
