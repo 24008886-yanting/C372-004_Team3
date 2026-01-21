@@ -26,6 +26,18 @@
         </div>
 
         <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" rows="3"><%= voucher.description || '' %></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="allowed_role">Allowed role</label>
+          <select id="allowed_role" name="allowed_role" required>
+            <option value="adopter" <%= String(voucher.allowed_role || '').toLowerCase() === 'adopter' ? 'selected' : '' %>>Adopter</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="discount_type">Discount type</label>
           <select id="discount_type" name="discount_type" required>
             <option value="percentage" <%= voucher.discount_type === 'percentage' ? 'selected' : '' %>>Percentage</option>

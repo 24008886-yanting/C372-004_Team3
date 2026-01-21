@@ -20,8 +20,16 @@
     .badge-active { background: #dcfce7; color: #15803d; }
     .badge-used { background: #fee2e2; color: #991b1b; }
     .badge-expired { background: #fef3c7; color: #92400e; }
-    .action-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .inline-form { margin: 0; }
+    .action-group { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+    .inline-form { margin: 0; display: inline-flex; }
+    .btn-danger {
+      background: #dc2626;
+      border-color: #dc2626;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      box-shadow: 0 10px 20px rgba(220, 38, 38, 0.25);
+    }
   </style>
 </head>
 <body>
@@ -46,6 +54,8 @@
             <thead>
               <tr>
                 <th>Code</th>
+                <th>Description</th>
+                <th>Allowed role</th>
                 <th>Discount</th>
                 <th>Expires</th>
                 <th>Status</th>
@@ -57,6 +67,8 @@
               <% vouchers.forEach(v => { %>
                 <tr>
                   <td><strong><%= v.voucher_code %></strong></td>
+                  <td><%= v.description || '—' %></td>
+                  <td><%= v.allowed_role ? v.allowed_role : 'Adopter' %></td>
                   <td>
                     <%= v.discount_type === 'percentage' ? v.discount_value + '% off' : '$' + Number(v.discount_value).toFixed(2) + ' off' %>
                   </td>

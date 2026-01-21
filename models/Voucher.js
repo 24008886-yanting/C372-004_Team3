@@ -4,7 +4,7 @@ const VoucherModel = {
   // Fetch all vouchers
   getAll(callback) {
     const sql = `
-      SELECT voucher_id, voucher_code, discount_type, discount_value, expiry_date, usage_limit, used_count
+      SELECT voucher_id, voucher_code, description, allowed_role, discount_type, discount_value, expiry_date, usage_limit, used_count
       FROM vouchers
       ORDER BY expiry_date DESC
     `;
@@ -14,7 +14,7 @@ const VoucherModel = {
   // Fetch single voucher by ID
   getById(voucherId, callback) {
     const sql = `
-      SELECT voucher_id, voucher_code, discount_type, discount_value, expiry_date, usage_limit, used_count
+      SELECT voucher_id, voucher_code, description, allowed_role, discount_type, discount_value, expiry_date, usage_limit, used_count
       FROM vouchers
       WHERE voucher_id = ?
     `;
@@ -24,7 +24,7 @@ const VoucherModel = {
   // Fetch voucher by code (case-insensitive)
   getByCode(code, callback) {
     const sql = `
-      SELECT voucher_id, voucher_code, discount_type, discount_value, expiry_date, usage_limit, used_count
+      SELECT voucher_id, voucher_code, description, allowed_role, discount_type, discount_value, expiry_date, usage_limit, used_count
       FROM vouchers
       WHERE LOWER(voucher_code) = LOWER(?)
     `;
@@ -33,12 +33,12 @@ const VoucherModel = {
 
   // Create a new voucher
   create(voucherData, callback) {
-    const { voucher_code, discount_type, discount_value, expiry_date, usage_limit = 1 } = voucherData;
+    const { voucher_code, description, allowed_role = 'adopter', discount_type, discount_value, expiry_date, usage_limit = 1 } = voucherData;
     const sql = `
-      INSERT INTO vouchers (voucher_code, discount_type, discount_value, expiry_date, usage_limit)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO vouchers (voucher_code, description, allowed_role, discount_type, discount_value, expiry_date, usage_limit)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    const params = [voucher_code, discount_type, discount_value, expiry_date, usage_limit];
+    const params = [voucher_code, description, allowed_role, discount_type, discount_value, expiry_date, usage_limit];
     db.query(sql, params, callback);
   },
 
@@ -50,6 +50,14 @@ const VoucherModel = {
     if (updates.voucher_code !== undefined) {
       fields.push('voucher_code = ?');
       params.push(updates.voucher_code);
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?');
+      params.push(updates.description);
+    }
+    if (updates.allowed_role !== undefined) {
+      fields.push('allowed_role = ?');
+      params.push(updates.allowed_role);
     }
     if (updates.discount_type !== undefined) {
       fields.push('discount_type = ?');

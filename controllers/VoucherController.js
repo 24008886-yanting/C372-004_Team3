@@ -58,7 +58,7 @@ const VoucherController = {
   // Admin: create voucher
   create(req, res) {
     if (!requireAdmin(req, res)) return;
-    const { voucher_code, discount_type, discount_value, expiry_date, usage_limit } = req.body || {};
+    const { voucher_code, description, discount_type, discount_value, expiry_date, usage_limit } = req.body || {};
 
     if (!voucher_code || !discount_type || !discount_value || !expiry_date) {
       return res.status(400).json({ error: 'voucher_code, discount_type, discount_value, and expiry_date are required' });
@@ -69,7 +69,19 @@ const VoucherController = {
         ? undefined
         : Number(usage_limit);
 
-    Voucher.create({ voucher_code, discount_type, discount_value, expiry_date, usage_limit: normalizedUsageLimit }, (err, result) => {
+    const allowedRole = 'adopter';
+
+    Voucher.create(
+      {
+        voucher_code,
+        description,
+        allowed_role: allowedRole,
+        discount_type,
+        discount_value,
+        expiry_date,
+        usage_limit: normalizedUsageLimit
+      },
+      (err, result) => {
       if (err) return res.status(500).json({ error: 'Failed to create voucher', details: err });
       renderOrJson(res, 'createVoucherSuccess', { message: 'Voucher created', voucher_id: result?.insertId });
     });
@@ -91,6 +103,9 @@ const VoucherController = {
     if (!requireAdmin(req, res)) return;
     const { id } = req.params;
     const updates = { ...(req.body || {}) };
+    if (updates.allowed_role && String(updates.allowed_role).toLowerCase() !== 'adopter') {
+      updates.allowed_role = 'adopter';
+    }
     if (updates.usage_limit !== undefined && String(updates.usage_limit).trim() === '') {
       delete updates.usage_limit;
     }
