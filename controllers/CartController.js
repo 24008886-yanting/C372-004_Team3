@@ -1,4 +1,5 @@
 const Cart = require('../models/Cart');
+const Wishlist = require('../models/Wishlist');
 
 // Helper: try to render an EJS view; if not available, fall back to JSON.
 const renderOrJson = (res, view, payload) => {
@@ -48,7 +49,12 @@ const CartController = {
       }
       const action = result?.action === 'updated' ? 'updated' : 'added';
       const message = action === 'updated' ? 'Item quantity updated in cart.' : 'Item added to cart successfully.';
-      renderOrJson(res, 'cart/add-success', { message, action, result });
+      Wishlist.removeItemByUserAndProduct(userId, product_id, (removeErr) => {
+        if (removeErr) {
+          console.error('Failed to remove wishlist item after cart add:', removeErr);
+        }
+        renderOrJson(res, 'cart/add-success', { message, action, result });
+      });
     });
   },
 

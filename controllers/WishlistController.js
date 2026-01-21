@@ -1,4 +1,5 @@
 const Wishlist = require('../models/Wishlist');
+const Cart = require('../models/Cart');
 
 // Helper: render EJS if present; otherwise JSON
 const renderOrJson = (req, res, view, payload) => {
@@ -44,24 +45,36 @@ const WishlistController = {
       return res.status(400).json({ error: 'user_id and product_id are required' });
     }
 
-    Wishlist.addItem(userId, product_id, (err, result) => {
-      if (err) {
-        const message = err.message || String(err);
-        const status = message.includes('not found') ? 404 : 500;
-        return res.status(status).json({ error: 'Failed to add to wishlist', details: message });
+    Cart.getItemByUserAndProduct(userId, product_id, (cartErr, cartRows) => {
+      if (cartErr) {
+        return res.status(500).json({ error: 'Failed to check cart', details: cartErr.message || cartErr });
+      }
+      if (cartRows && cartRows.length > 0) {
+        return res.status(409).json({
+          error: 'Item is already in cart',
+          details: 'Move it to wishlist from the cart to avoid duplicates.'
+        });
       }
 
-      Wishlist.getItemByUserAndProduct(userId, product_id, (findErr, rows) => {
-        if (findErr) {
-          console.error('Failed to load wishlist item:', findErr);
+      Wishlist.addItem(userId, product_id, (err, result) => {
+        if (err) {
+          const message = err.message || String(err);
+          const status = message.includes('not found') ? 404 : 500;
+          return res.status(status).json({ error: 'Failed to add to wishlist', details: message });
         }
-        const wishlistItem = rows && rows[0];
-        const wishlistId = wishlistItem ? wishlistItem.wishlist_id : null;
-        renderOrJson(req, res, 'wishlist/add-success', {
-          message: 'Added to wishlist',
-          wishlist_id: wishlistId,
-          product_id,
-          result
+
+        Wishlist.getItemByUserAndProduct(userId, product_id, (findErr, rows) => {
+          if (findErr) {
+            console.error('Failed to load wishlist item:', findErr);
+          }
+          const wishlistItem = rows && rows[0];
+          const wishlistId = wishlistItem ? wishlistItem.wishlist_id : null;
+          renderOrJson(req, res, 'wishlist/add-success', {
+            message: 'Added to wishlist',
+            wishlist_id: wishlistId,
+            product_id,
+            result
+          });
         });
       });
     });

@@ -48,6 +48,12 @@ const WishlistModel = {
     db.query(sql, [wishlistId, userId], callback);
   },
 
+  // Remove a wishlist item by user + product
+  removeItemByUserAndProduct(userId, productId, callback) {
+    const sql = 'DELETE FROM wishlist WHERE user_id = ? AND product_id = ?';
+    db.query(sql, [userId, productId], callback);
+  },
+
   // Move a cart item to wishlist: insert then delete from cart
   moveFromCart(cartId, userId, callback) {
     const cartSql = `

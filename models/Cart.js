@@ -14,6 +14,17 @@ const CartModel = {
     db.query(sql, [userId], callback);
   },
 
+  // Get cart item by user + product
+  getItemByUserAndProduct(userId, productId, callback) {
+    const sql = `
+      SELECT cart_id, product_id, quantity
+      FROM cart
+      WHERE user_id = ? AND product_id = ?
+      LIMIT 1
+    `;
+    db.query(sql, [userId, productId], callback);
+  },
+
   // Add a product to the cart; increments if already present
   addItem(userId, productId, quantity, callback) {
     const safeQty = Math.max(parseInt(quantity, 10) || 0, 1);
