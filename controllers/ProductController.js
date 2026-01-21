@@ -9,7 +9,8 @@ const ProductController = {
             if (err) {
                 console.error('Failed to load inventory:', err);
                 console.error('Error details:', err.message, err.stack);
-                return res.status(500).send('Failed to load inventory.');
+                console.error('Full error object:', JSON.stringify(err, null, 2));
+                return res.status(500).render('inventory', { products: [], error: err.message });
             }
             console.log('Products loaded successfully:', products?.length || 0, 'products');
             res.render('inventory', { products });
