@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Product | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+  <style>
+    .form-grid .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: 'Manrope', system-ui, sans-serif;
+      min-height: 100px;
+      resize: vertical;
+    }
+    .input-hint {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .required {
+      color: #ef4444;
+    }
+    .current-image {
+      max-width: 150px;
+      max-height: 150px;
+      border-radius: 8px;
+      margin-top: 8px;
+      border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Admin • Inventory Management</p>
+      <h1>Edit Product</h1>
+      <p class="muted">Update product information</p>
+    </header>
+
+    <section class="card">
+      <!-- Flash messages -->
+      <% if (locals.messages?.error) { %>
+        <div class="alert error">
+          <% if (Array.isArray(messages.error)) { %>
+            <% messages.error.forEach(msg => { %>
+              <div><%= msg %></div>
+            <% }); %>
+          <% } else { %>
+            <%= messages.error %>
+          <% } %>
+        </div>
+      <% } %>
+
+      <form action="/products/<%= product.product_id %>/update" method="POST" enctype="multipart/form-data" class="form-grid">
+        <!-- Product Name -->
+        <div class="form-group">
+          <label for="product_name">Product Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="product_name" 
+            name="product_name" 
+            required 
+            placeholder="e.g., Premium Dog Food"
+            value="<%= product.product_name || '' %>"
+          >
+        </div>
+
+        <!-- Category -->
+        <div class="form-group">
+          <label for="category">Category <span class="required">*</span></label>
+          <select id="category" name="category" required>
+            <option value="">-- Select Category --</option>
+            <option value="Dry Food" <%= product.category === 'Dry Food' ? 'selected' : '' %>>Dry Food</option>
+            <option value="Wet Food" <%= product.category === 'Wet Food' ? 'selected' : '' %>>Wet Food</option>
+            <option value="Dehydrated Food" <%= product.category === 'Dehydrated Food' ? 'selected' : '' %>>Dehydrated Food</option>
+            <option value="Air Dried Food" <%= product.category === 'Air Dried Food' ? 'selected' : '' %>>Air Dried Food</option>
+            <option value="Freeze Dried Food" <%= product.category === 'Freeze Dried Food' ? 'selected' : '' %>>Freeze Dried Food</option>
+            <option value="Toppers & Mixers" <%= product.category === 'Toppers & Mixers' ? 'selected' : '' %>>Toppers & Mixers</option>
+          </select>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label for="description">Description <span class="required">*</span></label>
+          <textarea 
+            id="description" 
+            name="description" 
+            required 
+            placeholder="Provide a detailed description of the product"
+          ><%= product.description || '' %></textarea>
+          <div class="input-hint">Include key features and benefits</div>
+        </div>
+
+        <!-- Ingredient List -->
+        <div class="form-group">
+          <label for="ingredient_list">Ingredient List / Contents</label>
+          <textarea 
+            id="ingredient_list" 
+            name="ingredient_list" 
+            placeholder="List ingredients or main components (optional)"
+          ><%= product.ingredient_list || '' %></textarea>
+          <div class="input-hint">Separate ingredients with commas or line breaks</div>
+        </div>
+
+        <!-- Price and Stock -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="price">Price <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="price" 
+              name="price" 
+              required 
+              step="0.01" 
+              min="0" 
+              placeholder="0.00"
+              value="<%= product.price || '' %>"
+            >
+          </div>
+          <div class="form-group">
+            <label for="stock">Stock Quantity <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="stock" 
+              name="stock" 
+              required 
+              min="0" 
+              placeholder="0"
+              value="<%= product.stock || '' %>"
+            >
+          </div>
+        </div>
+
+        <!-- Images -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="image1">Image 1</label>
+            <% if (product.image1) { %>
+              <% const img1Src = /^(https?:)?\/\//i.test(product.image1) || product.image1.startsWith('data:') || product.image1.startsWith('/images/') ? product.image1 : '/images/' + product.image1; %>
+              <img src="<%= img1Src %>" alt="Current Image 1" class="current-image">
+              <input type="hidden" name="image1" value="<%= product.image1 %>">
+              <div class="input-hint">Current image shown above</div>
+            <% } %>
+            <input 
+              type="file" 
+              id="image1" 
+              name="image1" 
+              accept="image/*"
+            >
+            <div class="input-hint">Upload new image to replace current one</div>
+          </div>
+          <div class="form-group">
+            <label for="image2">Image 2</label>
+            <% if (product.image2) { %>
+              <% const img2Src = /^(https?:)?\/\//i.test(product.image2) || product.image2.startsWith('data:') || product.image2.startsWith('/images/') ? product.image2 : '/images/' + product.image2; %>
+              <img src="<%= img2Src %>" alt="Current Image 2" class="current-image">
+              <input type="hidden" name="image2" value="<%= product.image2 %>">
+              <div class="input-hint">Current image shown above</div>
+            <% } %>
+            <input 
+              type="file" 
+              id="image2" 
+              name="image2" 
+              accept="image/*"
+            >
+            <div class="input-hint">Upload new image to replace current one</div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="form-actions">
+          <a class="btn outline" href="/inventory">Cancel</a>
+          <button type="submit" class="btn">Update Product</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+      const price = parseFloat(document.getElementById('price').value);
+      const stock = parseInt(document.getElementById('stock').value);
+
+      if (isNaN(price) || price < 0) {
+        e.preventDefault();
+        alert('Please enter a valid price');
+        return false;
+      }
+
+      if (isNaN(stock) || stock < 0) {
+        e.preventDefault();
+        alert('Please enter a valid stock quantity');
+        return false;
+      }
+    });
+  </script>
+</body>
+</html>
