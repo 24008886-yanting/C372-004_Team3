@@ -129,16 +129,12 @@ const VoucherController = {
 
   // User: apply voucher code to a subtotal (no admin check)
   apply(req, res) {
-    const role = (req.session?.role || '').toLowerCase();
-    if (role !== 'adopter') {
-      return res.status(403).json({ error: 'Only adopters can apply vouchers' });
-    }
-
     const { code, subtotal } = req.body || {};
     if (!code) return res.status(400).json({ error: 'Voucher code is required' });
     if (subtotal === undefined) return res.status(400).json({ error: 'Subtotal is required' });
 
-    Voucher.apply(code, subtotal, (err, info) => {
+    const role = (req.session?.role || req.session?.user?.role || '').toLowerCase().trim();
+    Voucher.apply(code, subtotal, role, (err, info) => {
       if (err) return res.status(400).json({ error: 'Failed to apply voucher', details: err.message || err });
       res.json({ voucher: info });
     });

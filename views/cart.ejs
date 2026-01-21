@@ -130,16 +130,32 @@
       <% } %>
     </section>
 
-    <aside class="summary">
+    <% 
+      let subtotal = 0;
+      if (items && items.length) {
+        items.forEach(i => subtotal += Number(i.price) * Number(i.quantity));
+      }
+      const shippingFee = subtotal >= 60 ? 0 : (subtotal > 0 ? 5 : 0);
+      const taxRatePercent = 9;
+      const taxAmount = subtotal * (taxRatePercent / 100);
+      const discountAmount = 0;
+      const total = subtotal + shippingFee + taxAmount - discountAmount;
+    %>
+    <aside class="summary" data-subtotal="<%= subtotal.toFixed(2) %>" data-shipping-fee="<%= shippingFee.toFixed(2) %>" data-tax-rate="<%= taxRatePercent %>">
       <div class="row"><span>Items</span><span><%= items ? items.length : 0 %></span></div>
-      <% 
-        let subtotal = 0;
-        if (items && items.length) {
-          items.forEach(i => subtotal += Number(i.price) * Number(i.quantity));
-        }
-      %>
-      <div class="row"><span>Subtotal</span><span>$<%= subtotal.toFixed(2) %></span></div>
-      <div class="row total"><span>Total</span><span>$<%= subtotal.toFixed(2) %></span></div>
+      <div class="row"><span>Subtotal</span><span id="subtotal-value">$<%= subtotal.toFixed(2) %></span></div>
+      <div class="row"><span>Shipping fee</span><span id="shipping-fee">$<%= shippingFee.toFixed(2) %></span></div>
+      <div class="row"><span>Tax (9%)</span><span id="tax-amount">$<%= taxAmount.toFixed(2) %></span></div>
+      <div class="row"><span>Discount</span><span id="discount-amount">-$<%= discountAmount.toFixed(2) %></span></div>
+      <div style="margin-top: 12px;">
+        <label for="voucher-code" class="muted" style="display:block; margin-bottom:6px;">Voucher code</label>
+        <div style="display:flex; gap:8px;">
+          <input id="voucher-code" class="qty-input" style="flex:1;" type="text" placeholder="Enter code">
+          <button class="btn-light" id="apply-voucher" type="button">Apply</button>
+        </div>
+        <div id="voucher-status" class="muted" style="margin-top:6px;"></div>
+      </div>
+      <div class="row total"><span>Total</span><span id="total-amount">$<%= total.toFixed(2) %></span></div>
       <button class="btn-accent" style="width:100%; margin-top:12px;" data-action="checkout">Checkout</button>
       <button class="btn-light" style="width:100%; margin-top:8px;" data-action="clear">Clear Cart</button>
     </aside>
@@ -147,6 +163,58 @@
 
   <script>
     const headers = { 'Content-Type': 'application/json' };
+    const summary = document.querySelector('.summary');
+    const subtotal = Number(summary?.dataset?.subtotal || 0);
+    const shippingFee = Number(summary?.dataset?.shippingFee || 0);
+    const taxRatePercent = Number(summary?.dataset?.taxRate || 0);
+    let voucherId = null;
+    let discountAmount = 0;
+
+    const updateTotals = () => {
+      const taxAmount = subtotal * (taxRatePercent / 100);
+      const total = subtotal + shippingFee + taxAmount - discountAmount;
+      const taxAmountEl = document.getElementById('tax-amount');
+      const discountAmountEl = document.getElementById('discount-amount');
+      const totalEl = document.getElementById('total-amount');
+      if (taxAmountEl) taxAmountEl.textContent = `$${taxAmount.toFixed(2)}`;
+      if (discountAmountEl) discountAmountEl.textContent = `-$${discountAmount.toFixed(2)}`;
+      if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+    };
+
+    const applyVoucherBtn = document.getElementById('apply-voucher');
+    if (applyVoucherBtn) {
+      applyVoucherBtn.addEventListener('click', async () => {
+        const codeInput = document.getElementById('voucher-code');
+        const statusEl = document.getElementById('voucher-status');
+        const code = codeInput?.value?.trim();
+        if (!code) {
+          if (statusEl) statusEl.textContent = 'Please enter a voucher code.';
+          return;
+        }
+
+        applyVoucherBtn.disabled = true;
+        try {
+          const res = await fetch('/vouchers/apply', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ code, subtotal })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            const message = data?.error || data?.details || 'Failed to apply voucher.';
+            if (statusEl) statusEl.textContent = message;
+            return;
+          }
+          const voucher = data.voucher || {};
+          voucherId = voucher.voucher_id || null;
+          discountAmount = Number(voucher.discount_amount) || 0;
+          if (statusEl) statusEl.textContent = `Applied ${voucher.voucher_code || 'voucher'} (-$${discountAmount.toFixed(2)}).`;
+          updateTotals();
+        } finally {
+          applyVoucherBtn.disabled = false;
+        }
+      });
+    }
 
     const handleCartAction = async (btn) => {
       const card = btn.closest('.card');
@@ -175,7 +243,12 @@
         resp = await fetch(`/cart/checkout`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({})
+          body: JSON.stringify({
+            voucher_id: voucherId,
+            discount_amount: discountAmount,
+            shipping_fee: shippingFee,
+            tax_rate: taxRatePercent
+          })
         });
       }
 

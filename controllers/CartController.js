@@ -28,7 +28,7 @@ const CartController = {
     Cart.getCartByUser(userId, (err, items) => {
       if (err) return res.status(500).json({ error: 'Failed to load cart', details: err });
       // Render main cart page; fall back to JSON if view missing
-      renderOrJson(res, 'cart', { items });
+      renderOrJson(res, 'cart', { items, userRole: req.session?.role || null });
     });
   },
 
@@ -110,12 +110,7 @@ const CartController = {
     const userId = resolveUserId(req);
     if (!userId) return res.status(400).json({ error: 'user_id is required' });
 
-    const role = (req.session?.role || '').toLowerCase();
     const { voucher_id, shipping_fee, tax_rate, discount_amount } = req.body || {};
-
-    if (role !== 'adopter' && (voucher_id || discount_amount)) {
-      return res.status(403).json({ error: 'Only adopters can use vouchers or discounts at checkout' });
-    }
 
     const checkoutOptions = { voucher_id, shipping_fee, tax_rate, discount_amount };
 
