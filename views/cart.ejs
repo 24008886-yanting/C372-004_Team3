@@ -11,6 +11,28 @@
       if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/images/')) return src;
       return '/images/' + src;
     };
+    const role = (userRole || '').toLowerCase();
+    const isAdopter = role === 'adopter';
+    const formatDiscount = (voucher) => {
+      if (voucher.discount_type === 'percentage') {
+        const val = Number(voucher.discount_value) || 0;
+        return `${val}% off`;
+      }
+      const val = Number(voucher.discount_value);
+      const money = Number.isFinite(val) ? val.toFixed(2) : '0.00';
+      return `$${money} off`;
+    };
+    const now = new Date();
+    const availableVouchers = (Array.isArray(vouchers) ? vouchers : []).filter((voucher) => {
+      const allowedRole = String(voucher.allowed_role || '').toLowerCase();
+      if (allowedRole && allowedRole !== 'adopter') return false;
+      const expiry = voucher.expiry_date ? new Date(voucher.expiry_date) : null;
+      if (expiry && expiry < now) return false;
+      const usageLimit = Number(voucher.usage_limit || 0);
+      const usedCount = Number(voucher.used_count || 0);
+      if (usageLimit > 0 && usedCount >= usageLimit) return false;
+      return true;
+    });
   %>
   <style>
     :root {
@@ -81,6 +103,25 @@
       padding: 16px;
       position: sticky;
       top: 20px;
+    }
+    .voucher-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .voucher-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 13px;
+    }
+    .voucher-code {
+      font-weight: 700;
     }
     .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
     .row.total { font-weight: 700; font-size: 18px; margin-top: 12px; }
@@ -154,6 +195,19 @@
           <button class="btn-light" id="apply-voucher" type="button">Apply</button>
         </div>
         <div id="voucher-status" class="muted" style="margin-top:6px;"></div>
+        <% if (isAdopter && availableVouchers.length) { %>
+          <div class="voucher-list">
+            <% availableVouchers.forEach(voucher => { %>
+              <div class="voucher-item">
+                <div>
+                  <div class="voucher-code"><%= voucher.voucher_code %></div>
+                  <div class="muted"><%= formatDiscount(voucher) %><%= voucher.description ? ' - ' + voucher.description : '' %></div>
+                </div>
+                <button class="btn-light" type="button" data-voucher-code="<%= voucher.voucher_code %>">Use</button>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
       </div>
       <div class="row total"><span>Total</span><span id="total-amount">$<%= total.toFixed(2) %></span></div>
       <button class="btn-accent" style="width:100%; margin-top:12px;" data-action="checkout">Checkout</button>
@@ -194,10 +248,12 @@
 
         applyVoucherBtn.disabled = true;
         try {
+          const taxAmount = subtotal * (taxRatePercent / 100);
+          const totalBeforeDiscount = subtotal + shippingFee + taxAmount;
           const res = await fetch('/vouchers/apply', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ code, subtotal })
+            body: JSON.stringify({ code, subtotal: totalBeforeDiscount })
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
@@ -215,6 +271,19 @@
         }
       });
     }
+
+    document.addEventListener('click', (e) => {
+      const voucherBtn = e.target.closest('button[data-voucher-code]');
+      if (!voucherBtn) return;
+      const code = voucherBtn.getAttribute('data-voucher-code') || '';
+      const codeInput = document.getElementById('voucher-code');
+      if (codeInput) {
+        codeInput.value = code;
+      }
+      if (applyVoucherBtn) {
+        applyVoucherBtn.click();
+      }
+    });
 
     const handleCartAction = async (btn) => {
       const card = btn.closest('.card');

@@ -140,13 +140,13 @@ app.delete('/orderItems/:id', OrderItemController.deleteOrderItem);
 app.get('/vouchers', checkAuthenticated, checkAuthorised(['admin']), VoucherController.list);
 app.get('/vouchers/new', checkAuthenticated, checkAuthorised(['admin']), VoucherController.showCreateForm);
 app.post('/vouchers', checkAuthenticated, checkAuthorised(['admin']), VoucherController.create);
+// Apply voucher (user)
+app.post('/vouchers/apply', VoucherController.apply);
 app.get('/vouchers/:id/edit', checkAuthenticated, checkAuthorised(['admin']), VoucherController.showEditForm);
 app.post('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), VoucherController.update);
 app.post('/vouchers/:id/delete', checkAuthenticated, checkAuthorised(['admin']), VoucherController.delete);
 app.put('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), VoucherController.update);
 app.delete('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), VoucherController.delete);
-// Apply voucher (user)
-app.post('/vouchers/apply', VoucherController.apply);
 
 // Orders dashboard (admin)
 app.get('/orderDashboard', checkAuthenticated, checkAuthorised(['admin']), OrderController.listDashboard);

@@ -187,15 +187,28 @@ const CartModel = {
             // Update product stock sequentially
             const updateStock = (index = 0) => {
               if (index >= cartItems.length) {
-                // Clear the cart
-                return db.query('DELETE FROM cart WHERE user_id = ?', [userId], (clearErr) => {
-                  if (clearErr) return db.rollback(() => callback(clearErr));
+                const finalizeCheckout = () => {
+                  // Clear the cart
+                  db.query('DELETE FROM cart WHERE user_id = ?', [userId], (clearErr) => {
+                    if (clearErr) return db.rollback(() => callback(clearErr));
 
-                  db.commit((commitErr) => {
-                    if (commitErr) return db.rollback(() => callback(commitErr));
-                    callback(null, { order_id: orderId, subtotal, discount_amount: discount, shipping_fee: shippingFee, tax_amount: taxAmount, total_amount: total });
+                    db.commit((commitErr) => {
+                      if (commitErr) return db.rollback(() => callback(commitErr));
+                      callback(null, { order_id: orderId, subtotal, discount_amount: discount, shipping_fee: shippingFee, tax_amount: taxAmount, total_amount: total });
+                    });
                   });
+                };
+
+                if (!voucher_id) {
+                  return finalizeCheckout();
+                }
+
+                const voucherSql = 'UPDATE vouchers SET used_count = used_count + 1 WHERE voucher_id = ?';
+                db.query(voucherSql, [voucher_id], (voucherErr) => {
+                  if (voucherErr) return db.rollback(() => callback(voucherErr));
+                  finalizeCheckout();
                 });
+                return;
               }
 
               const item = cartItems[index];

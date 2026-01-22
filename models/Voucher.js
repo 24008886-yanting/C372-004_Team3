@@ -95,8 +95,12 @@ const VoucherModel = {
     db.query(sql, [voucherId], callback);
   },
 
-  // Apply voucher code to a subtotal; validates expiry and usage limit
-  apply(code, subtotal, callback) {
+  // Apply voucher code to a subtotal; validates expiry, role, and usage limit
+  apply(code, subtotal, role, callback) {
+    if (typeof role === 'function') {
+      callback = role;
+      role = null;
+    }
     const numericSubtotal = Number(subtotal);
     if (Number.isNaN(numericSubtotal) || numericSubtotal < 0) {
       return callback(new Error('Invalid subtotal'));
@@ -109,6 +113,14 @@ const VoucherModel = {
       const voucher = rows[0];
       const now = new Date();
       const expiry = new Date(voucher.expiry_date);
+
+      if (voucher.allowed_role && role) {
+        const allowed = String(voucher.allowed_role).toLowerCase();
+        const userRole = String(role).toLowerCase();
+        if (allowed && userRole && allowed !== userRole) {
+          return callback(new Error('Voucher not available for this account'));
+        }
+      }
 
       if (expiry < now) return callback(new Error('Voucher expired'));
       if (voucher.used_count >= voucher.usage_limit) return callback(new Error('Voucher usage limit reached'));

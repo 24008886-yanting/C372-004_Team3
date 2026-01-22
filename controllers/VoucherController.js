@@ -134,6 +134,12 @@ const VoucherController = {
     if (subtotal === undefined) return res.status(400).json({ error: 'Subtotal is required' });
 
     const role = (req.session?.role || req.session?.user?.role || '').toLowerCase().trim();
+    const userId = req.session?.user_id;
+    if (!userId) return res.status(401).json({ error: 'Authentication required' });
+    if (role !== 'adopter') {
+      return res.status(403).json({ error: 'Vouchers are only available to adopters.' });
+    }
+
     Voucher.apply(code, subtotal, role, (err, info) => {
       if (err) return res.status(400).json({ error: 'Failed to apply voucher', details: err.message || err });
       res.json({ voucher: info });
@@ -142,8 +148,9 @@ const VoucherController = {
 
   // User: view own vouchers (visible only for adopters)
   viewMine(req, res) {
-    const role = (req.session?.role || req.query?.role || '').toLowerCase();
+    const role = (req.session?.role || req.session?.user?.role || req.query?.role || '').toLowerCase();
     const isAdopter = role === 'adopter';
+    const userId = req.session?.user_id;
 
     if (!isAdopter) {
       return renderOrJson(res, 'myVoucher', {
@@ -154,22 +161,51 @@ const VoucherController = {
       });
     }
 
-    // Prefer explicit arrays if provided; otherwise derive from a generic vouchers list
-    const sessionVouchers = Array.isArray(req.session?.vouchers) ? req.session.vouchers : [];
-    const derivedActive = sessionVouchers.filter(v => !v.used && v.status !== 'used');
-    const derivedUsed = sessionVouchers.filter(v => v.used || v.status === 'used');
+    if (!userId) {
+      return renderOrJson(res, 'myVoucher', {
+        userRole: role || null,
+        activeVouchers: [],
+        usedVouchers: [],
+        error: 'Please log in to view your vouchers.'
+      });
+    }
 
-    const activeVouchers = isAdopter
-      ? (Array.isArray(req.session?.activeVouchers) ? req.session.activeVouchers : derivedActive)
-      : [];
-    const usedVouchers = isAdopter
-      ? (Array.isArray(req.session?.usedVouchers) ? req.session.usedVouchers : derivedUsed)
-      : [];
+    Voucher.getAll((err, rows) => {
+      if (err) {
+        return renderOrJson(res, 'myVoucher', {
+          userRole: role || null,
+          activeVouchers: [],
+          usedVouchers: [],
+          error: 'Failed to load vouchers. Please try again.'
+        });
+      }
 
-    renderOrJson(res, 'myVoucher', {
-      userRole: role || null,
-      activeVouchers,
-      usedVouchers
+      const now = new Date();
+      const activeVouchers = [];
+      const usedVouchers = [];
+
+      (rows || []).forEach((voucher) => {
+        const allowedRole = String(voucher.allowed_role || '').toLowerCase();
+        if (allowedRole && allowedRole !== 'adopter') return;
+
+        const expiry = voucher.expiry_date ? new Date(voucher.expiry_date) : null;
+        const isExpired = expiry ? expiry < now : false;
+        const usageLimit = Number(voucher.usage_limit || 0);
+        const usedCount = Number(voucher.used_count || 0);
+        const isUsedUp = usageLimit > 0 && usedCount >= usageLimit;
+
+        if (isExpired || isUsedUp) {
+          usedVouchers.push(voucher);
+        } else {
+          activeVouchers.push(voucher);
+        }
+      });
+
+      renderOrJson(res, 'myVoucher', {
+        userRole: role || null,
+        activeVouchers,
+        usedVouchers
+      });
     });
   }
 };

@@ -1,4 +1,5 @@
 const Cart = require('../models/Cart');
+const Voucher = require('../models/Voucher');
 const Wishlist = require('../models/Wishlist');
 
 // Helper: try to render an EJS view; if not available, fall back to JSON.
@@ -27,8 +28,17 @@ const CartController = {
 
     Cart.getCartByUser(userId, (err, items) => {
       if (err) return res.status(500).json({ error: 'Failed to load cart', details: err });
-      // Render main cart page; fall back to JSON if view missing
-      renderOrJson(res, 'cart', { items, userRole: req.session?.role || null });
+      const role = (req.session?.role || '').toLowerCase();
+      if (role !== 'adopter') {
+        return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [] });
+      }
+
+      Voucher.getAll((voucherErr, vouchers) => {
+        if (voucherErr) {
+          return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [] });
+        }
+        renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: vouchers || [] });
+      });
     });
   },
 
