@@ -20,9 +20,14 @@
   const priceValue = Number(safeProduct.price) || 0;
   const stockValue = Number.isFinite(Number(safeProduct.stock)) ? Number(safeProduct.stock) : null;
   const inStock = stockValue === null ? true : stockValue > 0;
+  const statusValue = String(safeProduct.status || 'available').toLowerCase();
+  const isAvailable = statusValue !== 'unavailable';
   const wishlistEntry = wishlistItem || null;
   const wishlistId = wishlistEntry ? wishlistEntry.wishlist_id : null;
   const isWishlisted = Boolean(wishlistId);
+  const canPurchase = isAvailable && inStock;
+  const qtyDisabled = !canPurchase;
+  const wishlistDisabled = !isAvailable && !isWishlisted;
 
   // Prepare text for ingredients + description bullet list
   const ingredientText = (safeProduct.ingredient_list || '').trim();
@@ -49,6 +54,7 @@
     class="product-page"
     data-product-id="<%= safeProduct.product_id %>"
     data-stock="<%= stockValue ?? '' %>"
+    data-status="<%= statusValue %>"
     data-images='<%- JSON.stringify(imageList) %>'
     data-alt="<%= safeProduct.product_name || 'Product image' %>">
     <div id="page-alert" class="alert alert-success alert-dismissible fade show d-none page-alert" role="alert">
@@ -101,7 +107,8 @@
               type="button"
               aria-label="<%= isWishlisted ? 'Remove from wishlist' : 'Add to wishlist' %>"
               aria-pressed="<%= isWishlisted ? 'true' : 'false' %>"
-              data-wishlist-id="<%= wishlistId || '' %>">
+              data-wishlist-id="<%= wishlistId || '' %>"
+              <%= wishlistDisabled ? 'disabled' : '' %>>
               <img src="/images/wishlist-logo.jpg" alt="">
             </button>
           </div>
@@ -111,8 +118,8 @@
             <div class="price-block">
               <span class="price-value">$<%= priceValue.toFixed(2) %></span>
             </div>
-            <span class="stock-chip <%= inStock ? '' : 'stock-chip--out' %>">
-              <%= inStock ? 'In stock' : 'Out of stock' %>
+            <span class="stock-chip <%= !isAvailable ? 'stock-chip--unavailable' : inStock ? '' : 'stock-chip--out' %>">
+              <%= !isAvailable ? 'Unavailable' : inStock ? 'In stock' : 'Out of stock' %>
             </span>
           </div>
 
@@ -120,15 +127,17 @@
           <div class="quantity-row">
             <label for="quantity-input">Quantity</label>
             <div class="qty-control">
-              <button type="button" class="qty-btn" data-step="-1" aria-label="Decrease quantity">-</button>
-              <input id="quantity-input" name="quantity" type="number" min="1" value="1" <%= inStock ? '' : 'disabled' %> <%= stockValue !== null ? `max="${Math.max(stockValue, 1)}"` : '' %>>
-              <button type="button" class="qty-btn" data-step="1" aria-label="Increase quantity">+</button>
+              <button type="button" class="qty-btn" data-step="-1" aria-label="Decrease quantity" <%= qtyDisabled ? 'disabled' : '' %>>-</button>
+              <input id="quantity-input" name="quantity" type="number" min="1" value="1" <%= qtyDisabled ? 'disabled' : '' %> <%= stockValue !== null ? `max="${Math.max(stockValue, 1)}"` : '' %>>
+              <button type="button" class="qty-btn" data-step="1" aria-label="Increase quantity" <%= qtyDisabled ? 'disabled' : '' %>>+</button>
             </div>
           </div>
 
           <!-- Add to Cart / Buy Now or disabled when out of stock -->
           <div class="actions-row">
-            <% if (inStock) { %>
+            <% if (!isAvailable) { %>
+              <button class="cta-btn cta-btn--out" type="button" disabled>Unavailable</button>
+            <% } else if (inStock) { %>
               <button id="add-to-cart-btn" class="cta-btn cta-btn--cart" type="button">
                 Add to Cart
               </button>
@@ -199,6 +208,7 @@
       // Core elements reused by handlers
       const productId = page.dataset.productId;
       const stock = Number(page.dataset.stock);
+      const isAvailable = page.dataset.status !== 'unavailable';
       const qtyInput = document.getElementById('quantity-input');
       const qtyButtons = Array.from(document.querySelectorAll('.qty-btn'));
       const addBtn = document.getElementById('add-to-cart-btn');
@@ -312,8 +322,9 @@
         });
         if (handleAuthFailure(res)) throw new Error('login required');
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || 'Request failed');
+          const data = await res.json().catch(() => ({}));
+          const message = data.details || data.error || 'Request failed';
+          throw new Error(message);
         }
         return res.json().catch(() => ({}));
       };
@@ -327,6 +338,11 @@
       // Add to cart handler; optionally redirect straight to checkout
       const handleCart = async ({ redirectToCheckout = false } = {}) => {
         if (!productId || !addBtn || !buyBtn) return;
+        if (!isAvailable) {
+          setStatus('This product is unavailable.', 'error');
+          showAlert('This product is unavailable right now.', 'warning');
+          return;
+        }
         const quantity = clampQuantity();
         setButtonsDisabled(true);
         setStatus('Adding to cart...', 'neutral');
@@ -347,8 +363,9 @@
           }
         } catch (err) {
           console.error(err);
-          setStatus('Could not add to cart. Please try again.', 'error');
-          showAlert('An error occurred. Please try again.', 'danger');
+          const message = err?.message || 'An error occurred. Please try again.';
+          setStatus(message, 'error');
+          showAlert(message, 'danger');
         } finally {
           setButtonsDisabled(false);
         }
@@ -369,6 +386,11 @@
 
       const handleWishlistAdd = async () => {
         if (!productId || !wishlistBtn) return;
+        if (!isAvailable) {
+          setStatus('This product is unavailable.', 'error');
+          showAlert('This product is unavailable right now.', 'warning');
+          return;
+        }
         wishlistBtn.disabled = true;
         setStatus('Saving to wishlist...', 'neutral');
 
@@ -379,8 +401,9 @@
           showAlert('Item added to wishlist.', 'info');
         } catch (err) {
           console.error(err);
-          setStatus('Could not add to wishlist. Please try again.', 'error');
-          showAlert('An error occurred. Please try again.', 'danger');
+          const message = err?.message || 'An error occurred. Please try again.';
+          setStatus(message, 'error');
+          showAlert(message, 'danger');
         } finally {
           wishlistBtn.disabled = false;
         }
@@ -404,8 +427,9 @@
           showAlert('Item removed from wishlist.', 'warning');
         } catch (err) {
           console.error(err);
-          setStatus('Could not remove from wishlist. Please try again.', 'error');
-          showAlert('An error occurred. Please try again.', 'danger');
+          const message = err?.message || 'An error occurred. Please try again.';
+          setStatus(message, 'error');
+          showAlert(message, 'danger');
         } finally {
           wishlistBtn.disabled = false;
         }

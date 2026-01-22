@@ -33,6 +33,7 @@
       if (usageLimit > 0 && usedCount >= usageLimit) return false;
       return true;
     });
+    const hasUnavailable = Array.isArray(items) && items.some((item) => String(item.status || 'available').toLowerCase() === 'unavailable');
   %>
   <style>
     :root {
@@ -82,6 +83,16 @@
     .title { font-weight: 700; margin: 0 0 6px; }
     .price { margin: 0; font-weight: 600; color: var(--accent); }
     .stock { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+    .stock--unavailable { color: #92400e; font-weight: 700; }
+    .notice {
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fef9c3;
+      color: #92400e;
+      font-size: 13px;
+      font-weight: 600;
+    }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
     button {
       border: none; border-radius: 8px;
@@ -144,6 +155,9 @@
     <section>
       <h1>My Cart</h1>
       <p class="muted">Adjust quantities, move items to wishlist, or remove them before checkout.</p>
+      <% if (hasUnavailable) { %>
+        <div class="notice">Unavailable items are locked. You can only remove them.</div>
+      <% } %>
 
       <% if (!items || items.length === 0) { %>
         <div class="empty">
@@ -151,18 +165,25 @@
         </div>
       <% } else { %>
         <div class="list">
-          <% items.forEach(item => { %>
+          <% items.forEach(item => { 
+               const status = String(item.status || 'available').toLowerCase();
+               const isAvailable = status !== 'unavailable';
+          %>
             <div class="card" data-id="<%= item.cart_id %>">
               <img class="thumb" src="<%= resolveImage(item.image1) %>" alt="<%= item.product_name %>">
               <div>
                 <p class="title"><%= item.product_name %></p>
                 <p class="price">$<%= Number(item.price).toFixed(2) %></p>
-                <p class="stock">In stock: <%= item.stock %></p>
+                <% if (!isAvailable) { %>
+                  <p class="stock stock--unavailable">Unavailable</p>
+                <% } else { %>
+                  <p class="stock">In stock: <%= item.stock %></p>
+                <% } %>
               </div>
               <div class="actions">
-                <input class="qty-input" type="number" min="1" value="<%= item.quantity %>" aria-label="Quantity">
-                <button class="btn-accent" data-action="update">Update Qty</button>
-                <button class="btn-light" data-action="move-to-wishlist">Move to Wishlist</button>
+                <input class="qty-input" type="number" min="1" value="<%= item.quantity %>" aria-label="Quantity" <%= isAvailable ? '' : 'disabled' %>>
+                <button class="btn-accent" data-action="update" <%= isAvailable ? '' : 'disabled' %>>Update Qty</button>
+                <button class="btn-light" data-action="move-to-wishlist" <%= isAvailable ? '' : 'disabled' %>>Move to Wishlist</button>
                 <button class="btn-ghost" data-action="remove">Remove</button>
               </div>
             </div>
@@ -210,7 +231,7 @@
         <% } %>
       </div>
       <div class="row total"><span>Total</span><span id="total-amount">$<%= total.toFixed(2) %></span></div>
-      <button class="btn-accent" style="width:100%; margin-top:12px;" data-action="checkout">Checkout</button>
+      <button class="btn-accent" style="width:100%; margin-top:12px;" data-action="checkout" <%= hasUnavailable ? 'disabled' : '' %>>Checkout</button>
       <button class="btn-light" style="width:100%; margin-top:8px;" data-action="clear">Clear Cart</button>
     </aside>
   </main>
@@ -286,6 +307,7 @@
     });
 
     const handleCartAction = async (btn) => {
+      if (btn.disabled) return;
       const card = btn.closest('.card');
       const cartId = card?.dataset?.id;
       const action = btn.dataset.action;
@@ -332,13 +354,14 @@
         window.location.reload();
       } else {
         const data = await resp.json().catch(() => ({}));
-        alert(data.error || 'Action failed');
+        alert(data.details || data.error || 'Action failed');
       }
     };
 
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-action]');
       if (!btn) return;
+      if (btn.disabled) return;
       e.preventDefault();
       handleCartAction(btn);
     });

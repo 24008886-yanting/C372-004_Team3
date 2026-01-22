@@ -10,10 +10,21 @@ const ProductController = {
                 console.error('Failed to load inventory:', err);
                 console.error('Error details:', err.message, err.stack);
                 console.error('Full error object:', JSON.stringify(err, null, 2));
-                return res.status(500).render('inventory', { products: [], error: err.message });
+                return res.status(500).render('inventory', { products: [], messages: { error: err.message } });
             }
             console.log('Products loaded successfully:', products?.length || 0, 'products');
-            res.render('inventory', { products });
+            const success = (req.flash && req.flash('success')[0]) || undefined;
+            const error = (req.flash && req.flash('error')[0]) || undefined;
+            const deleteBlockRaw = (req.flash && req.flash('deleteBlock')[0]) || '';
+            let deleteBlock = null;
+            if (deleteBlockRaw) {
+                try {
+                    deleteBlock = JSON.parse(deleteBlockRaw);
+                } catch (parseErr) {
+                    deleteBlock = { message: deleteBlockRaw };
+                }
+            }
+            res.render('inventory', { products, messages: { success, error, deleteBlock } });
         });
     },
 
@@ -231,12 +242,56 @@ const ProductController = {
         }
 
         const productId = req.params.id;
-        Product.deleteProduct(productId, role, (err) => {
-            if (err) {
-                console.error('Failed to delete product:', err);
+        Product.getProductUsageCounts(productId, (countErr, usage) => {
+            if (countErr) {
+                console.error('Failed to check product usage:', countErr);
                 return res.status(500).send('Failed to delete product.');
             }
-            req.flash('success', 'Product deleted successfully.');
+
+            const cartCount = usage?.cartCount || 0;
+            const wishlistCount = usage?.wishlistCount || 0;
+            if (cartCount > 0 || wishlistCount > 0) {
+                const reasonParts = [];
+                if (cartCount) reasonParts.push(`${cartCount} cart${cartCount === 1 ? '' : 's'}`);
+                if (wishlistCount) reasonParts.push(`${wishlistCount} wishlist${wishlistCount === 1 ? '' : 's'}`);
+                const reason = reasonParts.length ? `Still referenced in ${reasonParts.join(' and ')}.` : 'Still referenced in carts or wishlists.';
+                if (req.flash) {
+                    req.flash('deleteBlock', JSON.stringify({
+                        productId,
+                        reason,
+                        cartCount,
+                        wishlistCount
+                    }));
+                }
+                return res.redirect('/inventory');
+            }
+
+            Product.deleteProduct(productId, role, (err) => {
+                if (err) {
+                    console.error('Failed to delete product:', err);
+                    return res.status(500).send('Failed to delete product.');
+                }
+                req.flash('success', 'Product deleted successfully.');
+                res.redirect('/inventory');
+            });
+        });
+    },
+
+    updateStatus(req, res) {
+        const role = req.session?.role;
+        if (role !== 'admin') {
+            return res.status(403).send('Unauthorized: admin role required.');
+        }
+
+        const productId = req.params.id;
+        const status = req.body?.status;
+        Product.updateStatus(productId, status, role, (err) => {
+            if (err) {
+                console.error('Failed to update product status:', err);
+                if (req.flash) req.flash('error', 'Failed to update product status.');
+                return res.redirect('/inventory');
+            }
+            req.flash('success', 'Product status updated successfully.');
             res.redirect('/inventory');
         });
     }

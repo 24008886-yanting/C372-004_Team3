@@ -11,6 +11,7 @@
       if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/images/')) return src;
       return '/images/' + src;
     };
+    const hasUnavailable = Array.isArray(items) && items.some((item) => String(item.status || 'available').toLowerCase() === 'unavailable');
   %>
   <style>
     :root {
@@ -63,6 +64,16 @@
     .title { font-weight: 700; margin: 0 0 6px; }
     .price { margin: 0; font-weight: 600; color: var(--accent); }
     .stock { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+    .stock--unavailable { color: #92400e; font-weight: 700; }
+    .notice {
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fef9c3;
+      color: #92400e;
+      font-size: 13px;
+      font-weight: 600;
+    }
     .actions {
       display: flex;
       gap: 10px;
@@ -106,6 +117,9 @@
   <main class="shell">
     <h1>My Wishlist</h1>
     <p class="muted">Save items you love and move them to cart when you are ready to buy.</p>
+    <% if (hasUnavailable) { %>
+      <div class="notice">Unavailable items are locked. You can only remove them.</div>
+    <% } %>
 
     <% if (!items || items.length === 0) { %>
       <div class="empty">
@@ -113,17 +127,24 @@
       </div>
     <% } else { %>
       <div class="list">
-        <% items.forEach(item => { %>
+        <% items.forEach(item => { 
+             const status = String(item.status || 'available').toLowerCase();
+             const isAvailable = status !== 'unavailable';
+        %>
           <div class="card" data-id="<%= item.wishlist_id %>">
             <img class="thumb" src="<%= resolveImage(item.image1) %>" alt="<%= item.product_name %>">
             <div>
               <p class="title"><%= item.product_name %></p>
               <p class="price">$<%= Number(item.price).toFixed(2) %></p>
-              <p class="stock">In stock: <%= item.stock %></p>
+              <% if (!isAvailable) { %>
+                <p class="stock stock--unavailable">Unavailable</p>
+              <% } else { %>
+                <p class="stock">In stock: <%= item.stock %></p>
+              <% } %>
             </div>
             <div class="actions">
-              <input class="qty-input" type="number" min="1" value="1" aria-label="Quantity">
-              <button class="btn-accent" data-action="move-to-cart">Move to Cart</button>
+              <input class="qty-input" type="number" min="1" value="1" aria-label="Quantity" <%= isAvailable ? '' : 'disabled' %>>
+              <button class="btn-accent" data-action="move-to-cart" <%= isAvailable ? '' : 'disabled' %>>Move to Cart</button>
               <button class="btn-ghost" data-action="remove">Remove</button>
             </div>
           </div>
@@ -135,6 +156,7 @@
   <script>
     // Minimal client-side helpers to call API endpoints without method-override
     const handleClick = async (btn) => {
+      if (btn.disabled) return;
       const card = btn.closest('.card');
       const wishlistId = card?.dataset?.id;
       if (!wishlistId) return;
@@ -165,7 +187,7 @@
         window.location.reload();
       } else {
         const data = await resp.json().catch(() => ({}));
-        alert(data.error || 'Action failed');
+        alert(data.details || data.error || 'Action failed');
       }
     };
 
@@ -173,6 +195,7 @@
       const btn = e.target.closest('button[data-action]');
       if (btn) {
         e.preventDefault();
+        if (btn.disabled) return;
         handleClick(btn);
       }
     });

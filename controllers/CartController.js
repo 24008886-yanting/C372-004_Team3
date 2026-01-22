@@ -54,7 +54,8 @@ const CartController = {
     Cart.addItem(userId, product_id, quantity || 1, (err, result) => {
       if (err) {
         const message = err.message || String(err);
-        const status = message.includes('not enough stock') ? 400 : message.includes('Product not found') ? 404 : 500;
+        const lower = message.toLowerCase();
+        const status = lower.includes('not enough stock') || lower.includes('unavailable') ? 400 : lower.includes('product not found') ? 404 : 500;
         return res.status(status).json({ error: 'Failed to add item to cart', details: message });
       }
       const action = result?.action === 'updated' ? 'updated' : 'added';
@@ -81,7 +82,8 @@ const CartController = {
     Cart.updateQuantity(id, userId, quantity || 1, (err, result) => {
       if (err) {
         const message = err.message || String(err);
-        const status = message.includes('not enough stock') ? 400 : message.includes('not found') ? 404 : 500;
+        const lower = message.toLowerCase();
+        const status = lower.includes('not enough stock') || lower.includes('unavailable') ? 400 : lower.includes('not found') ? 404 : 500;
         return res.status(status).json({ error: 'Failed to update cart item', details: message });
       }
       if (result?.affectedRows === 0) return res.status(404).json({ error: 'Cart item not found' });
@@ -127,7 +129,8 @@ const CartController = {
     Cart.checkout(userId, checkoutOptions, (err, summary) => {
       if (err) {
         const message = err.message || String(err);
-        const status = message.toLowerCase().includes('stock') || message.toLowerCase().includes('empty') ? 400 : 500;
+        const lower = message.toLowerCase();
+        const status = lower.includes('stock') || lower.includes('empty') || lower.includes('unavailable') ? 400 : 500;
         return res.status(status).json({ error: 'Checkout failed', details: message });
       }
       renderOrJson(res, 'cart/checkout-success', { message: 'Checkout complete', order: summary });

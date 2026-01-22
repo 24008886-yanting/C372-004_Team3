@@ -369,13 +369,16 @@
           });
 
           if (handleAuthFailure(res)) return;
-          if (!res.ok) throw new Error('Failed to add to wishlist');
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.details || data.error || 'Failed to add to wishlist');
+          }
           const data = await res.json().catch(() => ({}));
           setWishlistState(btn, true, data.wishlist_id);
           showAlert('Item added to wishlist.', 'info');
         } catch (err) {
           console.error(err);
-          showAlert('An error occurred. Please try again.', 'danger');
+          showAlert(err?.message || 'An error occurred. Please try again.', 'danger');
         } finally {
           btn.disabled = false;
           btn.classList.remove('busy');
@@ -396,12 +399,15 @@
           });
 
           if (handleAuthFailure(res)) return;
-          if (!res.ok) throw new Error('Failed to remove from wishlist');
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.details || data.error || 'Failed to remove from wishlist');
+          }
           setWishlistState(btn, false, '');
           showAlert('Item removed from wishlist.', 'warning');
         } catch (err) {
           console.error(err);
-          showAlert('An error occurred. Please try again.', 'danger');
+          showAlert(err?.message || 'An error occurred. Please try again.', 'danger');
         } finally {
           btn.disabled = false;
           btn.classList.remove('busy');
@@ -435,7 +441,10 @@
           });
 
           if (handleAuthFailure(res)) return;
-          if (!res.ok) throw new Error('Failed to add to cart');
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.details || data.error || 'Failed to add to cart');
+          }
           const data = await res.json().catch(() => ({}));
           const action = data.action === 'updated' ? 'updated' : 'added';
           btn.classList.add('added');
@@ -446,7 +455,7 @@
           }
         } catch (err) {
           console.error(err);
-          showAlert('An error occurred. Please try again.', 'danger');
+          showAlert(err?.message || 'An error occurred. Please try again.', 'danger');
         } finally {
           btn.disabled = false;
           btn.classList.remove('busy');

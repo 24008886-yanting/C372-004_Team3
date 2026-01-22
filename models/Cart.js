@@ -5,7 +5,7 @@ const CartModel = {
   getCartByUser(userId, callback) {
     const sql = `
       SELECT c.cart_id, c.user_id, c.product_id, c.quantity, c.added_at,
-             p.product_name, p.price, p.image1, p.stock
+             p.product_name, p.price, p.image1, p.stock, p.status
       FROM cart c
       JOIN products p ON c.product_id = p.product_id
       WHERE c.user_id = ?
@@ -30,7 +30,7 @@ const CartModel = {
     const safeQty = Math.max(parseInt(quantity, 10) || 0, 1);
 
     // Ensure product exists and check stock
-    const productSql = 'SELECT product_id, stock FROM products WHERE product_id = ?';
+    const productSql = 'SELECT product_id, stock, status FROM products WHERE product_id = ?';
     db.query(productSql, [productId], (productErr, products) => {
       if (productErr) return callback(productErr);
       if (!products || products.length === 0) {
@@ -38,6 +38,9 @@ const CartModel = {
       }
 
       const product = products[0];
+      if (String(product.status || '').toLowerCase() === 'unavailable') {
+        return callback(new Error('Product is unavailable'));
+      }
 
       // Check if item already in cart
       const cartSql = 'SELECT cart_id, quantity FROM cart WHERE user_id = ? AND product_id = ?';
@@ -90,7 +93,7 @@ const CartModel = {
 
     // Ensure the cart item belongs to the user and stock is sufficient
     const sql = `
-      SELECT c.cart_id, c.quantity, c.product_id, p.stock
+      SELECT c.cart_id, c.quantity, c.product_id, p.stock, p.status
       FROM cart c
       JOIN products p ON c.product_id = p.product_id
       WHERE c.cart_id = ? AND c.user_id = ?
@@ -102,6 +105,9 @@ const CartModel = {
       }
 
       const item = rows[0];
+      if (String(item.status || '').toLowerCase() === 'unavailable') {
+        return callback(new Error('Product is unavailable'));
+      }
       if (safeQty > item.stock) {
         return callback(new Error('Not enough stock for requested quantity'));
       }
@@ -131,7 +137,7 @@ const CartModel = {
       if (txErr) return callback(txErr);
 
       const cartSql = `
-        SELECT c.cart_id, c.product_id, c.quantity, p.price, p.stock
+        SELECT c.cart_id, c.product_id, c.quantity, p.price, p.stock, p.status
         FROM cart c
         JOIN products p ON c.product_id = p.product_id
         WHERE c.user_id = ?
@@ -147,6 +153,9 @@ const CartModel = {
         // Validate stock and calculate totals
         let subtotal = 0;
         for (const item of cartItems) {
+          if (String(item.status || '').toLowerCase() === 'unavailable') {
+            return db.rollback(() => callback(new Error('Product unavailable in cart')));
+          }
           if (item.quantity > item.stock) {
             return db.rollback(() => callback(new Error('Not enough stock for one of the items')));
           }

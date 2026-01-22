@@ -6,7 +6,7 @@ const WishlistModel = {
   getByUser(userId, callback) {
     const sql = `
       SELECT w.wishlist_id, w.user_id, w.product_id, w.added_at,
-             p.product_name, p.price, p.image1, p.stock
+             p.product_name, p.price, p.image1, p.stock, p.status
       FROM wishlist w
       JOIN products p ON w.product_id = p.product_id
       WHERE w.user_id = ?
@@ -17,10 +17,13 @@ const WishlistModel = {
 
   // Add product to wishlist (ignores duplicates)
   addItem(userId, productId, callback) {
-    const productSql = 'SELECT product_id FROM products WHERE product_id = ?';
+    const productSql = 'SELECT product_id, status FROM products WHERE product_id = ?';
     db.query(productSql, [productId], (productErr, rows) => {
       if (productErr) return callback(productErr);
       if (!rows || rows.length === 0) return callback(new Error('Product not found'));
+      if (String(rows[0].status || '').toLowerCase() === 'unavailable') {
+        return callback(new Error('Product is unavailable'));
+      }
 
       const sql = `
         INSERT INTO wishlist (user_id, product_id)
@@ -67,18 +70,26 @@ const WishlistModel = {
       if (!rows || rows.length === 0) return callback(new Error('Cart item not found'));
 
       const { product_id } = rows[0];
+      const statusSql = 'SELECT status FROM products WHERE product_id = ?';
+      db.query(statusSql, [product_id], (statusErr, statusRows) => {
+        if (statusErr) return callback(statusErr);
+        const statusValue = statusRows && statusRows[0] ? String(statusRows[0].status || '').toLowerCase() : '';
+        if (statusValue === 'unavailable') {
+          return callback(new Error('Product is unavailable'));
+        }
 
-      const insertSql = `
-        INSERT INTO wishlist (user_id, product_id)
-        VALUES (?, ?)
-        ON DUPLICATE KEY UPDATE added_at = added_at
-      `;
+        const insertSql = `
+          INSERT INTO wishlist (user_id, product_id)
+          VALUES (?, ?)
+          ON DUPLICATE KEY UPDATE added_at = added_at
+        `;
 
-      db.query(insertSql, [userId, product_id], (insertErr) => {
-        if (insertErr) return callback(insertErr);
+        db.query(insertSql, [userId, product_id], (insertErr) => {
+          if (insertErr) return callback(insertErr);
 
-        const deleteSql = 'DELETE FROM cart WHERE cart_id = ? AND user_id = ?';
-        db.query(deleteSql, [cartId, userId], callback);
+          const deleteSql = 'DELETE FROM cart WHERE cart_id = ? AND user_id = ?';
+          db.query(deleteSql, [cartId, userId], callback);
+        });
       });
     });
   },

@@ -10,12 +10,40 @@
 </head>
 <body>
   <%- include('partials/navbar') %>
+  <%
+    const successMessage = messages && messages.success;
+    const errorMessage = messages && messages.error;
+    const deleteBlock = messages && messages.deleteBlock;
+  %>
+
+  <% if (deleteBlock) { %>
+    <div class="modal-backdrop" id="delete-block-modal" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <button type="button" class="modal-close" data-action="close-modal" aria-label="Close">&times;</button>
+        <h2>Delete blocked</h2>
+        <p>Deletion is currently not allowed.</p>
+        <p class="modal-reason"><%= deleteBlock.reason || 'This product is still referenced in carts or wishlists.' %></p>
+        <p>Would you like to set the status to Unavailable instead?</p>
+        <form method="POST" action="/products/<%= deleteBlock.productId %>/status" class="modal-actions">
+          <input type="hidden" name="status" value="unavailable">
+          <button type="submit" class="btn btn-status-unavailable">Set to Unavailable</button>
+          <button type="button" class="btn outline" data-action="close-modal">Cancel</button>
+        </form>
+      </div>
+    </div>
+  <% } %>
 
   <main>
     <header>
       <p class="muted">Admin · Product Management</p>
       <h1>Inventory</h1>
       <p class="muted">Manage all products in your store</p>
+      <% if (successMessage) { %>
+        <div class="inline-alert inline-alert--success"><%= successMessage %></div>
+      <% } %>
+      <% if (errorMessage) { %>
+        <div class="inline-alert inline-alert--error"><%= errorMessage %></div>
+      <% } %>
     </header>
 
     <section class="card">
@@ -37,7 +65,11 @@
           <% return '/images/' + src; %>
         <% }; %>
         <div class="product-grid">
-          <% products.forEach(product => { %>
+          <% products.forEach(product => { 
+               const status = String(product.status || 'available').toLowerCase();
+               const isAvailable = status !== 'unavailable';
+               const nextStatus = isAvailable ? 'unavailable' : 'available';
+          %>
             <article class="card product-card">
               <img 
                 src="<%= resolveImage(product.image1) || resolveImage(product.image2) || '' %>" 
@@ -46,11 +78,18 @@
               <div class="product-name"><%= product.product_name %></div>
               <div class="product-category"><%= product.category %></div>
               <div class="product-price">$<%= (Number(product.price || 0) ).toFixed(2) %></div>
+              <span class="status-badge <%= isAvailable ? 'status-available' : 'status-unavailable' %>">
+                <%= isAvailable ? 'Available' : 'Unavailable' %>
+              </span>
               <span class="stock-badge <%= product.stock > 10 ? 'stock-in' : product.stock > 0 ? 'stock-low' : 'stock-out' %>">
                 Stock: <%= product.stock %>
               </span>
               <div class="form-actions">
                 <a href="/products/<%= product.product_id %>/edit" class="btn outline">Edit</a>
+                <form method="POST" action="/products/<%= product.product_id %>/status" class="status-form">
+                  <input type="hidden" name="status" value="<%= nextStatus %>">
+                  <button type="submit" class="btn <%= isAvailable ? 'btn-status-unavailable' : 'btn-status-available' %>"><%= isAvailable ? 'Set Unavailable' : 'Set Available' %></button>
+                </form>
                 <form method="POST" action="/products/<%= product.product_id %>/delete" class="delete-form" onsubmit="return confirm('Delete this product?');">
                   <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
@@ -63,5 +102,16 @@
   </main>
 
   <%- include('partials/footer') %>
+  <script>
+    (() => {
+      const modal = document.getElementById('delete-block-modal');
+      if (!modal) return;
+      const closeButtons = Array.from(modal.querySelectorAll('[data-action="close-modal"]'));
+      const closeModal = () => {
+        modal.remove();
+      };
+      closeButtons.forEach(btn => btn.addEventListener('click', closeModal));
+    })();
+  </script>
 </body>
 </html>

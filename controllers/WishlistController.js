@@ -59,7 +59,8 @@ const WishlistController = {
       Wishlist.addItem(userId, product_id, (err, result) => {
         if (err) {
           const message = err.message || String(err);
-          const status = message.includes('not found') ? 404 : 500;
+          const lower = message.toLowerCase();
+          const status = lower.includes('not found') ? 404 : lower.includes('unavailable') ? 409 : 500;
           return res.status(status).json({ error: 'Failed to add to wishlist', details: message });
         }
 
@@ -106,7 +107,8 @@ const WishlistController = {
     Wishlist.moveFromCart(id, userId, (err, result) => {
       if (err) {
         const message = err.message || String(err);
-        const status = message.toLowerCase().includes('not found') ? 404 : 500;
+        const lower = message.toLowerCase();
+        const status = lower.includes('not found') ? 404 : lower.includes('unavailable') ? 409 : 500;
         return res.status(status).json({ error: 'Failed to move item to wishlist', details: message });
       }
       renderOrJson(req, res, 'wishlist/move-success', { message: 'Moved to wishlist', cart_id: id, result });
@@ -126,7 +128,8 @@ const WishlistController = {
     Wishlist.moveToCart(id, userId, quantity || 1, (err, result) => {
       if (err) {
         const message = err.message || String(err);
-        const status = message.toLowerCase().includes('not found') ? 404 : message.toLowerCase().includes('stock') ? 400 : 500;
+        const lower = message.toLowerCase();
+        const status = lower.includes('not found') ? 404 : lower.includes('stock') || lower.includes('unavailable') ? 400 : 500;
         return res.status(status).json({ error: 'Failed to move item to cart', details: message });
       }
       renderOrJson(req, res, 'wishlist/move-to-cart-success', { message: 'Moved to cart', wishlist_id: id, result });
