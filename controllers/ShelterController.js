@@ -1,4 +1,5 @@
 const Shelter = require('../models/Shelter');
+const User = require('../models/User');
 
 // Controller methods returning EJS-rendered responses
 const ShelterController = {
@@ -31,18 +32,54 @@ const ShelterController = {
 
   // Add a new shelter
   addShelter(req, res) {
-    const { shelter_name, shelterName, contact_number, contactNumber } = req.body;
+    const { shelter_name, shelterName, contact_number, contactNumber, shelter_email, shelter_password } = req.body;
+    const name = (shelter_name ?? shelterName ?? '').trim();
+    const contact = (contact_number ?? contactNumber ?? '').trim();
+    const email = (shelter_email || '').trim();
+    const password = (shelter_password || '').trim();
+
+    if (!name || !contact || !email || !password) {
+      return res.status(400).render('addShelter', {
+        error: 'Shelter name, contact number, login email, and password are required.'
+      });
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+      return res.status(400).render('addShelter', {
+        error: 'Please enter a valid login email for the shelter.'
+      });
+    }
+
     const payload = {
-      shelterName: shelter_name ?? shelterName,
-      contactNumber: contact_number ?? contactNumber
+      shelterName: name,
+      contactNumber: contact
     };
 
-    Shelter.addShelter(payload, (err) => {
+    Shelter.addShelter(payload, (err, result) => {
       if (err) {
         console.error('Failed to add shelter:', err);
         return res.status(500).render('addShelter', { error: 'Unable to add shelter' });
       }
-      res.redirect('/shelterList');
+
+      const userPayload = {
+        username: name,
+        email,
+        phone: contact,
+        address: '',
+        role: 'shelter',
+        password
+      };
+
+      User.addUser(userPayload, (userErr) => {
+        if (userErr) {
+          console.error('Failed to create shelter login:', userErr);
+          // Optionally inform admin; leave shelter row intact for manual recovery
+          return res.status(500).render('addShelter', { error: 'Shelter created but failed to create login. Please try again.' });
+        }
+
+        res.redirect('/shelterList');
+      });
     });
   },
 
