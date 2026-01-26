@@ -20,6 +20,7 @@ const WishlistController = require('./controllers/WishlistController');
 const OrderItem = require('./models/OrderItem');
 const User = require('./models/User');
 const invoiceController = require('./controllers/InvoiceController');
+const PaymentController = require('./controllers/PaymentController');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
 
@@ -162,6 +163,9 @@ app.delete('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter'])
 app.post('/cart/checkout', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
     invoiceController.processInvoice(req, res);
 });
+// PayPal payment endpoints
+app.post('/paypal/create-order', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.createPaypalOrder);
+app.post('/paypal/capture-order', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.capturePaypalOrder);
 
 // Wishlist
 app.get('/wishlist', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.view);

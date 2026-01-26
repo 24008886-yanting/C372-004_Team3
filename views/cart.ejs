@@ -231,18 +231,27 @@
         <% } %>
       </div>
       <div class="row total"><span>Total</span><span id="total-amount">$<%= total.toFixed(2) %></span></div>
-      <button class="btn-accent" style="width:100%; margin-top:12px;" data-action="checkout" <%= hasUnavailable ? 'disabled' : '' %>>Checkout</button>
+      <div id="paypal-button-container" style="margin-top:12px;"></div>
+      <div id="paypal-message" class="muted" style="margin-top:6px;"></div>
       <button class="btn-light" style="width:100%; margin-top:8px;" data-action="clear">Clear Cart</button>
     </aside>
   </main>
 
+  <% if (paypalClientId) { %>
+    <script src="https://www.paypal.com/sdk/js?client-id=<%= paypalClientId %>&currency=SGD"></script>
+  <% } %>
   <script>
     const headers = { 'Content-Type': 'application/json' };
     const summary = document.querySelector('.summary');
     const subtotal = Number(summary?.dataset?.subtotal || 0);
     const shippingFee = Number(summary?.dataset?.shippingFee || 0);
     const taxRatePercent = Number(summary?.dataset?.taxRate || 0);
+    const paypalClientId = "<%= paypalClientId || '' %>";
+    const hasUnavailable = <%= hasUnavailable ? 'true' : 'false' %>;
+    const paypalButtonContainer = document.getElementById('paypal-button-container');
+    const paypalMessage = document.getElementById('paypal-message');
     let voucherId = null;
+    let voucherCode = '';
     let discountAmount = 0;
 
     const updateTotals = () => {
@@ -280,10 +289,15 @@
           if (!res.ok) {
             const message = data?.error || data?.details || 'Failed to apply voucher.';
             if (statusEl) statusEl.textContent = message;
+            voucherId = null;
+            voucherCode = '';
+            discountAmount = 0;
+            updateTotals();
             return;
           }
           const voucher = data.voucher || {};
           voucherId = voucher.voucher_id || null;
+          voucherCode = voucher.voucher_code || '';
           discountAmount = Number(voucher.discount_amount) || 0;
           if (statusEl) statusEl.textContent = `Applied ${voucher.voucher_code || 'voucher'} (-$${discountAmount.toFixed(2)}).`;
           updateTotals();
@@ -371,6 +385,74 @@
       e.preventDefault();
       handleCartAction(btn);
     });
+
+    const showPaypalMessage = (message, isError = false) => {
+      if (!paypalMessage) return;
+      paypalMessage.textContent = message || '';
+      paypalMessage.style.color = isError ? '#dc2626' : 'var(--muted)';
+    };
+
+    let paypalRendered = false;
+    const renderPaypalButtons = () => {
+      if (paypalRendered) return;
+      if (!paypalButtonContainer) return;
+      if (hasUnavailable) {
+        showPaypalMessage('Unavailable items cannot be checked out. Please remove them to continue.', true);
+        return;
+      }
+      if (!paypalClientId) {
+        showPaypalMessage('PayPal is not configured. Please contact support.', true);
+        return;
+      }
+      if (typeof paypal === 'undefined') {
+        showPaypalMessage('Loading PayPal...', false);
+        setTimeout(renderPaypalButtons, 300);
+        return;
+      }
+
+      paypalRendered = true;
+      paypal.Buttons({
+        style: { shape: 'rect', color: 'blue', layout: 'vertical', label: 'paypal' },
+        onClick: () => showPaypalMessage(''),
+        createOrder: async () => {
+          showPaypalMessage('Creating PayPal order...');
+          const resp = await fetch('/paypal/create-order', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ voucher_code: voucherCode || null })
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.id) {
+            throw new Error(data.error || 'Unable to start PayPal payment.');
+          }
+          showPaypalMessage('');
+          return data.id;
+        },
+        onApprove: async (data) => {
+          showPaypalMessage('Capturing payment...');
+          const resp = await fetch('/paypal/capture-order', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ orderId: data.orderID, voucher_code: voucherCode || null })
+          });
+          const result = await resp.json().catch(() => ({}));
+          if (!resp.ok || !result.success) {
+            throw new Error(result.error || 'Payment capture failed.');
+          }
+          const redirectUrl = result.redirectUrl || '/invoice-confirmation';
+          window.location.href = redirectUrl;
+        },
+        onError: (err) => {
+          console.error('PayPal error', err);
+          showPaypalMessage(err?.message || 'Payment could not be completed. Please try again.', true);
+        },
+        onCancel: () => {
+          showPaypalMessage('Payment was cancelled.', true);
+        }
+      }).render('#paypal-button-container');
+    };
+
+    renderPaypalButtons();
   </script>
 </body>
 </html>
