@@ -19,6 +19,7 @@ const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
 const OrderItem = require('./models/OrderItem');
 const User = require('./models/User');
+const invoiceController = require('./controllers/InvoiceController');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
 
@@ -158,7 +159,9 @@ app.post('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), 
 app.put('/cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.updateQuantity);
 app.delete('/cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.removeItem);
 app.delete('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.clearCart);
-app.post('/cart/checkout', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.checkout);
+app.post('/cart/checkout', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
+    invoiceController.processInvoice(req, res);
+});
 
 // Wishlist
 app.get('/wishlist', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.view);
@@ -269,7 +272,23 @@ app.post('/admin/setup', (req, res) => {
         res.redirect('/login');
     });
 });
+// Checkout and Invoice Routes
+app.get('/checkout', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
+    const cart = req.session.cart || [];
+    if (cart.length === 0) {
+        req.flash('error', 'Your cart is empty');
+        return res.redirect('/shopping');
+    }
+    res.render('invoice', { cart, user: req.session.user, cartCount: (req.session.cart || []).reduce((s, i) => s + (i.quantity || 0), 0) });
+});
 
+app.post('/process-payment', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
+    invoiceController.processInvoice(req, res);
+});
+
+app.get('/invoice-confirmation', checkAuthenticated, (req, res) => {
+    invoiceController.viewInvoice(req, res);
+});
 // -------------------- START SERVER --------------------
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

@@ -24,11 +24,11 @@
 			</article>
 			<article class="card">
 				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Revenue</h2>
-				<div style="font-size:26px; font-weight:700; color:var(--text);">$<%= (Number(totals.revenue || 0) / 100).toFixed(2) %></div>
+				<div style="font-size:26px; font-weight:700; color:var(--text);">$<%= Number(totals.revenue || 0).toFixed(2) %></div>
 			</article>
 			<article class="card">
 				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Discounts</h2>
-				<div style="font-size:26px; font-weight:700; color:var(--text);">$<%= (Number(totals.discount || 0) / 100).toFixed(2) %></div>
+				<div style="font-size:26px; font-weight:700; color:var(--text);">$<%= Number(totals.discount || 0).toFixed(2) %></div>
 			</article>
 			<article class="card">
 				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Items Sold</h2>
@@ -59,10 +59,10 @@
 									<td><strong>#<%= o.order_id %></strong></td>
 									<td><%= o.username || `User #${o.user_id}` %></td>
 									<td><%= o.voucher_code || '—' %></td>
-									<td><%= o.item_count || 0 %></td>
-									<td>$<%= (Number(o.subtotal || 0) / 100).toFixed(2) %></td>
-									<td>$<%= (Number(o.total || 0) / 100).toFixed(2) %></td>
-									<td><%= new Date(o.created_at).toLocaleDateString() %></td>
+									<td><%= o.items_count || 0 %></td>
+									<td>$<%= Number(o.subtotal || 0).toFixed(2) %></td>
+									<td>$<%= Number(o.total_amount || 0).toFixed(2) %></td>
+									<td><%= o.order_date ? new Date(o.order_date).toLocaleDateString() : '—' %></td>
 								</tr>
 							<% }); %>
 						</tbody>

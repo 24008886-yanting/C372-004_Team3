@@ -18,10 +18,13 @@ const OrderController = {
 			};
 
 			(orders || []).forEach(o => {
-				totals.revenue += Number(o.total_amount || 0);
+				const amount = Number(o.total_amount || 0);
+				totals.revenue += amount;
 				totals.discount += Number(o.discount_amount || 0);
 				totals.items += Number(o.units_count || 0);
 			});
+
+			console.log('Order Totals Calculation:', totals, 'Orders:', orders.map(o => ({ id: o.order_id, total_amount: o.total_amount })));
 
 			res.render('orderDashboard', { orders: orders || [], totals });
 		});

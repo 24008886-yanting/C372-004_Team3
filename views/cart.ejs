@@ -347,14 +347,20 @@
       if (resp.ok) {
         if (action === 'checkout') {
           const data = await resp.json().catch(() => ({}));
-          alert('Checkout successful');
-          // If you have an invoice page, redirect using data.order.order_id
-          return window.location.reload();
+          // Redirect to invoice confirmation page after successful checkout
+          if (data.success) {
+            return window.location.href = '/invoice-confirmation';
+          }
         }
         window.location.reload();
       } else {
         const data = await resp.json().catch(() => ({}));
-        alert(data.details || data.error || 'Action failed');
+        const errorMsg = data.message || data.details || data.error || 'Action failed';
+        if (action === 'checkout') {
+          alert('Checkout Error: ' + errorMsg);
+          return window.location.reload();
+        }
+        alert(errorMsg);
       }
     };
 
