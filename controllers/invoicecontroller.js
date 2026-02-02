@@ -180,6 +180,8 @@ const InvoiceController = {
             return res.redirect('/shopping');
         }
 
+        console.log('Displaying invoice from session:', JSON.stringify(invoice, null, 2));
+        
         // compute cartCount (should be 0 after checkout) and render
         const cartCount = (req.session.cart || []).reduce((s, i) => s + (i.quantity || 0), 0);
 

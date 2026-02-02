@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .success-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            padding: 60px 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 0.6s;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: scale(0); }
+            50% { transform: scale(1); }
+        }
+        .success-title {
+            color: #10b981;
+            font-weight: 700;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        .success-message {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        .invoice-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 32px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .invoice-btn:hover {
+            text-decoration: none;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-container">
+            <div class="success-icon">✓</div>
+            <div class="success-title">Payment Successful!</div>
+            <p class="success-message"><%= message %></p>
+            <p class="success-message">Your transaction has been completed successfully.</p>
+            
+            <a href="/invoice-confirmation" class="invoice-btn">View Invoice</a>
+        </div>
+    </div>
+</body>
+</html>

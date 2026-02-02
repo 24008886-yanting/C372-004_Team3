@@ -231,6 +231,10 @@
         <% } %>
       </div>
       <div class="row total"><span>Total</span><span id="total-amount">$<%= total.toFixed(2) %></span></div>
+      <button id="nets-button" class="btn-accent" style="width:100%; margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;" type="button">
+        <span style="font-weight: 600;">NETS</span>
+      </button>
+      <div id="nets-message" class="muted" style="margin-top:6px;"></div>
       <div id="paypal-button-container" style="margin-top:12px;"></div>
       <div id="paypal-message" class="muted" style="margin-top:6px;"></div>
       <button class="btn-light" style="width:100%; margin-top:8px;" data-action="clear">Clear Cart</button>
@@ -391,6 +395,58 @@
       paypalMessage.textContent = message || '';
       paypalMessage.style.color = isError ? '#dc2626' : 'var(--muted)';
     };
+
+    const netsButton = document.getElementById('nets-button');
+    const netsMessage = document.getElementById('nets-message');
+
+    const showNetsMessage = (message, isError = false) => {
+      if (!netsMessage) return;
+      netsMessage.textContent = message || '';
+      netsMessage.style.color = isError ? '#dc2626' : 'var(--muted)';
+    };
+
+    if (netsButton) {
+      netsButton.addEventListener('click', async () => {
+        console.log('NETS button clicked');
+        if (netsButton.disabled) {
+          console.log('NETS button is disabled, returning');
+          return;
+        }
+        if (hasUnavailable) {
+          console.log('Cart has unavailable items');
+          showNetsMessage('Unavailable items cannot be checked out. Please remove them to continue.', true);
+          return;
+        }
+
+        netsButton.disabled = true;
+        showNetsMessage('Generating NETS QR code...');
+
+        try {
+          const taxAmount = subtotal * (taxRatePercent / 100);
+          const total = subtotal + shippingFee + taxAmount - discountAmount;
+
+          console.log('Sending NETS request with total:', total);
+          
+          // Create a hidden form and submit it
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/generateNETSQR';
+          
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'cartTotal';
+          input.value = total;
+          
+          form.appendChild(input);
+          document.body.appendChild(form);
+          form.submit();
+        } catch (error) {
+          console.error('NETS error:', error);
+          showNetsMessage(error?.message || 'Failed to generate NETS QR code. Please try again.', true);
+          netsButton.disabled = false;
+        }
+      });
+    }
 
     let paypalRendered = false;
     const renderPaypalButtons = () => {

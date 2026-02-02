@@ -7,8 +7,8 @@ const TransactionModel = {
   record(data, callback) {
     const sql = `
       INSERT INTO transactions
-      (order_id, paypal_order_id, payer_id, payer_email, amount, currency, status, transaction_time)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+      (order_id, paypal_order_id, payer_id, payer_email, amount, currency, status, payment_method, transaction_time)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `;
 
     const params = [
@@ -18,7 +18,8 @@ const TransactionModel = {
       data.payer_email || null,
       Number(data.amount) || 0,
       data.currency || 'SGD',
-      data.status || null
+      data.status || null,
+      data.payment_method || 'UNKNOWN'
     ];
 
     db.query(sql, params, callback);

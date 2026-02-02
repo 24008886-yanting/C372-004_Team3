@@ -106,7 +106,8 @@ const recordTransaction = (data) =>
         payer_email: data.payer_email || null,
         amount: data.amount,
         currency: data.currency || CURRENCY,
-        status: data.status || null
+        status: data.status || null,
+        payment_method: data.payment_method || 'UNKNOWN'
       },
       (err) => (err ? reject(err) : resolve())
     );
