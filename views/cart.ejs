@@ -120,6 +120,30 @@
       gap: 8px;
       margin-top: 10px;
     }
+    .voucher-input-wrap {
+      position: relative;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .voucher-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 12px 24px rgba(17, 24, 39, 0.12);
+      display: none;
+      max-height: 220px;
+      overflow: auto;
+      z-index: 10;
+    }
+    .voucher-panel.is-open {
+      display: block;
+    }
     .voucher-item {
       display: flex;
       align-items: center;
@@ -211,24 +235,26 @@
       <div class="row"><span>Discount</span><span id="discount-amount">-$<%= discountAmount.toFixed(2) %></span></div>
       <div style="margin-top: 12px;">
         <label for="voucher-code" class="muted" style="display:block; margin-bottom:6px;">Voucher code</label>
-        <div style="display:flex; gap:8px;">
+        <div class="voucher-input-wrap">
           <input id="voucher-code" class="qty-input" style="flex:1;" type="text" placeholder="Enter code">
           <button class="btn-light" id="apply-voucher" type="button">Apply</button>
+          <% if (isAdopter && availableVouchers.length) { %>
+            <div id="voucher-panel" class="voucher-panel" aria-hidden="true">
+              <div class="voucher-list">
+                <% availableVouchers.forEach(voucher => { %>
+                  <div class="voucher-item">
+                    <div>
+                      <div class="voucher-code"><%= voucher.voucher_code %></div>
+                      <div class="muted"><%= formatDiscount(voucher) %><%= voucher.description ? ' - ' + voucher.description : '' %></div>
+                    </div>
+                    <button class="btn-light" type="button" data-voucher-code="<%= voucher.voucher_code %>">Use</button>
+                  </div>
+                <% }) %>
+              </div>
+            </div>
+          <% } %>
         </div>
         <div id="voucher-status" class="muted" style="margin-top:6px;"></div>
-        <% if (isAdopter && availableVouchers.length) { %>
-          <div class="voucher-list">
-            <% availableVouchers.forEach(voucher => { %>
-              <div class="voucher-item">
-                <div>
-                  <div class="voucher-code"><%= voucher.voucher_code %></div>
-                  <div class="muted"><%= formatDiscount(voucher) %><%= voucher.description ? ' - ' + voucher.description : '' %></div>
-                </div>
-                <button class="btn-light" type="button" data-voucher-code="<%= voucher.voucher_code %>">Use</button>
-              </div>
-            <% }) %>
-          </div>
-        <% } %>
       </div>
       <div class="row total"><span>Total</span><span id="total-amount">$<%= total.toFixed(2) %></span></div>
       <div class="row" style="margin-top:8px;"><span>Wallet balance</span><span id="wallet-balance">$<%= Number((wallet && wallet.balance) || 0).toFixed(2) %></span></div>
@@ -295,6 +321,31 @@
     };
 
     const applyVoucherBtn = document.getElementById('apply-voucher');
+    const voucherInput = document.getElementById('voucher-code');
+    const voucherPanel = document.getElementById('voucher-panel');
+
+    const openVoucherPanel = () => {
+      if (!voucherPanel) return;
+      voucherPanel.classList.add('is-open');
+      voucherPanel.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeVoucherPanel = () => {
+      if (!voucherPanel) return;
+      voucherPanel.classList.remove('is-open');
+      voucherPanel.setAttribute('aria-hidden', 'true');
+    };
+
+    if (voucherInput) {
+      voucherInput.addEventListener('focus', openVoucherPanel);
+      voucherInput.addEventListener('click', openVoucherPanel);
+    }
+
+    document.addEventListener('click', (event) => {
+      if (!voucherPanel) return;
+      if (event.target === voucherInput || voucherPanel.contains(event.target)) return;
+      closeVoucherPanel();
+    });
     if (applyVoucherBtn) {
       applyVoucherBtn.addEventListener('click', async () => {
         const codeInput = document.getElementById('voucher-code');
@@ -347,6 +398,7 @@
       if (applyVoucherBtn) {
         applyVoucherBtn.click();
       }
+      closeVoucherPanel();
     });
 
     const handleCartAction = async (btn) => {
