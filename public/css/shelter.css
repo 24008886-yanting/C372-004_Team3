@@ -155,6 +155,15 @@ h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: -0.01em; }
   cursor: pointer;
   margin-right: 6px;
 }
+.action-group {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.action-group form {
+  margin: 0;
+}
 .action-btn--reject {
   border-color: #b91c1c;
   color: #b91c1c;

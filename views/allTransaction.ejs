@@ -22,32 +22,37 @@
           <span>Order ID</span>
           <span>Transaction Date</span>
           <span>Item</span>
-          <span>Qty</span>
           <span>Total Paid</span>
+          <span>Refund Amt</span>
           <span>Action</span>
         </div>
-        <% transactions.forEach(function(tx) { %>
-          <% const txnDate = tx.transaction_time ? new Date(tx.transaction_time).toLocaleDateString('en-SG', { dateStyle: 'medium' }) : '-'; %>
-          <% const paidAmount = (tx.amount != null) ? Number(tx.amount).toFixed(2) : null; %>
-          <% const refundUrl = `/refund-request?order_id=${encodeURIComponent(tx.order_id || '')}&item=${encodeURIComponent(tx.name || tx.product_name || 'Item')}&quantity=${encodeURIComponent(tx.quantity || 0)}`; %>
-          <% const refundStatus = String(tx.refund_status || '').toUpperCase(); %>
-          <% const deliveryStatus = String(tx.delivery_status || '').toUpperCase(); %>
+        <% transactions.forEach(function(order) { %>
+          <% const txnDate = order.transaction_time ? new Date(order.transaction_time).toLocaleDateString('en-SG', { dateStyle: 'medium' }) : '-'; %>
+          <% const paidAmount = (order.amount != null) ? Number(order.amount).toFixed(2) : null; %>
+          <% const refundStatus = String(order.refund_status || '').toUpperCase(); %>
+          <% const deliveryStatus = String(order.delivery_status || '').toUpperCase(); %>
           <% const showPending = refundStatus === 'PENDING'; %>
           <% const showRefunded = refundStatus === 'REFUNDED'; %>
-          <% const showComplete = !showPending && !showRefunded && (deliveryStatus === 'COMPLETED' || refundStatus); %>
-          <% const productId = tx.product_id || tx.productId; %>
-          <% const hasReview = Boolean(tx.review_id); %>
-          <% const reviewUrl = (productId && tx.order_id) ? `/review/new/${encodeURIComponent(tx.order_id)}/${encodeURIComponent(productId)}` : ''; %>
+          <% const showComplete = deliveryStatus === 'COMPLETED'; %>
+          <% const showConfirmPanel = !showPending && !showRefunded && !showComplete && (deliveryStatus === 'CONFIRMED' || refundStatus); %>
+          <% const items = Array.isArray(order.items) ? order.items : []; %>
           <div class="row"
-               data-order-id="<%= tx.order_id || '' %>"
-               data-product-id="<%= productId || '' %>"
-               data-has-review="<%= hasReview ? '1' : '0' %>"
-               data-review-url="<%= reviewUrl %>">
-            <span>#<%= tx.order_id || '-' %></span>
+               data-order-id="<%= order.order_id || '' %>">
+            <span>#<%= order.order_id || '-' %></span>
             <span><%= txnDate %></span>
-            <span><%= tx.name || tx.product_name || 'Item' %></span>
-            <span><%= tx.quantity %></span>
+            <span>
+              <% if (items.length) { %>
+                <div class="item-list">
+                  <% items.forEach((item) => { %>
+                    <div><%= item.name || 'Item' %> (x<%= item.quantity || 0 %>)</div>
+                  <% }) %>
+                </div>
+              <% } else { %>
+                -
+              <% } %>
+            </span>
             <span><%= paidAmount !== null ? ('S$' + paidAmount) : '-' %></span>
+            <span><%= order.refund_amount != null ? ('S$' + Number(order.refund_amount || 0).toFixed(2)) : '-' %></span>
             <span class="action-cell">
               <% if (showPending) { %>
                 <span class="status-pill status-pill--pending">Pending</span>
@@ -55,19 +60,30 @@
                 <span class="status-pill status-pill--refunded">Refunded</span>
               <% } else if (showComplete) { %>
                 <span class="status-pill status-pill--complete">Transaction Complete</span>
-                <% if (!hasReview && reviewUrl) { %>
-                  <a class="confirm-btn" href="<%= reviewUrl %>">Write Review</a>
-                <% } else if (hasReview && reviewUrl) { %>
-                  <a class="confirm-btn" href="<%= reviewUrl %>">View Review</a>
-                <% } %>
               <% } else { %>
-                <button class="confirm-btn" type="button">Confirm Delivery</button>
-                <div class="confirm-panel is-hidden">
+                <% if (!showConfirmPanel) { %>
+                  <button class="confirm-btn" type="button">Confirm Delivery</button>
+                <% } %>
+                <div class="confirm-panel <%= showConfirmPanel ? '' : 'is-hidden' %>">
+                  <% const refundUrl = `/refund-request?order_id=${encodeURIComponent(order.order_id || '')}`; %>
                   <a class="refund-link" href="<%= refundUrl %>">Refund</a>
-                  <button class="no-refund-btn" type="button" data-order-id="<%= tx.order_id || '' %>">No Refund</button>
+                  <button class="no-refund-btn" type="button" data-order-id="<%= order.order_id || '' %>">No Refund</button>
                 </div>
                 <div class="confirm-status" aria-live="polite"></div>
               <% } %>
+              <div class="review-links <%= showComplete ? '' : 'is-hidden' %>">
+                <% items.forEach((item) => { %>
+                  <% const productId = item.product_id; %>
+                  <% if (productId) { %>
+                    <% const reviewUrl = `/review/new/${encodeURIComponent(order.order_id || '')}/${encodeURIComponent(productId)}`; %>
+                    <% if (item.review_id) { %>
+                      <a class="confirm-btn" href="<%= reviewUrl %>">View Review: <%= item.name || 'Item' %></a>
+                    <% } else { %>
+                      <a class="confirm-btn" href="<%= reviewUrl %>">Write Review: <%= item.name || 'Item' %></a>
+                    <% } %>
+                  <% } %>
+                <% }) %>
+              </div>
             </span>
           </div>
         <% }); %>
@@ -79,6 +95,7 @@
     <a class="back-link" href="javascript:history.back()">&#60; Back to Profile</a>
   </main>
   <script>
+    const headers = { 'Content-Type': 'application/json' };
     document.querySelectorAll('.row').forEach((row) => {
       const confirmBtn = row.querySelector('.confirm-btn');
       const panel = row.querySelector('.confirm-panel');
@@ -86,10 +103,34 @@
       const statusEl = row.querySelector('.confirm-status');
 
       if (confirmBtn && panel) {
-        confirmBtn.addEventListener('click', () => {
-          panel.classList.remove('is-hidden');
-          confirmBtn.classList.add('is-hidden');
-        });
+        confirmBtn.addEventListener('click', async () => {
+          if (row.dataset.confirmed === 'true') return;
+          const orderId = row.dataset.orderId || '';
+          if (!orderId) return;
+
+          confirmBtn.disabled = true;
+          if (statusEl) statusEl.textContent = 'Saving...';
+
+          try {
+            const resp = await fetch(`/orders/${orderId}/confirm-delivery`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ status: 'CONFIRMED' })
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok || !data.success) {
+              throw new Error(data.error || 'Failed to confirm delivery.');
+            }
+
+            row.dataset.confirmed = 'true';
+            panel.classList.remove('is-hidden');
+            confirmBtn.classList.add('is-hidden');
+            if (statusEl) statusEl.textContent = '';
+          } catch (err) {
+            if (statusEl) statusEl.textContent = err.message || 'Failed to confirm delivery.';
+            confirmBtn.disabled = false;
+          }
+        }, { once: true });
       }
 
       if (noRefundBtn && panel) {
@@ -101,12 +142,17 @@
           if (statusEl) statusEl.textContent = 'Saving...';
 
           try {
-            const resp = await fetch(`/orders/${orderId}/confirm-delivery`, { method: 'POST' });
+            const resp = await fetch(`/orders/${orderId}/confirm-delivery`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ status: 'COMPLETED' })
+            });
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok || !data.success) {
               throw new Error(data.error || 'Failed to confirm delivery.');
             }
 
+            row.dataset.confirmed = 'true';
             panel.classList.add('is-hidden');
             if (confirmBtn) confirmBtn.classList.add('is-hidden');
             if (statusEl) statusEl.textContent = '';
@@ -117,21 +163,8 @@
             const actionCell = row.querySelector('.action-cell');
             actionCell?.appendChild(statusPill);
 
-            const reviewUrl = row.dataset.reviewUrl || '';
-            const hasReview = row.dataset.hasReview === '1';
-            if (reviewUrl && !hasReview) {
-              const reviewLink = document.createElement('a');
-              reviewLink.className = 'confirm-btn';
-              reviewLink.href = reviewUrl;
-              reviewLink.textContent = 'Write Review';
-              actionCell?.appendChild(reviewLink);
-            } else if (reviewUrl && hasReview) {
-              const reviewLink = document.createElement('a');
-              reviewLink.className = 'confirm-btn';
-              reviewLink.href = reviewUrl;
-              reviewLink.textContent = 'View Review';
-              actionCell?.appendChild(reviewLink);
-            }
+            const reviewLinks = row.querySelector('.review-links');
+            if (reviewLinks) reviewLinks.classList.remove('is-hidden');
           } catch (err) {
             if (statusEl) statusEl.textContent = err.message || 'Failed to confirm delivery.';
             noRefundBtn.disabled = false;

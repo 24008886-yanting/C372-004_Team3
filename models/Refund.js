@@ -4,16 +4,19 @@ const Refund = {
   create(data, callback) {
     const sql = `
       INSERT INTO refund_requests
-      (order_id, user_id, payment_method, amount, reason, details, status, payment_reference, refund_reference, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      (order_id, user_id, order_item_id, refund_qty, payment_method, amount, reason, details, refund_items, status, payment_reference, refund_reference, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `;
     const params = [
       data.order_id,
       data.user_id,
+      data.order_item_id || null,
+      data.refund_qty || null,
       data.payment_method || null,
       Number(data.amount) || 0,
       data.reason || null,
       data.details || null,
+      data.refund_items || null,
       data.status || 'PENDING',
       data.payment_reference || null,
       data.refund_reference || null
@@ -26,7 +29,7 @@ const Refund = {
       SELECT *
       FROM refund_requests
       WHERE order_id = ?
-      ORDER BY created_at DESC
+      ORDER BY created_at DESC, refund_id DESC
       LIMIT 1
     `;
     db.query(sql, [orderId], callback);

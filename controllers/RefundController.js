@@ -13,18 +13,22 @@ const queryAsync = (sql, params = []) =>
   });
 
 const normalizeMethod = (method) => {
-  const raw = String(method || '').toUpperCase();
+  const rawOriginal = String(method || '').trim();
+  const raw = rawOriginal.toUpperCase();
+  if (raw === '1') return 'PAYPAL';
+  if (raw === '2') return 'NETS';
+  if (raw === '3') return 'WALLET';
   if (raw.includes('PAYPAL')) return 'PAYPAL';
   if (raw.includes('NETS')) return 'NETS';
-  if (raw.includes('WALLET')) return 'WALLET';
+  if (raw.includes('WALLET') || raw.includes('DIGITAL')) return 'WALLET';
   return 'UNKNOWN';
 };
 
 const guessPaymentMethod = (txn) => {
   if (!txn) return 'UNKNOWN';
-  const rawOriginal = String(txn.payment_method || '');
-  const raw = rawOriginal.toUpperCase();
-  if (raw && raw !== 'UNKNOWN') return rawOriginal;
+  const rawOriginal = String(txn.payment_method || '').trim();
+  const normalized = normalizeMethod(rawOriginal);
+  if (normalized !== 'UNKNOWN') return normalized;
   const ref = String(txn.paypal_order_id || '').toUpperCase();
   const payer = String(txn.payer_id || '').toUpperCase();
   if (ref.startsWith('NETS-') || payer.startsWith('NETS_')) return 'NETS';
@@ -50,12 +54,13 @@ const getLatestRefund = (orderId) =>
     Refund.getLatestByOrderId(orderId, (err, rows) => (err ? reject(err) : resolve(rows?.[0] || null)));
   });
 
-const renderForm = (res, data) => res.render('refundRequest', data);
+const renderForm = (res, data) => res.render('userRequestRefund', data);
 
 const RefundController = {
   async showRequestForm(req, res) {
     const userId = req.session?.user_id;
     const orderId = Number(req.query.order_id || 0);
+    const orderItemId = Number(req.query.order_item_id || 0);
 
     if (!userId || !orderId) {
       return res.redirect('/allTransactions');
@@ -66,8 +71,10 @@ const RefundController = {
       if (!order) {
         return renderForm(res, {
           orderId,
-          itemName: req.query.item || '',
-          quantity: req.query.quantity || '',
+          orderItemId,
+          items: [],
+          totalQty: 0,
+          totalRefundable: 0,
           amount: '',
           paymentMethod: '',
           success: undefined,
@@ -75,22 +82,76 @@ const RefundController = {
         });
       }
 
+      const itemRows = await queryAsync(
+        `
+        SELECT oi.order_item_id, oi.quantity, oi.item_total, p.product_name, o.subtotal AS order_subtotal, o.discount_amount AS order_discount
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.order_id
+        LEFT JOIN products p ON oi.product_id = p.product_id
+        WHERE oi.order_id = ? AND o.user_id = ?
+        ORDER BY oi.order_item_id ASC
+        `,
+        [orderId, userId]
+      );
+
+      const orderSubtotal = Number(itemRows?.[0]?.order_subtotal || 0);
+      const orderDiscount = Math.max(Number(itemRows?.[0]?.order_discount || 0), 0);
+      const discountOnItems = Math.min(orderDiscount, orderSubtotal);
+      const items = (itemRows || []).map((item) => {
+        const maxQty = Number(item.quantity || 0);
+        const itemTotal = Number(item.item_total || 0);
+        const discountShare = orderSubtotal > 0 ? (discountOnItems * (itemTotal / orderSubtotal)) : 0;
+        const refundableItemTotal = Math.max(itemTotal - discountShare, 0);
+        const unitRefundable = maxQty ? refundableItemTotal / maxQty : 0;
+        return {
+          order_item_id: item.order_item_id,
+          name: item.product_name || 'Item',
+          max_qty: maxQty,
+          refundable_total: refundableItemTotal,
+          refundable_unit: unitRefundable
+        };
+      });
+      const totalRefundable = items.reduce((sum, item) => sum + Number(item.refundable_total || 0), 0);
+      const totalQty = items.reduce((sum, item) => sum + Number(item.max_qty || 0), 0);
+      if (!items.length) {
+        return renderForm(res, {
+          orderId,
+          orderItemId,
+          items: [],
+          totalQty: 0,
+          totalRefundable: 0,
+          amount: '',
+          paymentMethod: '',
+          success: undefined,
+          error: 'No items found for this order.'
+        });
+      }
+
       const txn = await getLatestTransaction(orderId);
       const latestRefund = await getLatestRefund(orderId);
+      const rejectedRows = await queryAsync(
+        'SELECT COUNT(*) AS rejected_count FROM refund_requests WHERE order_id = ? AND status = ?',
+        [orderId, 'REJECTED']
+      );
+      const rejectedCount = Number(rejectedRows?.[0]?.rejected_count || 0);
 
       const success = (req.flash && req.flash('success')[0]) || undefined;
       const error = (req.flash && req.flash('error')[0]) || undefined;
 
-      const displayMethod = latestRefund?.payment_method || guessPaymentMethod(txn);
-      const displayAmount = latestRefund?.amount ?? txn?.amount ?? '';
+      const displayMethod = normalizeMethod(latestRefund?.payment_method || guessPaymentMethod(txn));
+      const displayAmount = txn?.amount ?? '';
       return renderForm(res, {
         orderId,
-        itemName: req.query.item || '',
-        quantity: req.query.quantity || '',
+        orderItemId,
+        items,
+        totalQty,
+        totalRefundable,
         amount: displayAmount,
         paymentMethod: displayMethod,
         refundStatus: latestRefund?.status || '',
         refundReference: latestRefund?.refund_reference || '',
+        selectedItemId: orderItemId || null,
+        rejectedCount,
         success,
         error
       });
@@ -98,10 +159,12 @@ const RefundController = {
       console.error('refundRequest form error:', err);
       return renderForm(res, {
         orderId,
-        itemName: req.query.item || '',
-        quantity: req.query.quantity || '',
+        items: [],
+        totalQty: 0,
+        totalRefundable: 0,
         amount: '',
         paymentMethod: '',
+        rejectedCount: 0,
         success: undefined,
         error: 'Failed to load refund request. Please try again.'
       });
@@ -111,16 +174,18 @@ const RefundController = {
   async submitRequest(req, res) {
     const userId = req.session?.user_id;
     const orderId = Number(req.body?.order_id || 0);
+    const orderItemId = Number(req.body?.order_item_id || 0);
     const reason = (req.body?.reason || '').trim();
     const details = (req.body?.details || '').trim();
-    const itemName = req.body?.item_name || '';
-    const quantity = req.body?.quantity || '';
+    const refundItemsRaw = req.body?.refund_items || '';
 
     if (!userId || !orderId || !reason) {
       return renderForm(res, {
         orderId,
-        itemName,
-        quantity,
+        orderItemId,
+        items: [],
+        totalQty: 0,
+        totalRefundable: 0,
         amount: req.body?.amount || '',
         paymentMethod: '',
         success: undefined,
@@ -133,8 +198,9 @@ const RefundController = {
       if (!order) {
         return renderForm(res, {
           orderId,
-          itemName,
-          quantity,
+          items: [],
+          totalQty: 0,
+          totalRefundable: 0,
           amount: '',
           paymentMethod: '',
           success: undefined,
@@ -146,8 +212,9 @@ const RefundController = {
       if (!txn) {
         return renderForm(res, {
           orderId,
-          itemName,
-          quantity,
+          items: [],
+          totalQty: 0,
+          totalRefundable: 0,
           amount: '',
           paymentMethod: '',
           success: undefined,
@@ -159,8 +226,10 @@ const RefundController = {
       if (latestRefund && ['PENDING', 'REFUNDED'].includes(String(latestRefund.status || '').toUpperCase())) {
         return renderForm(res, {
           orderId,
-          itemName,
-          quantity,
+          orderItemId,
+          items: [],
+          totalQty: 0,
+          totalRefundable: 0,
           amount: txn.amount,
           paymentMethod: guessPaymentMethod(txn),
           refundStatus: latestRefund.status,
@@ -170,16 +239,38 @@ const RefundController = {
         });
       }
 
-      const failedCountRows = await queryAsync(
-        'SELECT COUNT(*) AS failed_count FROM refund_requests WHERE order_id = ? AND status = ?',
-        [orderId, 'FAILED']
+      const alreadyRefunded = await queryAsync(
+        'SELECT refund_id FROM refund_requests WHERE order_id = ? AND status = ? LIMIT 1',
+        [orderId, 'REFUNDED']
       );
-      const failedCount = Number(failedCountRows?.[0]?.failed_count || 0);
-      if (failedCount >= 3) {
+      if (alreadyRefunded && alreadyRefunded.length > 0) {
         return renderForm(res, {
           orderId,
-          itemName,
-          quantity,
+          orderItemId,
+          items: [],
+          totalQty: 0,
+          totalRefundable: 0,
+          amount: txn.amount,
+          paymentMethod: guessPaymentMethod(txn),
+          refundStatus: latestRefund?.status || '',
+          refundReference: latestRefund?.refund_reference || '',
+          success: undefined,
+          error: 'Refund already completed for this order.'
+        });
+      }
+
+      const attemptRows = await queryAsync(
+        'SELECT COUNT(*) AS attempt_count FROM refund_requests WHERE order_id = ?',
+        [orderId]
+      );
+      const attemptCount = Number(attemptRows?.[0]?.attempt_count || 0);
+      if (attemptCount >= 3) {
+        return renderForm(res, {
+          orderId,
+          orderItemId,
+          items: [],
+          totalQty: 0,
+          totalRefundable: 0,
           amount: txn.amount,
           paymentMethod: guessPaymentMethod(txn),
           refundStatus: latestRefund?.status || '',
@@ -189,18 +280,177 @@ const RefundController = {
         });
       }
 
-      const amount = toTwoDp(txn.amount || 0);
+      const itemRows = await queryAsync(
+        `
+        SELECT oi.order_item_id, oi.quantity, oi.item_total, p.product_name, o.subtotal AS order_subtotal, o.discount_amount AS order_discount
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.order_id
+        LEFT JOIN products p ON oi.product_id = p.product_id
+        WHERE oi.order_id = ? AND o.user_id = ?
+        ORDER BY oi.order_item_id ASC
+        `,
+        [orderId, userId]
+      );
+
+      const orderSubtotal = Number(itemRows?.[0]?.order_subtotal || 0);
+      const orderDiscount = Math.max(Number(itemRows?.[0]?.order_discount || 0), 0);
+      const discountOnItems = Math.min(orderDiscount, orderSubtotal);
+      const items = (itemRows || []).map((item) => {
+        const maxQty = Number(item.quantity || 0);
+        const itemTotal = Number(item.item_total || 0);
+        const discountShare = orderSubtotal > 0 ? (discountOnItems * (itemTotal / orderSubtotal)) : 0;
+        const refundableItemTotal = Math.max(itemTotal - discountShare, 0);
+        const unitRefundable = maxQty ? refundableItemTotal / maxQty : 0;
+        return {
+          order_item_id: item.order_item_id,
+          name: item.product_name || 'Item',
+          max_qty: maxQty,
+          refundable_total: refundableItemTotal,
+          refundable_unit: unitRefundable
+        };
+      });
+      const totalQty = items.reduce((sum, item) => sum + Number(item.max_qty || 0), 0);
+      const totalRefundable = items.reduce((sum, item) => sum + Number(item.refundable_total || 0), 0);
+      const itemMap = new Map(items.map((item) => [Number(item.order_item_id), item]));
+      if (!items.length) {
+        return renderForm(res, {
+          orderId,
+          orderItemId,
+          items: [],
+          totalQty: 0,
+          totalRefundable: 0,
+          amount: txn.amount,
+          paymentMethod: guessPaymentMethod(txn),
+          refundStatus: latestRefund?.status || '',
+          refundReference: latestRefund?.refund_reference || '',
+          success: undefined,
+          error: 'No items found for this order.'
+        });
+      }
+
+      let requestedItems = [];
+      if (refundItemsRaw) {
+        try {
+          const parsed = JSON.parse(refundItemsRaw);
+          if (Array.isArray(parsed)) requestedItems = parsed;
+        } catch (parseErr) {
+          return renderForm(res, {
+            orderId,
+            orderItemId,
+            items,
+            totalQty,
+            totalRefundable,
+            amount: txn.amount,
+            paymentMethod: guessPaymentMethod(txn),
+            refundStatus: latestRefund?.status || '',
+            refundReference: latestRefund?.refund_reference || '',
+            success: undefined,
+            error: 'Invalid refund selection. Please try again.'
+          });
+        }
+      } else if (orderItemId) {
+        const qtyFallback = Number(req.body?.refund_qty || req.body?.quantity || 0);
+        requestedItems = [{ order_item_id: orderItemId, qty: qtyFallback }];
+      }
+
+      const normalized = new Map();
+      requestedItems.forEach((item) => {
+        const itemId = Number(item.order_item_id || item.orderItemId || item.id || 0);
+        const qty = Number(item.qty ?? item.quantity ?? 0);
+        if (!itemId) return;
+        const existing = normalized.get(itemId) || 0;
+        normalized.set(itemId, existing + qty);
+      });
+
+      const selectedItems = Array.from(normalized.entries())
+        .map(([itemId, qty]) => ({ order_item_id: itemId, qty }))
+        .filter((item) => item.qty > 0);
+
+      if (!selectedItems.length) {
+        return renderForm(res, {
+          orderId,
+          orderItemId,
+          items,
+          totalQty,
+          totalRefundable,
+          amount: txn.amount,
+          paymentMethod: guessPaymentMethod(txn),
+          refundStatus: latestRefund?.status || '',
+          refundReference: latestRefund?.refund_reference || '',
+          success: undefined,
+          error: 'Select at least one item to refund.'
+        });
+      }
+
+      let totalRefundAmount = 0;
+      let totalRefundQty = 0;
+      const refundItemsPayload = [];
+
+      for (const selection of selectedItems) {
+        const item = itemMap.get(Number(selection.order_item_id));
+        if (!item) {
+          return renderForm(res, {
+            orderId,
+            orderItemId,
+            items,
+            totalQty,
+            totalRefundable,
+            amount: txn.amount,
+            paymentMethod: guessPaymentMethod(txn),
+            refundStatus: latestRefund?.status || '',
+            refundReference: latestRefund?.refund_reference || '',
+            success: undefined,
+            error: 'Invalid refund item selection.'
+          });
+        }
+        const safeQty = Math.min(Math.max(Number(selection.qty || 0), 0), Number(item.max_qty || 0));
+        if (!safeQty) continue;
+        const lineRefund = toTwoDp(safeQty * Number(item.refundable_unit || 0));
+        totalRefundAmount += lineRefund;
+        totalRefundQty += safeQty;
+        refundItemsPayload.push({
+          order_item_id: item.order_item_id,
+          name: item.name,
+          qty: safeQty,
+          max_qty: item.max_qty,
+          unit_refund: toTwoDp(item.refundable_unit || 0),
+          line_refund: lineRefund
+        });
+      }
+
+      totalRefundAmount = toTwoDp(totalRefundAmount);
+      if (!refundItemsPayload.length || totalRefundAmount <= 0) {
+        return renderForm(res, {
+          orderId,
+          orderItemId,
+          items,
+          totalQty,
+          totalRefundable,
+          amount: txn.amount,
+          paymentMethod: guessPaymentMethod(txn),
+          refundStatus: latestRefund?.status || '',
+          refundReference: latestRefund?.refund_reference || '',
+          success: undefined,
+          error: 'Refund amount is zero after voucher discount.'
+        });
+      }
+
       const displayMethod = guessPaymentMethod(txn);
+      const orderItemForRow = refundItemsPayload.length === 1 ? refundItemsPayload[0].order_item_id : null;
+      const refundQtyForRow = refundItemsPayload.length === 1 ? refundItemsPayload[0].qty : totalRefundQty;
 
       await new Promise((resolve, reject) => {
         Refund.create(
           {
             order_id: orderId,
             user_id: userId,
+            order_item_id: orderItemForRow,
+            refund_qty: refundQtyForRow,
             payment_method: displayMethod,
-            amount,
+            amount: totalRefundAmount,
             reason,
             details: details || null,
+            refund_items: JSON.stringify(refundItemsPayload),
             status: 'PENDING',
             payment_reference: txn.paypal_order_id || null,
             refund_reference: null
@@ -213,14 +463,15 @@ const RefundController = {
         req.flash('success', 'Refund request submitted. Awaiting admin approval.');
       }
 
-      const query = `order_id=${encodeURIComponent(orderId)}&item=${encodeURIComponent(itemName)}&quantity=${encodeURIComponent(quantity)}`;
+      const query = `order_id=${encodeURIComponent(orderId)}`;
       return res.redirect(`/refund-request?${query}`);
     } catch (err) {
       console.error('refund submit error:', err);
       return renderForm(res, {
         orderId,
-        itemName,
-        quantity,
+        items: [],
+        totalQty: 0,
+        totalRefundable: 0,
         amount: req.body?.amount || '',
         paymentMethod: '',
         success: undefined,
@@ -236,10 +487,10 @@ const RefundController = {
       });
       const success = (req.flash && req.flash('success')[0]) || undefined;
       const error = (req.flash && req.flash('error')[0]) || undefined;
-      res.render('refundRequests', { refunds: rows, success, error });
+      res.render('adminRequestRefund', { refunds: rows, success, error });
     } catch (err) {
       console.error('refund list error:', err);
-      res.status(500).render('refundRequests', { refunds: [], error: 'Failed to load refunds.' });
+      res.status(500).render('adminRequestRefund', { refunds: [], error: 'Failed to load refunds.' });
     }
   },
 
@@ -365,6 +616,19 @@ const RefundController = {
       await new Promise((resolve, reject) => {
         Refund.updateStatus(refundId, 'REJECTED', null, (err) => (err ? reject(err) : resolve()));
       });
+
+      const rejectedRows = await queryAsync(
+        'SELECT COUNT(*) AS rejected_count FROM refund_requests WHERE order_id = ? AND status = ?',
+        [refund.order_id, 'REJECTED']
+      );
+      const rejectedCount = Number(rejectedRows?.[0]?.rejected_count || 0);
+      if (rejectedCount >= 3) {
+        await queryAsync(
+          'UPDATE orders SET delivery_status = ? WHERE order_id = ?',
+          ['COMPLETED', refund.order_id]
+        );
+      }
+
       if (req.flash) req.flash('success', 'Refund request rejected.');
       return res.redirect('/refund-requests');
     } catch (err) {

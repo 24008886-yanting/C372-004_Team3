@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Refund Requests | Repawblic Pets</title>
+  <title>Admin Refund Requests | Repawblic Pets</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
   <link rel="stylesheet" href="/css/refundRequests.css">
 </head>
@@ -12,8 +12,8 @@
 
   <main>
     <header class="page-header">
-      <p class="subhead">Admin Â· Refund requests</p>
-      <h1>Refund Requests</h1>
+      <p class="subhead">Admin · Refund requests</p>
+      <h1>Admin Refund Requests</h1>
     </header>
 
     <section class="card">
@@ -46,6 +46,8 @@
                 <% const rawStatus = String(r.status || '').toUpperCase(); %>
                 <% const displayStatus = rawStatus === 'REFUNDED' ? 'REFUNDED' : 'FAILED'; %>
                 <% const statusClass = displayStatus ? `status status--${displayStatus.toLowerCase()}` : 'status'; %>
+                <% let refundItems = []; %>
+                <% try { refundItems = JSON.parse(r.refund_items || '[]'); } catch (e) { refundItems = []; } %>
                 <tr>
                   <td>#<%= r.order_id %></td>
                   <td><%= r.username || r.email || `User #${r.user_id}` %></td>
@@ -54,6 +56,12 @@
                   <td>
                     <div class="reason">
                       <strong><%= r.reason || '-' %></strong>
+                      <% if (refundItems && refundItems.length) { %>
+                        <div class="details">
+                          Items:
+                          <%= refundItems.map(item => `${item.name || 'Item'} x${item.qty || 0}`).join(', ') %>
+                        </div>
+                      <% } %>
                       <% if (r.details) { %>
                         <div class="details"><%= r.details %></div>
                       <% } %>
@@ -83,3 +91,5 @@
   </main>
 </body>
 </html>
+
+

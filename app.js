@@ -465,8 +465,41 @@ app.get('/allTransactions', checkAuthenticated, (req, res) => {
             });
         }
 
+        const orderMap = new Map();
+        const grouped = [];
+        (transactions || []).forEach((row) => {
+            const orderId = row.order_id;
+            if (!orderMap.has(orderId)) {
+                const order = {
+                    order_id: orderId,
+                    transaction_time: row.transaction_time || null,
+                    amount: row.amount ?? null,
+                    refund_amount: row.refund_amount ?? null,
+                    delivery_status: row.delivery_status || '',
+                    refund_status: row.refund_status || '',
+                    items: []
+                };
+                orderMap.set(orderId, order);
+                grouped.push(order);
+            }
+            const order = orderMap.get(orderId);
+            if (!order.transaction_time && row.transaction_time) order.transaction_time = row.transaction_time;
+            if (order.amount == null && row.amount != null) order.amount = row.amount;
+            if (order.refund_amount == null && row.refund_amount != null) order.refund_amount = row.refund_amount;
+            if (!order.delivery_status && row.delivery_status) order.delivery_status = row.delivery_status;
+            if (!order.refund_status && row.refund_status) order.refund_status = row.refund_status;
+
+            order.items.push({
+                order_item_id: row.order_item_id,
+                product_id: row.product_id,
+                name: row.name || row.product_name || 'Item',
+                quantity: row.quantity,
+                review_id: row.review_id
+            });
+        });
+
         res.render('allTransaction', {
-            transactions: transactions || []
+            transactions: grouped
         });
     });
 });
@@ -479,7 +512,10 @@ app.post('/orders/:orderId/confirm-delivery', checkAuthenticated, checkAuthorise
         return res.status(400).json({ error: 'Invalid order.' });
     }
 
-    Order.setDeliveryStatus(orderId, userId, 'COMPLETED', (err, result) => {
+    const requested = String(req.body?.status || 'COMPLETED').toUpperCase();
+    const nextStatus = requested === 'CONFIRMED' ? 'CONFIRMED' : 'COMPLETED';
+
+    Order.setDeliveryStatus(orderId, userId, nextStatus, (err, result) => {
         if (err) {
             console.error('Failed to confirm delivery:', err);
             return res.status(500).json({ error: 'Failed to confirm delivery.' });

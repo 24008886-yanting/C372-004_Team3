@@ -37,7 +37,7 @@ h1 {
 }
 .table-like {
   display: grid;
-  grid-template-columns: 120px 150px 1fr 80px 120px 180px;
+  grid-template-columns: 120px 150px 1fr 120px 120px 180px;
   font-weight: 700;
   color: var(--ink);
   border-bottom: 1px solid var(--border);
@@ -48,7 +48,7 @@ h1 {
 }
 .row {
   display: grid;
-  grid-template-columns: 120px 150px 1fr 80px 120px 180px;
+  grid-template-columns: 120px 150px 1fr 120px 120px 180px;
   gap: 8px;
   padding: 12px 10px;
   border-bottom: 1px solid var(--border);
@@ -56,6 +56,21 @@ h1 {
   min-width: 900px;
 }
 .action-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.refund-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.review-links {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -74,6 +89,10 @@ h1 {
   cursor: pointer;
   text-decoration: none;
 }
+.confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .confirm-btn {
   border-color: var(--accent);
   color: var(--accent);
@@ -91,6 +110,7 @@ h1 {
 }
 .confirm-panel {
   display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 .confirm-status {
@@ -144,6 +164,6 @@ h1 {
 @media (max-width: 640px) {
   .table-like,
   .row {
-    grid-template-columns: 100px 130px 1fr 60px 90px 160px;
+    grid-template-columns: 100px 130px 1fr 90px 90px 160px;
   }
 }

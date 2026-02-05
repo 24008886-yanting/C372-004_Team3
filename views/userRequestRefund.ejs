@@ -1,0 +1,243 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Refund Request | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="/css/refundRequest.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header class="page-header">
+      <p class="subhead">User - Request a refund for your order.</p>
+      <h1>User Refund Request</h1>
+    </header>
+
+    <section class="card">
+      <% const safeRefundStatus = (typeof refundStatus === 'undefined' ? '' : refundStatus); %>
+      <% const statusText = (safeRefundStatus || '').toString().toUpperCase(); %>
+      <% const rejectedCountSafe = Number(typeof rejectedCount === 'undefined' ? 0 : (rejectedCount || 0)); %>
+      <% const safeItems = Array.isArray(items) ? items : []; %>
+      <% const safeTotalQty = (typeof totalQty === 'undefined' ? 0 : totalQty); %>
+      <% const safeAmount = (typeof amount === 'undefined' ? '' : amount); %>
+      <% const safePaymentMethod = (typeof paymentMethod === 'undefined' ? '' : paymentMethod); %>
+      <% const safeOrderItemId = (typeof orderItemId === 'undefined' ? '' : orderItemId); %>
+      <% const isRefunded = statusText === 'REFUNDED'; %>
+      <% const isPending = statusText === 'PENDING'; %>
+      <% const isFailed = statusText === 'FAILED'; %>
+      <% const isRejected = statusText === 'REJECTED'; %>
+      <% const isFinalReject = isRejected && rejectedCountSafe >= 3; %>
+      <% const rejectedLabel = isRejected ? (isFinalReject ? 'REJECTED(FINAL)' : `REJECTED(${Math.max(rejectedCountSafe, 1)})`) : ''; %>
+      <% const displayStatus = isPending ? 'PENDING' : (isRefunded ? 'SUCCESSFUL' : (isFailed ? 'FAILED' : (isRejected ? rejectedLabel : '-'))); %>
+      <div class="order-summary">
+        <div>
+          <p class="label">Order ID</p>
+          <p class="value"><%= orderId ? ('#' + orderId) : '-' %></p>
+        </div>
+        <div>
+          <p class="label">Items</p>
+          <div class="value">
+            <% if (safeItems && safeItems.length) { %>
+              <div class="summary-items">
+                <% safeItems.forEach((item) => { %>
+                  <div><%= item.name || 'Item' %> (x<%= item.max_qty || 0 %>)</div>
+                <% }) %>
+              </div>
+            <% } else { %>
+              -
+            <% } %>
+          </div>
+        </div>
+        <div>
+          <p class="label">Total Qty</p>
+          <p class="value"><%= safeTotalQty || '-' %></p>
+        </div>
+        <div>
+          <p class="label">Amount Paid</p>
+          <p class="value"><%= safeAmount ? ('S$' + Number(safeAmount).toFixed(2)) : '-' %></p>
+        </div>
+        <div>
+          <p class="label">Payment Method</p>
+          <p class="value"><%= safePaymentMethod || '-' %></p>
+        </div>
+        <div>
+          <p class="label">Refund Status</p>
+          <p class="value"><%= displayStatus %></p>
+        </div>
+      </div>
+
+      <% if (success) { %>
+        <div class="alert alert--success"><%= success %></div>
+      <% } else if (isPending) { %>
+        <div class="alert alert--info">Refund request submitted. Awaiting admin approval.</div>
+      <% } else if (isRefunded) { %>
+        <div class="alert alert--success">Refund successful.</div>
+      <% } else if (isFailed) { %>
+        <div class="alert alert--error">Refund failed.</div>
+      <% } else if (isRejected) { %>
+        <div class="alert alert--error">Refund rejected (<%= isFinalReject ? 'final' : Math.max(rejectedCountSafe, 1) %>).</div>
+      <% } %>
+      <% if (error) { %>
+        <div class="alert alert--error"><%= error %></div>
+      <% } %>
+
+      <form class="refund-form" method="POST" action="/refund-request">
+        <input type="hidden" name="order_id" value="<%= orderId || '' %>">
+        <input type="hidden" name="order_item_id" value="<%= safeOrderItemId || '' %>">
+        <input type="hidden" name="amount" value="<%= safeAmount || '' %>">
+        <input type="hidden" name="refund_items" id="refund-items" value="">
+
+        <label class="label" for="reason">Reason for refund</label>
+        <select id="reason" name="reason" required>
+          <option value="">Select a reason</option>
+          <option value="Damaged item">Damaged item</option>
+          <option value="Wrong item delivered">Wrong item delivered</option>
+          <option value="Missing item">Missing item</option>
+          <option value="Late delivery">Late delivery</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <label class="label">Refund Type</label>
+        <div class="refund-type">
+          <label class="type-option">
+            <input type="radio" name="refund_type" value="full" checked>
+            Full refund
+          </label>
+          <label class="type-option">
+            <input type="radio" name="refund_type" value="partial">
+            Partial refund
+          </label>
+        </div>
+
+        <div class="item-refund-list">
+          <% if (safeItems && safeItems.length) { %>
+            <% safeItems.forEach((item) => { %>
+              <div class="item-row"
+                   data-item-id="<%= item.order_item_id %>"
+                   data-max-qty="<%= item.max_qty || 0 %>"
+                   data-unit-refund="<%= Number(item.refundable_unit || 0).toFixed(4) %>">
+                <div class="item-info">
+                  <div class="item-name"><%= item.name || 'Item' %></div>
+                  <div class="muted-small">Purchased: <%= item.max_qty || 0 %></div>
+                </div>
+                <div class="item-qty-wrap">
+                  <label class="label" for="refund-qty-<%= item.order_item_id %>">Refund qty</label>
+                  <input class="item-qty" id="refund-qty-<%= item.order_item_id %>" type="number" min="0" max="<%= item.max_qty || 0 %>" value="<%= item.max_qty || 0 %>" disabled>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p class="muted-small">No items found for this order.</p>
+          <% } %>
+        </div>
+        <p class="muted-small">Set quantity to 0 for items you want to keep.</p>
+
+        <div class="refund-amount">
+          <span class="label">Refund Amount</span>
+          <span id="refund-amount-text" class="value">S$0.00</span>
+        </div>
+        <p class="muted-small">Note: Refunds exclude GST, delivery fees, and voucher discounts.</p>
+
+        <label class="label" for="details">Details (optional)</label>
+        <textarea id="details" name="details" rows="4" placeholder="Share what happened so we can help faster."></textarea>
+
+        <button class="primary-btn" type="submit" <%= (isRefunded || isPending || isFinalReject) ? 'disabled' : '' %>>Submit Refund Request</button>
+        <% if (isPending) { %>
+          <p class="muted-small">Your request is pending admin approval.</p>
+        <% } %>
+        <% if (isRefunded) { %>
+          <p class="muted-small">Refund completed.</p>
+        <% } %>
+        <% if (isFinalReject) { %>
+          <p class="muted-small">Refund rejected (final). This order is completed.</p>
+        <% } %>
+      </form>
+    </section>
+
+    <a class="back-link" href="/allTransactions">&#60; Back to Transactions</a>
+  </main>
+  <script>
+    const refundAmountText = document.getElementById('refund-amount-text');
+    const refundItemsInput = document.getElementById('refund-items');
+    const refundTypeRadios = document.querySelectorAll('input[name="refund_type"]');
+    const itemRows = Array.from(document.querySelectorAll('.item-row'));
+    const form = document.querySelector('.refund-form');
+
+    const syncRefundItems = () => {
+      let total = 0;
+      let totalQty = 0;
+      const payload = itemRows.map((row) => {
+        const qtyInput = row.querySelector('.item-qty');
+        const maxQty = Number(row.dataset.maxQty || 0);
+        let qty = Number(qtyInput?.value || 0);
+        if (!Number.isFinite(qty)) qty = 0;
+        qty = Math.min(Math.max(qty, 0), maxQty);
+        if (qtyInput) qtyInput.value = qty;
+        const unitRefund = Number(row.dataset.unitRefund || 0);
+        total += qty * unitRefund;
+        totalQty += qty;
+        return { order_item_id: Number(row.dataset.itemId || 0), qty };
+      });
+
+      if (refundItemsInput) refundItemsInput.value = JSON.stringify(payload);
+      if (refundAmountText) refundAmountText.textContent = `S$${total.toFixed(2)}`;
+      return { total, totalQty };
+    };
+
+    const setFullRefund = () => {
+      itemRows.forEach((row) => {
+        const qtyInput = row.querySelector('.item-qty');
+        const maxQty = Number(row.dataset.maxQty || 0);
+        if (qtyInput) {
+          qtyInput.value = maxQty;
+          qtyInput.disabled = true;
+        }
+      });
+      syncRefundItems();
+    };
+
+    const setPartialRefund = () => {
+      itemRows.forEach((row) => {
+        const qtyInput = row.querySelector('.item-qty');
+        if (qtyInput) qtyInput.disabled = false;
+      });
+      syncRefundItems();
+    };
+
+    const updateRefundType = () => {
+      const type = document.querySelector('input[name="refund_type"]:checked')?.value || 'full';
+      if (type === 'partial') {
+        setPartialRefund();
+      } else {
+        setFullRefund();
+      }
+    };
+
+    refundTypeRadios.forEach((radio) => {
+      radio.addEventListener('change', updateRefundType);
+    });
+
+    itemRows.forEach((row) => {
+      const qtyInput = row.querySelector('.item-qty');
+      if (!qtyInput) return;
+      qtyInput.addEventListener('input', syncRefundItems);
+    });
+
+    if (form) {
+      form.addEventListener('submit', (event) => {
+        const { totalQty } = syncRefundItems();
+        if (totalQty <= 0) {
+          event.preventDefault();
+          alert('Please select at least one item to refund.');
+        }
+      });
+    }
+
+    updateRefundType();
+  </script>
+</body>
+</html>
+

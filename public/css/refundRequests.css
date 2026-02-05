@@ -123,6 +123,15 @@ main {
   cursor: pointer;
   margin-right: 6px;
 }
+.action-group {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.action-group form {
+  margin: 0;
+}
 .action-btn--reject {
   border-color: var(--danger);
   color: var(--danger);

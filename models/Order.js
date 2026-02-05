@@ -17,10 +17,13 @@ const Order = {
 				o.shipping_fee,
 				o.tax_amount,
 				o.total_amount,
+				o.delivery_status,
 				rr.refund_id,
 				rr.status AS refund_status,
 				rr.amount AS refund_amount,
 				rr.payment_method AS refund_method,
+				COALESCE(rc.rejected_count, 0) AS rejected_count,
+				COALESCE(rc.total_attempts, 0) AS refund_attempts,
 				COALESCE(oi.items_count, 0) AS items_count,
 				COALESCE(oi.units_count, 0) AS units_count
 			FROM orders o
@@ -44,6 +47,14 @@ const Order = {
 				) r2
 				ON r1.order_id = r2.order_id AND r1.created_at = r2.max_created
 			) rr ON rr.order_id = o.order_id
+			LEFT JOIN (
+				SELECT
+					order_id,
+					COUNT(*) AS total_attempts,
+					SUM(CASE WHEN UPPER(status) = 'REJECTED' THEN 1 ELSE 0 END) AS rejected_count
+				FROM refund_requests
+				GROUP BY order_id
+			) rc ON rc.order_id = o.order_id
 			ORDER BY o.order_id DESC
 		`;
 

@@ -27,6 +27,7 @@ const OrderItem = {
         t.transaction_time AS transaction_time,
         o.delivery_status AS delivery_status,
         rr.status AS refund_status,
+        rr.amount AS refund_amount,
         r.review_id AS review_id,
         r.rating AS review_rating,
         r.review_text AS review_text,
