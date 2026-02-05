@@ -24,16 +24,39 @@
           <span>Item</span>
           <span>Qty</span>
           <span>Total Paid</span>
+          <span>Action</span>
         </div>
         <% transactions.forEach(function(tx) { %>
           <% const txnDate = tx.transaction_time ? new Date(tx.transaction_time).toLocaleDateString('en-SG', { dateStyle: 'medium' }) : '-'; %>
           <% const paidAmount = (tx.amount != null) ? Number(tx.amount).toFixed(2) : null; %>
+          <% const refundUrl = `/refund-request?order_id=${encodeURIComponent(tx.order_id || '')}&item=${encodeURIComponent(tx.name || tx.product_name || 'Item')}&quantity=${encodeURIComponent(tx.quantity || 0)}`; %>
+          <% const refundStatus = String(tx.refund_status || '').toUpperCase(); %>
+          <% const deliveryStatus = String(tx.delivery_status || '').toUpperCase(); %>
+          <% const showPending = refundStatus === 'PENDING'; %>
+          <% const showRefunded = refundStatus === 'REFUNDED'; %>
+          <% const showComplete = !showPending && !showRefunded && (deliveryStatus === 'COMPLETED' || refundStatus); %>
           <div class="row">
             <span>#<%= tx.order_id || '-' %></span>
             <span><%= txnDate %></span>
             <span><%= tx.name || tx.product_name || 'Item' %></span>
             <span><%= tx.quantity %></span>
             <span><%= paidAmount !== null ? ('S$' + paidAmount) : '-' %></span>
+            <span class="action-cell">
+              <% if (showPending) { %>
+                <span class="status-pill status-pill--pending">Pending</span>
+              <% } else if (showRefunded) { %>
+                <span class="status-pill status-pill--refunded">Refunded</span>
+              <% } else if (showComplete) { %>
+                <span class="status-pill status-pill--complete">Transaction Complete</span>
+              <% } else { %>
+                <button class="confirm-btn" type="button">Confirm Delivery</button>
+                <div class="confirm-panel is-hidden">
+                  <a class="refund-link" href="<%= refundUrl %>">Refund</a>
+                  <button class="no-refund-btn" type="button" data-order-id="<%= tx.order_id || '' %>">No Refund</button>
+                </div>
+                <div class="confirm-status" aria-live="polite"></div>
+              <% } %>
+            </span>
           </div>
         <% }); %>
       <% } else { %>
@@ -43,5 +66,50 @@
 
     <a class="back-link" href="javascript:history.back()">&#60; Back to Profile</a>
   </main>
+  <script>
+    document.querySelectorAll('.row').forEach((row) => {
+      const confirmBtn = row.querySelector('.confirm-btn');
+      const panel = row.querySelector('.confirm-panel');
+      const noRefundBtn = row.querySelector('.no-refund-btn');
+      const statusEl = row.querySelector('.confirm-status');
+
+      if (confirmBtn && panel) {
+        confirmBtn.addEventListener('click', () => {
+          panel.classList.remove('is-hidden');
+          confirmBtn.classList.add('is-hidden');
+        });
+      }
+
+      if (noRefundBtn && panel) {
+        noRefundBtn.addEventListener('click', async () => {
+          const orderId = noRefundBtn.getAttribute('data-order-id');
+          if (!orderId) return;
+
+          noRefundBtn.disabled = true;
+          if (statusEl) statusEl.textContent = 'Saving...';
+
+          try {
+            const resp = await fetch(`/orders/${orderId}/confirm-delivery`, { method: 'POST' });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok || !data.success) {
+              throw new Error(data.error || 'Failed to confirm delivery.');
+            }
+
+            panel.classList.add('is-hidden');
+            if (confirmBtn) confirmBtn.classList.add('is-hidden');
+            if (statusEl) statusEl.textContent = '';
+
+            const statusPill = document.createElement('span');
+            statusPill.className = 'status-pill status-pill--complete';
+            statusPill.textContent = 'Transaction Complete';
+            row.querySelector('.action-cell')?.appendChild(statusPill);
+          } catch (err) {
+            if (statusEl) statusEl.textContent = err.message || 'Failed to confirm delivery.';
+            noRefundBtn.disabled = false;
+          }
+        });
+      }
+    });
+  </script>
 </body>
 </html>

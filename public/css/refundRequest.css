@@ -1,0 +1,124 @@
+:root {
+  --bg: #f6f1e9;
+  --ink: #1b1c32;
+  --muted: #6c7080;
+  --card: #ffffff;
+  --border: #d8dbe3;
+  --accent: #3d5a80;
+  --danger: #b24d1f;
+  --success: #2f6f3e;
+}
+body {
+  margin: 0;
+  background: radial-gradient(120% 80% at 10% 20%, #fce7d9 0%, #f6f1e9 42%, #eef1f6 100%);
+  color: var(--ink);
+  font-family: 'Manrope', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+}
+main {
+  max-width: 900px;
+  margin: 32px auto 48px;
+  padding: 0 24px;
+}
+.page-header h1 {
+  margin: 0 0 10px;
+  font-size: 30px;
+  letter-spacing: -0.01em;
+}
+.subhead {
+  margin: 0 0 18px;
+  color: var(--muted);
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 16px 30px rgba(27, 28, 50, 0.08);
+}
+.order-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f2f5fb;
+  margin-bottom: 16px;
+}
+.label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+.value {
+  margin: 0;
+  font-weight: 700;
+}
+.refund-form {
+  display: grid;
+  gap: 12px;
+}
+.muted-small {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.refund-form select,
+.refund-form textarea {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.primary-btn {
+  border: 1px solid var(--accent);
+  background: rgba(61, 90, 128, 0.12);
+  color: var(--accent);
+  padding: 10px 14px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  width: fit-content;
+}
+.primary-btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.alert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.alert--success {
+  background: rgba(47, 111, 62, 0.12);
+  color: var(--success);
+  border: 1px solid rgba(47, 111, 62, 0.3);
+}
+.alert--error {
+  background: rgba(178, 77, 31, 0.12);
+  color: var(--danger);
+  border: 1px solid rgba(178, 77, 31, 0.3);
+}
+.back-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+  border: 1px solid var(--accent);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(61, 90, 128, 0.08);
+}
+.back-link:hover {
+  background: rgba(61, 90, 128, 0.16);
+}
+@media (max-width: 720px) {
+  .order-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

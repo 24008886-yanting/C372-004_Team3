@@ -29,6 +29,17 @@ const TransactionModel = {
     ];
 
     db.query(sql, params, callback);
+  },
+  getLatestByOrderId(orderId, callback) {
+    if (!orderId) return callback(new Error('order_id is required'));
+    const sql = `
+      SELECT *
+      FROM transactions
+      WHERE order_id = ?
+      ORDER BY transaction_time DESC
+      LIMIT 1
+    `;
+    db.query(sql, [orderId], callback);
   }
 };
 

@@ -18,7 +18,9 @@ exports.generateQrCode = async (req, res) => {
   }
 
   const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
-  const voucherCode = (req.body?.voucher_code || '').trim();
+  const bodyVoucher = (req.body?.voucher_code || '').trim();
+  const sessionVoucher = (req.session?.appliedVoucher?.code || '').trim();
+  const voucherCode = bodyVoucher || sessionVoucher;
   const cartTotal = req.body?.cartTotal || '0.00';
   const isWalletTopup =
     req.body?.walletTopup === '1' ||

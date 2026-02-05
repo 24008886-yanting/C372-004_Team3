@@ -53,4 +53,45 @@ async function captureOrder(orderId) {
   return data;
 }
 
-module.exports = { createOrder, captureOrder };
+async function getOrder(orderId) {
+  const accessToken = await getAccessToken();
+  const response = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  return await response.json();
+}
+
+async function refundCapture(captureId, amount, currency = 'SGD') {
+  const accessToken = await getAccessToken();
+  const body = amount
+    ? { amount: { value: amount, currency_code: currency } }
+    : {};
+  const response = await fetch(`${PAYPAL_API}/v2/payments/captures/${captureId}/refund`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`
+    },
+    body: JSON.stringify(body)
+  });
+  return await response.json();
+}
+
+async function refundOrder(orderId, amount, currency = 'SGD') {
+  const order = await getOrder(orderId);
+  const captureId =
+    order?.purchase_units?.[0]?.payments?.captures?.[0]?.id ||
+    order?.purchase_units?.[0]?.payments?.authorizations?.[0]?.id;
+
+  if (!captureId) {
+    throw new Error('No capture found for this PayPal order.');
+  }
+
+  return refundCapture(captureId, amount, currency);
+}
+
+module.exports = { createOrder, captureOrder, getOrder, refundCapture, refundOrder };

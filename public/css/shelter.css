@@ -144,3 +144,23 @@ h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: -0.01em; }
 .table-empty {
   margin-top: 10px;
 }
+.action-btn {
+  border: 1px solid var(--accent);
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--accent);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  margin-right: 6px;
+}
+.action-btn--reject {
+  border-color: #b91c1c;
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.08);
+}
+.refund-status {
+  font-weight: 700;
+  color: var(--accent);
+}

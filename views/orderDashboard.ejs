@@ -8,71 +8,90 @@
   <link rel="stylesheet" href="/css/shelter.css">
 </head>
 <body>
-	<%- include('partials/navbar') %>
+  <%- include('partials/navbar') %>
 
-	<main>
-		<header>
-			<p class="muted">Admin · Order Management</p>
-			<h1>Order Dashboard</h1>
-			<p class="muted">Overview of all customer orders</p>
-		</header>
+  <main>
+    <header>
+      <p class="muted">Admin - Order Management</p>
+      <h1>Order Dashboard</h1>
+      <p class="muted">Overview of all customer orders</p>
+    </header>
 
-		<div class="grid" style="margin-bottom:18px;">
-			<article class="card">
-				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Orders</h2>
-				<div style="font-size:26px; font-weight:700; color:var(--text);"><%= totals.orders %></div>
-			</article>
-			<article class="card">
-				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Revenue</h2>
-				<div style="font-size:26px; font-weight:700; color:var(--text);">$<%= Number(totals.revenue || 0).toFixed(2) %></div>
-			</article>
-			<article class="card">
-				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Discounts</h2>
-				<div style="font-size:26px; font-weight:700; color:var(--text);">$<%= Number(totals.discount || 0).toFixed(2) %></div>
-			</article>
-			<article class="card">
-				<h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Items Sold</h2>
-				<div style="font-size:26px; font-weight:700; color:var(--text);"><%= totals.items %></div>
-			</article>
-		</div>
+    <div class="grid" style="margin-bottom:18px;">
+      <article class="card">
+        <h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Orders</h2>
+        <div style="font-size:26px; font-weight:700; color:var(--text);"><%= totals.orders %></div>
+      </article>
+      <article class="card">
+        <h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Revenue</h2>
+        <div style="font-size:26px; font-weight:700; color:var(--text);">$<%= Number(totals.revenue || 0).toFixed(2) %></div>
+      </article>
+      <article class="card">
+        <h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Discounts</h2>
+        <div style="font-size:26px; font-weight:700; color:var(--text);">$<%= Number(totals.discount || 0).toFixed(2) %></div>
+      </article>
+      <article class="card">
+        <h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Total Refunds</h2>
+        <div style="font-size:26px; font-weight:700; color:var(--text);">$<%= Number(totals.refunds || 0).toFixed(2) %></div>
+      </article>
+      <article class="card">
+        <h2 style="margin:0 0 6px; font-size:16px; color:var(--muted);">Items Sold</h2>
+        <div style="font-size:26px; font-weight:700; color:var(--text);"><%= totals.items %></div>
+      </article>
+    </div>
 
-		<section class="card">
-			<% if (!orders || !orders.length) { %>
-				<p class="muted" style="text-align:center; padding:40px;">No orders found</p>
-			<% } else { %>
-				<div class="table-wrap">
-					<table class="table">
-						<thead>
-							<tr>
-								<th>Order #</th>
-								<th>Customer</th>
-								<th>Voucher</th>
-								<th>Items</th>
-								<th>Subtotal</th>
-								<th>Total</th>
-								<th>Created</th>
-							</tr>
-						</thead>
-						<tbody>
-							<% orders.forEach(o => { %>
-								<tr>
-									<td><strong>#<%= o.order_id %></strong></td>
-									<td><%= o.username || `User #${o.user_id}` %></td>
-									<td><%= o.voucher_code || '—' %></td>
-									<td><%= o.items_count || 0 %></td>
-									<td>$<%= Number(o.subtotal || 0).toFixed(2) %></td>
-									<td>$<%= Number(o.total_amount || 0).toFixed(2) %></td>
-									<td><%= o.order_date ? new Date(o.order_date).toLocaleDateString() : '—' %></td>
-								</tr>
-							<% }); %>
-						</tbody>
-					</table>
-				</div>
-			<% } %>
-		</section>
-	</main>
+    <section class="card">
+      <% if (!orders || !orders.length) { %>
+        <p class="muted" style="text-align:center; padding:40px;">No orders found</p>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Voucher</th>
+                <th>Items</th>
+                <th>Subtotal</th>
+                <th>Total</th>
+                <th>Created</th>
+                <th>Refund</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% orders.forEach(o => { %>
+                <% const refundStatus = String(o.refund_status || '').toUpperCase(); %>
+                <tr>
+                  <td><strong>#<%= o.order_id %></strong></td>
+                  <td><%= o.username || `User #${o.user_id}` %></td>
+                  <td><%= o.voucher_code || '-' %></td>
+                  <td><%= o.items_count || 0 %></td>
+                  <td>$<%= Number(o.subtotal || 0).toFixed(2) %></td>
+                  <td>$<%= Number(o.total_amount || 0).toFixed(2) %></td>
+                  <td><%= o.order_date ? new Date(o.order_date).toLocaleDateString() : '-' %></td>
+                  <td>
+                    <% if (o.refund_id && refundStatus === 'PENDING') { %>
+                      <form method="POST" action="/refund-requests/<%= o.refund_id %>/approve" style="display:inline;">
+                        <button class="action-btn" type="submit">Accept</button>
+                      </form>
+                      <form method="POST" action="/refund-requests/<%= o.refund_id %>/reject" style="display:inline;">
+                        <button class="action-btn action-btn--reject" type="submit">Reject</button>
+                      </form>
+                    <% } else if (o.refund_id) { %>
+                      <span class="refund-status"><%= o.refund_status || '-' %></span>
+                    <% } else { %>
+                      <span class="muted">No request</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+  </main>
 
-	<%- include('partials/footer') %>
-		
+  <%- include('partials/footer') %>
 </body>
 </html>

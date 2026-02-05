@@ -17,7 +17,9 @@ const ShelterController = require('./controllers/ShelterController');
 const AdoptionController = require('./controllers/AdoptionController');
 const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
+const RefundController = require('./controllers/RefundController');
 const OrderItem = require('./models/OrderItem');
+const Order = require('./models/Order');
 const User = require('./models/User');
 const Cart = require('./models/Cart');
 const Payment = require('./models/Payment');
@@ -158,6 +160,9 @@ app.delete('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), Vouc
 
 // Orders dashboard (admin)
 app.get('/orderDashboard', checkAuthenticated, checkAuthorised(['admin']), OrderController.listDashboard);
+app.get('/refund-requests', checkAuthenticated, checkAuthorised(['admin']), RefundController.listAll);
+app.post('/refund-requests/:id/approve', checkAuthenticated, checkAuthorised(['admin']), RefundController.approve);
+app.post('/refund-requests/:id/reject', checkAuthenticated, checkAuthorised(['admin']), RefundController.reject);
 
 // Cart
 app.get('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.viewCart);
@@ -360,6 +365,7 @@ app.get('/nets-qr/success', async (req, res) => {
     req.session.invoice = invoice;
     req.session.netsVoucher = null;
     req.session.pendingPayment = null;
+    req.session.appliedVoucher = null;
 
     // Redirect to invoice page
     return res.redirect('/invoice-confirmation');
@@ -376,7 +382,8 @@ app.get('/nets-qr/success', async (req, res) => {
 app.get('/nets-qr/fail', (req, res) => {
   const pendingPayment = req.session?.pendingPayment || {};
   const isWalletTopup = pendingPayment.purpose === 'wallet-topup';
-  req.session.pendingPayment = null;
+      req.session.pendingPayment = null;
+      req.session.appliedVoucher = null;
 
   res.render('transactionFail', {
     message: 'NETS QR Transaction Failed. Please try another payment method.',
@@ -459,6 +466,30 @@ app.get('/allTransactions', checkAuthenticated, (req, res) => {
         });
     });
 });
+
+// Confirm delivery (no refund)
+app.post('/orders/:orderId/confirm-delivery', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
+    const userId = req.session?.user_id;
+    const orderId = Number(req.params?.orderId || 0);
+    if (!userId || !orderId) {
+        return res.status(400).json({ error: 'Invalid order.' });
+    }
+
+    Order.setDeliveryStatus(orderId, userId, 'COMPLETED', (err, result) => {
+        if (err) {
+            console.error('Failed to confirm delivery:', err);
+            return res.status(500).json({ error: 'Failed to confirm delivery.' });
+        }
+        if (!result || result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Order not found.' });
+        }
+        return res.json({ success: true });
+    });
+});
+
+// Refund request (customer/adopter)
+app.get('/refund-request', checkAuthenticated, checkAuthorised(['customer', 'adopter']), RefundController.showRequestForm);
+app.post('/refund-request', checkAuthenticated, checkAuthorised(['customer', 'adopter']), RefundController.submitRequest);
 
 
 // Admin Setup (for initial admin account creation)

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refund Requests | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="/css/refundRequests.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header class="page-header">
+      <p class="subhead">Admin · Refund requests</p>
+      <h1>Refund Requests</h1>
+    </header>
+
+    <section class="card">
+      <% if (success) { %>
+        <div class="alert alert--success"><%= success %></div>
+      <% } %>
+      <% if (error) { %>
+        <div class="alert alert--error"><%= error %></div>
+      <% } %>
+
+      <% if (!refunds || !refunds.length) { %>
+        <p class="muted">No refund requests found.</p>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>User</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Requested</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% refunds.forEach(r => { %>
+                <% const rawStatus = String(r.status || '').toUpperCase(); %>
+                <% const displayStatus = rawStatus === 'REFUNDED' ? 'REFUNDED' : 'FAILED'; %>
+                <% const statusClass = displayStatus ? `status status--${displayStatus.toLowerCase()}` : 'status'; %>
+                <tr>
+                  <td>#<%= r.order_id %></td>
+                  <td><%= r.username || r.email || `User #${r.user_id}` %></td>
+                  <td>S$<%= Number(r.amount || 0).toFixed(2) %></td>
+                  <td><%= r.payment_method || '-' %></td>
+                  <td>
+                    <div class="reason">
+                      <strong><%= r.reason || '-' %></strong>
+                      <% if (r.details) { %>
+                        <div class="details"><%= r.details %></div>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td><span class="<%= statusClass %>"><%= displayStatus || '-' %></span></td>
+                  <td><%= r.created_at ? new Date(r.created_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' }) : '-' %></td>
+                  <td>
+                    <% if (rawStatus === 'PENDING') { %>
+                      <form method="POST" action="/refund-requests/<%= r.refund_id %>/approve" style="display:inline;">
+                        <button class="action-btn" type="submit">Approve</button>
+                      </form>
+                      <form method="POST" action="/refund-requests/<%= r.refund_id %>/reject" style="display:inline;">
+                        <button class="action-btn action-btn--reject" type="submit">Reject</button>
+                      </form>
+                    <% } else { %>
+                      <span class="muted">—</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+  </main>
+</body>
+</html>

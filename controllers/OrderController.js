@@ -14,7 +14,8 @@ const OrderController = {
 				orders: orders?.length || 0,
 				revenue: 0,
 				discount: 0,
-				items: 0
+				items: 0,
+				refunds: 0
 			};
 
 			(orders || []).forEach(o => {
@@ -22,6 +23,9 @@ const OrderController = {
 				totals.revenue += amount;
 				totals.discount += Number(o.discount_amount || 0);
 				totals.items += Number(o.units_count || 0);
+				if (String(o.refund_status || '').toUpperCase() === 'REFUNDED') {
+					totals.refunds += Number(o.refund_amount || 0);
+				}
 			});
 
 			console.log('Order Totals Calculation:', totals, 'Orders:', orders.map(o => ({ id: o.order_id, total_amount: o.total_amount })));

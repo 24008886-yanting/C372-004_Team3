@@ -141,7 +141,17 @@ const VoucherController = {
     }
 
     Voucher.apply(code, subtotal, role, (err, info) => {
-      if (err) return res.status(400).json({ error: 'Failed to apply voucher', details: err.message || err });
+      if (err) {
+        if (req.session) req.session.appliedVoucher = null;
+        return res.status(400).json({ error: 'Failed to apply voucher', details: err.message || err });
+      }
+      if (req.session) {
+        req.session.appliedVoucher = {
+          code: info.voucher_code,
+          voucher_id: info.voucher_id,
+          discount_amount: info.discount_amount
+        };
+      }
       res.json({ voucher: info });
     });
   },

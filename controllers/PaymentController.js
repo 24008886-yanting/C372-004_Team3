@@ -10,7 +10,9 @@ const PaymentController = {
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
     const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
-    const voucherCode = (req.body?.voucher_code || '').trim();
+    const bodyVoucher = (req.body?.voucher_code || '').trim();
+    const sessionVoucher = (req.session?.appliedVoucher?.code || '').trim();
+    const voucherCode = bodyVoucher || sessionVoucher;
 
     try {
       const quote = await Payment.buildQuote(userId, role, voucherCode);
@@ -45,7 +47,9 @@ const PaymentController = {
 
     const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
     const pending = req.session?.pendingPayment || null;
-    const voucherCode = pending?.voucherCode || (req.body?.voucher_code || '').trim() || null;
+    const bodyVoucher = (req.body?.voucher_code || '').trim();
+    const sessionVoucher = (req.session?.appliedVoucher?.code || '').trim();
+    const voucherCode = pending?.voucherCode || bodyVoucher || sessionVoucher || null;
 
     try {
       const quote = await Payment.buildQuote(userId, role, voucherCode);
@@ -97,7 +101,8 @@ const PaymentController = {
         payer_email: payerEmail,
         amount: paidAmount,
         currency,
-        status: captureStatus || 'COMPLETED'
+        status: captureStatus || 'COMPLETED',
+        payment_method: 'PAYPAL'
       });
 
       req.session.invoice = {
@@ -118,6 +123,7 @@ const PaymentController = {
       };
 
       req.session.pendingPayment = null;
+      req.session.appliedVoucher = null;
 
       return res.json({
         success: true,
