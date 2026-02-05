@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
+const Wallet = require('../models/Wallet');
 
 // Simple helper: try to render an EJS view; if not available, fall back to JSON.
 const renderOrJson = (res, view, payload) => {
@@ -35,6 +36,11 @@ const UserController = {
     User.addUser(req.body, (err, result) => {
       if (err) return res.status(500).json({ error: 'Failed to add user', details: err });
       const user_id = result?.insertId;
+      if (user_id) {
+        Wallet.ensureWallet(user_id).catch((walletErr) => {
+          console.error('Failed to create wallet after addUser:', walletErr);
+        });
+      }
       renderOrJson(res, 'users/create-success', { message: 'User created', user_id });
     });
   },
@@ -379,6 +385,10 @@ const UserController = {
             role: sessionRole
           };
 
+          Wallet.ensureWallet(newUserId).catch((walletErr) => {
+            console.error('Failed to create wallet for new user:', walletErr);
+          });
+
           if (req.flash) req.flash('success', 'Account created successfully.');
           res.redirect('/');
         });
@@ -440,6 +450,13 @@ const UserController = {
         console.error('Admin add user error:', err);
         if (req.flash) req.flash('error', 'Failed to add user. Email may already exist.');
         return res.redirect('/manageUsers');
+      }
+
+      const newUserId = result?.insertId;
+      if (newUserId) {
+        Wallet.ensureWallet(newUserId).catch((walletErr) => {
+          console.error('Failed to create wallet for admin-added user:', walletErr);
+        });
       }
 
       if (req.flash) req.flash('success', `User "${username}" created successfully.`);

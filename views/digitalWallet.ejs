@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Wallet | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="/css/accountDetails.css">
+  <link rel="stylesheet" href="/css/digitalWallet.css">
+  <% if (paypalClientId) { %>
+    <script src="https://www.paypal.com/sdk/js?client-id=<%= paypalClientId %>&currency=SGD"></script>
+  <% } %>
+</head>
+<body class="account-body">
+  <%- include('partials/navbar') %>
+
+  <main class="wallet-shell">
+    <div class="wallet-grid">
+      <div class="wallet-card">
+        <p class="wallet-label">User</p>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <h2 style="margin:0;"><%= user?.username || '—' %></h2>
+            <p class="muted" style="margin:2px 0 0;">ID: <%= user?.user_id || user?.userId || '—' %></p>
+          </div>
+          <span class="store-pill">Store Credit</span>
+        </div>
+
+        <div style="margin-top:10px;">
+          <p class="wallet-label" style="margin-bottom:4px;">Available Balance</p>
+          <div class="wallet-balance">$<%= Number(wallet?.balance || 0).toFixed(2) %></div>
+        </div>
+
+        <button id="topup-toggle" class="primary-btn" type="button" aria-expanded="false">Top Up Wallet</button>
+
+        <% if (success) { %><div class="alert alert--success"><%= success %></div><% } %>
+        <% if (error) { %><div class="alert alert--error"><%= error %></div><% } %>
+
+        <div id="topup-section" class="section-card is-hidden">
+          <h3 style="margin:0 0 4px; font-size:16px;">Top Up Wallet</h3>
+          <p class="muted" style="margin:0 0 8px;">Enter an amount, then pay via PayPal or NETS.</p>
+
+          <label class="muted" for="topup-amount" style="display:block; margin-bottom:6px;">Amount (SGD)</label>
+          <input id="topup-amount" class="wallet-input" type="number" min="1" step="0.01" placeholder="10.00">
+
+          <div class="pay-area" style="display:grid; gap:10px; margin-top:10px;">
+            <div id="paypal-topup" class="paypal-btn"></div>
+            <div class="card-btn" aria-disabled="true">
+              <span style="font-size:16px;">▯</span>
+              <span>Debit or Credit Card</span>
+            </div>
+            <div class="powered-paypal">Powered by <span class="pp">PayPal</span></div>
+            <form id="nets-topup-form" action="/wallet/nets/qr" method="POST" style="margin:0;">
+              <input type="hidden" name="amount" id="nets-amount">
+              <button id="nets-topup-btn" class="nets-btn" type="submit">Top Up with NETS</button>
+            </form>
+          </div>
+          <p id="topup-message" class="muted-small"></p>
+          <p class="muted-small">You will return here to see your updated balance.</p>
+        </div>
+      </div>
+
+      <div class="wallet-card" style="padding:14px 14px 18px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <h3 style="margin:0; font-size:18px;">Wallet History</h3>
+          <span class="muted" style="font-size:12px;">Most recent first</span>
+        </div>
+        <% if (!transactions || !transactions.length) { %>
+          <div class="history-empty">No wallet activity yet.</div>
+        <% } else { %>
+          <table class="wallet-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Reference</th>
+                <th>Amount</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% transactions.forEach(txn => {
+                const isDebit = String(txn.txnType).toUpperCase() === 'PURCHASE_DEBIT';
+                const sign = isDebit ? '-' : '+';
+                const tagClass = isDebit ? 'tag debit' : 'tag';
+              %>
+                <tr>
+                  <td><%= new Date(txn.createdAt).toLocaleString('en-SG', { dateStyle: 'short', timeStyle: 'medium' }) %></td>
+                  <td><span class="<%= tagClass %>"><%= txn.txnType %></span></td>
+                  <td><%= txn.description || '—' %></td>
+                  <td><%= txn.referenceId || txn.referenceType || '—' %></td>
+                  <td class="<%= isDebit ? 'amount-neg' : 'amount-pos' %>"><%= sign %>$<%= Number(txn.amount || 0).toFixed(2) %></td>
+                  <td>$<%= Number(txn.balanceAfter || 0).toFixed(2) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const paypalClientId = "<%= paypalClientId || '' %>";
+    const messageEl = document.getElementById('topup-message');
+    const amountInput = document.getElementById('topup-amount');
+    const netsAmountInput = document.getElementById('nets-amount');
+    const paypalBtn = document.getElementById('paypal-topup');
+    const topupToggle = document.getElementById('topup-toggle');
+    const topupSection = document.getElementById('topup-section');
+    const netsForm = document.getElementById('nets-topup-form');
+    const netsBtn = document.getElementById('nets-topup-btn');
+
+    const setMessage = (msg, isError = false) => {
+      if (!messageEl) return;
+      messageEl.textContent = msg || '';
+      messageEl.style.color = isError ? '#b24d1f' : '#6c7080';
+    };
+
+    if (topupToggle && topupSection) {
+      const revealTopup = () => {
+        topupSection.classList.remove('is-hidden');
+        topupToggle.setAttribute('aria-expanded', 'true');
+        amountInput?.focus();
+      };
+      topupToggle.addEventListener('click', revealTopup, { once: true });
+    }
+
+    const getAmount = () => {
+      const val = parseFloat(amountInput.value || '0');
+      return Number.isFinite(val) ? val : 0;
+    };
+
+    if (netsForm && netsBtn) {
+      netsForm.addEventListener('submit', (e) => {
+        const amt = getAmount();
+        if (!amt || amt <= 0) {
+          e.preventDefault();
+          setMessage('Enter an amount above $0 to top up.', true);
+          return;
+        }
+        netsAmountInput.value = amt.toFixed(2);
+        setMessage('Generating NETS QR for top-up...');
+      });
+    }
+
+    const renderPaypalTopup = () => {
+      if (!paypalClientId || typeof paypal === 'undefined') return;
+      const container = document.getElementById('paypal-topup');
+      if (container) container.innerHTML = '';
+      paypal.Buttons({
+        style: { shape: 'rect', color: 'gold', layout: 'horizontal', label: 'paypal', height: 44 },
+        onClick: () => setMessage(''),
+        createOrder: async () => {
+          const amt = getAmount();
+          if (!amt || amt <= 0) {
+            setMessage('Enter an amount above $0 to top up.', true);
+            throw new Error('Amount required');
+          }
+          const resp = await fetch('/wallet/paypal/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: amt })
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.id) {
+            setMessage(data.error || 'Unable to start PayPal top-up.', true);
+            throw new Error(data.error || 'PayPal error');
+          }
+          setMessage('Approved in PayPal window to continue.');
+          return data.id;
+        },
+        onApprove: async (data) => {
+          setMessage('Capturing top-up...');
+          const resp = await fetch('/wallet/paypal/capture-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: data.orderID })
+          });
+          const result = await resp.json().catch(() => ({}));
+          if (!resp.ok || !result.success) {
+            setMessage(result.error || 'Top-up failed. Please try again.', true);
+            throw new Error(result.error || 'PayPal capture failed');
+          }
+          window.location.href = result.redirectUrl || '/digitalWallet';
+        },
+        onError: (err) => {
+          console.error('PayPal wallet top-up error:', err);
+          setMessage(err?.message || 'Payment could not be completed.', true);
+        },
+        onCancel: () => setMessage('Top-up was cancelled.', true)
+      }).render('#paypal-topup');
+    };
+
+    if (paypalClientId) {
+      const waitForPaypal = () => {
+        if (typeof paypal !== 'undefined') {
+          return renderPaypalTopup();
+        }
+        setTimeout(waitForPaypal, 200);
+      };
+      waitForPaypal();
+    } else if (paypalBtn) {
+      paypalBtn.textContent = 'PayPal not configured';
+      paypalBtn.style.opacity = '0.5';
+    }
+  </script>
+</body>
+</html>

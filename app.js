@@ -21,9 +21,11 @@ const OrderItem = require('./models/OrderItem');
 const User = require('./models/User');
 const Cart = require('./models/Cart');
 const Payment = require('./models/Payment');
+const Wallet = require('./models/Wallet');
 const { toTwoDp } = Payment;
 const invoiceController = require('./controllers/InvoiceController');
 const PaymentController = require('./controllers/PaymentController');
+const WalletController = require('./controllers/WalletController');
 const connection = require('./db');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
@@ -260,6 +262,49 @@ app.get('/nets-qr/success', async (req, res) => {
     const userId = req.session.user_id;
     const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
     const voucherCode = (req.session?.netsVoucher || '').trim();
+    const pendingPayment = req.session?.pendingPayment || {};
+
+    if (pendingPayment.purpose === 'wallet-topup') {
+      const topupAmount = toTwoDp(pendingPayment.walletTopupAmount || 0);
+      if (!topupAmount || topupAmount <= 0) {
+        return res.render('transactionFail', {
+          message: 'Invalid wallet top-up amount. Please try again.',
+          returnUrl: '/digitalWallet'
+        });
+      }
+
+      await Wallet.credit(
+        userId,
+        topupAmount,
+        {
+          txnType: 'TOPUP',
+          referenceType: 'NETS_TOPUP',
+          referenceId: req.query.txn_retrieval_ref || pendingPayment.netsQrTxnRef || null,
+          paymentMethod: 'NETS QR',
+          description: 'Wallet top-up via NETS QR'
+        },
+        { connection: connection, manageTransaction: true }
+      );
+
+      let topupOrderId = null;
+      if (WalletController.createTopupOrder) {
+        topupOrderId = await WalletController.createTopupOrder(userId, topupAmount).catch(() => null);
+      }
+
+      await Payment.recordTransaction({
+        order_id: topupOrderId,
+        paypal_order_id: req.query.txn_retrieval_ref || pendingPayment.netsQrTxnRef || 'NETS-' + Date.now(),
+        payer_id: 'nets_' + userId,
+        payer_email: user.email || null,
+        amount: topupAmount,
+        currency: 'SGD',
+        status: 'COMPLETED',
+        payment_method: 'WALLET_TOPUP_NETS'
+      });
+
+      req.session.pendingPayment = null;
+      return res.redirect('/digitalWallet');
+    }
 
     // Build quote to get cart items and calculate total
     const quote = await Payment.buildQuote(userId, role, voucherCode);
@@ -314,6 +359,7 @@ app.get('/nets-qr/success', async (req, res) => {
     // Store invoice in session
     req.session.invoice = invoice;
     req.session.netsVoucher = null;
+    req.session.pendingPayment = null;
 
     // Redirect to invoice page
     return res.redirect('/invoice-confirmation');
@@ -328,9 +374,13 @@ app.get('/nets-qr/success', async (req, res) => {
 
 // NETS QR: Failure page
 app.get('/nets-qr/fail', (req, res) => {
+  const pendingPayment = req.session?.pendingPayment || {};
+  const isWalletTopup = pendingPayment.purpose === 'wallet-topup';
+  req.session.pendingPayment = null;
+
   res.render('transactionFail', {
     message: 'NETS QR Transaction Failed. Please try another payment method.',
-    returnUrl: '/cart'
+    returnUrl: isWalletTopup ? '/digitalWallet' : '/cart'
   });
 });
 
@@ -380,9 +430,11 @@ app.get('/profile', checkAuthenticated, (req, res) => {
 app.get('/accountDetails', UserController.renderAccountDetails);
 app.post('/accountDetails', UserController.updateAccountDetails);
 
-app.get('/digitalWallet', (req, res) => {
-    res.send('Digital wallet page placeholder');
-});
+app.get('/digitalWallet', checkAuthenticated, WalletController.viewWallet);
+app.post('/wallet/paypal/create-order', checkAuthenticated, WalletController.createPaypalTopupOrder);
+app.post('/wallet/paypal/capture-order', checkAuthenticated, WalletController.capturePaypalTopup);
+app.post('/wallet/nets/qr', checkAuthenticated, WalletController.generateNetsTopup);
+app.post('/wallet/pay-cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WalletController.payWithWallet);
 
 app.get('/myVoucher', VoucherController.viewMine);
 

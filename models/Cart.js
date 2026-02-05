@@ -131,11 +131,36 @@ const CartModel = {
 
   // Perform checkout: create order + order_items, update stock, and clear cart
   checkout(userId, options, callback) {
+    this.checkoutWithConnection(db, options, userId, callback, true);
+  },
+
+  /**
+   * Shared checkout logic. When manageTransaction is true, this function will
+   * handle begin/commit/rollback. When false, caller is responsible for
+   * transaction management on the provided connection.
+   */
+  checkoutWithConnection(connection, options, userId, callback, manageTransaction = false) {
     const { voucher_id = null, shipping_fee = 0, tax_rate = 0, discount_amount = 0 } = options || {};
 
-    db.beginTransaction((txErr) => {
-      if (txErr) return callback(txErr);
+    const begin = (next) => {
+      if (!manageTransaction) return next();
+      connection.beginTransaction((err) => (err ? callback(err) : next()));
+    };
 
+    const rollback = (err) => {
+      if (!manageTransaction) return callback(err);
+      connection.rollback(() => callback(err));
+    };
+
+    const commit = (summary) => {
+      if (!manageTransaction) return callback(null, summary);
+      connection.commit((commitErr) => {
+        if (commitErr) return connection.rollback(() => callback(commitErr));
+        callback(null, summary);
+      });
+    };
+
+    begin(() => {
       const cartSql = `
         SELECT c.cart_id, c.product_id, c.quantity, p.price, p.stock, p.status
         FROM cart c
@@ -144,20 +169,20 @@ const CartModel = {
         FOR UPDATE
       `;
 
-      db.query(cartSql, [userId], (cartErr, cartItems) => {
-        if (cartErr) return db.rollback(() => callback(cartErr));
+      connection.query(cartSql, [userId], (cartErr, cartItems) => {
+        if (cartErr) return rollback(cartErr);
         if (!cartItems || cartItems.length === 0) {
-          return db.rollback(() => callback(new Error('Cart is empty')));
+          return rollback(new Error('Cart is empty'));
         }
 
         // Validate stock and calculate totals
         let subtotal = 0;
         for (const item of cartItems) {
           if (String(item.status || '').toLowerCase() === 'unavailable') {
-            return db.rollback(() => callback(new Error('Product unavailable in cart')));
+            return rollback(new Error('Product unavailable in cart'));
           }
           if (item.quantity > item.stock) {
-            return db.rollback(() => callback(new Error('Not enough stock for one of the items')));
+            return rollback(new Error('Not enough stock for one of the items'));
           }
           subtotal += Number(item.price) * Number(item.quantity);
         }
@@ -173,8 +198,8 @@ const CartModel = {
         `;
         const orderParams = [userId, voucher_id, subtotal, discount, shippingFee, taxAmount, total];
 
-        db.query(orderSql, orderParams, (orderErr, orderResult) => {
-          if (orderErr) return db.rollback(() => callback(orderErr));
+        connection.query(orderSql, orderParams, (orderErr, orderResult) => {
+          if (orderErr) return rollback(orderErr);
           const orderId = orderResult.insertId;
 
           // Insert order items
@@ -190,40 +215,46 @@ const CartModel = {
             INSERT INTO order_items (order_id, product_id, quantity, price_each, item_total)
             VALUES ?
           `;
-          db.query(orderItemSql, [orderItemValues], (oiErr) => {
-            if (oiErr) return db.rollback(() => callback(oiErr));
+          connection.query(orderItemSql, [orderItemValues], (oiErr) => {
+            if (oiErr) return rollback(oiErr);
 
             // Update product stock sequentially
             const updateStock = (index = 0) => {
               if (index >= cartItems.length) {
                 const finalizeCheckout = () => {
                   // Clear the cart
-                  db.query('DELETE FROM cart WHERE user_id = ?', [userId], (clearErr) => {
-                    if (clearErr) return db.rollback(() => callback(clearErr));
+                  connection.query('DELETE FROM cart WHERE user_id = ?', [userId], (clearErr) => {
+                    if (clearErr) return rollback(clearErr);
 
-                    db.commit((commitErr) => {
-                      if (commitErr) return db.rollback(() => callback(commitErr));
-                      callback(null, { order_id: orderId, subtotal, discount_amount: discount, shipping_fee: shippingFee, tax_amount: taxAmount, total_amount: total });
+                    const doCommit = () =>
+                      commit({
+                        order_id: orderId,
+                        subtotal,
+                        discount_amount: discount,
+                        shipping_fee: shippingFee,
+                        tax_amount: taxAmount,
+                        total_amount: total
+                      });
+
+                    if (!voucher_id) {
+                      return doCommit();
+                    }
+
+                    const voucherSql = 'UPDATE vouchers SET used_count = used_count + 1 WHERE voucher_id = ?';
+                    connection.query(voucherSql, [voucher_id], (voucherErr) => {
+                      if (voucherErr) return rollback(voucherErr);
+                      doCommit();
                     });
                   });
                 };
 
-                if (!voucher_id) {
-                  return finalizeCheckout();
-                }
-
-                const voucherSql = 'UPDATE vouchers SET used_count = used_count + 1 WHERE voucher_id = ?';
-                db.query(voucherSql, [voucher_id], (voucherErr) => {
-                  if (voucherErr) return db.rollback(() => callback(voucherErr));
-                  finalizeCheckout();
-                });
-                return;
+                return finalizeCheckout();
               }
 
               const item = cartItems[index];
               const stockSql = 'UPDATE products SET stock = stock - ? WHERE product_id = ?';
-              db.query(stockSql, [item.quantity, item.product_id], (stockErr) => {
-                if (stockErr) return db.rollback(() => callback(stockErr));
+              connection.query(stockSql, [item.quantity, item.product_id], (stockErr) => {
+                if (stockErr) return rollback(stockErr);
                 updateStock(index + 1);
               });
             };

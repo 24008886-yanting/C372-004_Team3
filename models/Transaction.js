@@ -12,14 +12,14 @@ const TransactionModel = {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `;
 
-    // Generate numeric order_id if not provided (use timestamp as unique ID)
-    const orderId = data.order_id || Math.floor(Date.now() / 1000);
+    // Respect nullable FK: only use provided order_id; otherwise null to avoid FK violations
+    const orderId = data.order_id ?? null;
     // Use paypal_order_id as the payment reference
     const paymentReference = data.paypal_order_id || `TXN-${Date.now()}`;
 
     const params = [
       orderId,
-      data.payment_method || 'PayPal',
+      (data.payment_method || 'PayPal').toString().slice(0, 20),
       paymentReference,
       data.payer_id || null,
       data.payer_email || null,

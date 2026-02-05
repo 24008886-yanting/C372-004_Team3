@@ -1,6 +1,7 @@
 const Cart = require('../models/Cart');
 const Voucher = require('../models/Voucher');
 const Wishlist = require('../models/Wishlist');
+const Wallet = require('../models/Wallet');
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
 
 // Helper: try to render an EJS view; if not available, fall back to JSON.
@@ -32,16 +33,32 @@ const CartController = {
     Cart.getCartByUser(userId, (err, items) => {
       if (err) return res.status(500).json({ error: 'Failed to load cart', details: err });
       const role = (req.session?.role || '').toLowerCase();
-      if (role !== 'adopter') {
-        return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [], paypalClientId: PAYPAL_CLIENT_ID });
-      }
 
-      Voucher.getAll((voucherErr, vouchers) => {
-        if (voucherErr) {
-          return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [], paypalClientId: PAYPAL_CLIENT_ID });
-        }
-        renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: vouchers || [], paypalClientId: PAYPAL_CLIENT_ID });
-      });
+      Wallet.ensureWallet(userId)
+        .then((wallet) => {
+          if (role !== 'adopter') {
+            return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [], paypalClientId: PAYPAL_CLIENT_ID, wallet });
+          }
+
+          Voucher.getAll((voucherErr, vouchers) => {
+            if (voucherErr) {
+              return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [], paypalClientId: PAYPAL_CLIENT_ID, wallet });
+            }
+            renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: vouchers || [], paypalClientId: PAYPAL_CLIENT_ID, wallet });
+          });
+        })
+        .catch((walletErr) => {
+          console.error('Failed to load wallet for cart:', walletErr);
+          if (role !== 'adopter') {
+            return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [], paypalClientId: PAYPAL_CLIENT_ID, wallet: null });
+          }
+          Voucher.getAll((voucherErr, vouchers) => {
+            if (voucherErr) {
+              return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [], paypalClientId: PAYPAL_CLIENT_ID, wallet: null });
+            }
+            renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: vouchers || [], paypalClientId: PAYPAL_CLIENT_ID, wallet: null });
+          });
+        });
     });
   },
 

@@ -231,6 +231,10 @@
         <% } %>
       </div>
       <div class="row total"><span>Total</span><span id="total-amount">$<%= total.toFixed(2) %></span></div>
+      <div class="row" style="margin-top:8px;"><span>Wallet balance</span><span id="wallet-balance">$<%= Number((wallet && wallet.balance) || 0).toFixed(2) %></span></div>
+      <button id="wallet-pay-button" class="btn-accent" style="width:100%; margin-top:10px;" type="button">Pay with Wallet</button>
+      <div id="wallet-message" class="muted" style="margin-top:6px;"></div>
+      <div style="margin-top:6px; font-size:13px;"><a class="link" href="/digitalWallet">Top up or view history</a></div>
       <button id="nets-button" class="btn-accent" style="width:100%; margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;" type="button">
         <span style="font-weight: 600;">NETS</span>
       </button>
@@ -252,11 +256,15 @@
     const taxRatePercent = Number(summary?.dataset?.taxRate || 0);
     const paypalClientId = "<%= paypalClientId || '' %>";
     const hasUnavailable = <%= hasUnavailable ? 'true' : 'false' %>;
+    const walletBalance = Number(<%- JSON.stringify(wallet ? wallet.balance : 0) %>);
+    const walletPayBtn = document.getElementById('wallet-pay-button');
+    const walletMessage = document.getElementById('wallet-message');
     const paypalButtonContainer = document.getElementById('paypal-button-container');
     const paypalMessage = document.getElementById('paypal-message');
     let voucherId = null;
     let voucherCode = '';
     let discountAmount = 0;
+    let currentTotal = subtotal + shippingFee + (subtotal * (taxRatePercent / 100)) - discountAmount;
 
     const updateTotals = () => {
       const taxAmount = subtotal * (taxRatePercent / 100);
@@ -267,6 +275,23 @@
       if (taxAmountEl) taxAmountEl.textContent = `$${taxAmount.toFixed(2)}`;
       if (discountAmountEl) discountAmountEl.textContent = `-$${discountAmount.toFixed(2)}`;
       if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+      currentTotal = total;
+      updateWalletPayState();
+    };
+
+    const updateWalletPayState = () => {
+      if (!walletPayBtn || !walletMessage) return;
+      const enough = walletBalance >= currentTotal && currentTotal > 0;
+      walletPayBtn.disabled = !enough || hasUnavailable;
+      if (hasUnavailable) {
+        walletMessage.textContent = 'Remove unavailable items to pay with wallet.';
+        walletMessage.style.color = '#dc2626';
+        return;
+      }
+      walletMessage.style.color = '#6b7280';
+      walletMessage.textContent = enough
+        ? 'Your wallet covers this order. Click to pay instantly.'
+        : 'Insufficient wallet balance. Top up to pay with wallet.';
     };
 
     const applyVoucherBtn = document.getElementById('apply-voucher');
@@ -381,6 +406,38 @@
         alert(errorMsg);
       }
     };
+
+    if (walletPayBtn) {
+      updateWalletPayState();
+      walletPayBtn.addEventListener('click', async () => {
+        if (walletPayBtn.disabled) return;
+        if (hasUnavailable) {
+          walletMessage.textContent = 'Remove unavailable items before paying.';
+          walletMessage.style.color = '#dc2626';
+          return;
+        }
+        walletPayBtn.disabled = true;
+        walletMessage.textContent = 'Paying with wallet...';
+        walletMessage.style.color = '#6b7280';
+        try {
+          const resp = await fetch('/wallet/pay-cart', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ voucher_code: voucherCode || null })
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.success) {
+            const errMsg = data.error || 'Wallet payment failed.';
+            throw new Error(errMsg);
+          }
+          window.location.href = data.redirectUrl || '/invoice-confirmation';
+        } catch (err) {
+          walletMessage.textContent = err.message || 'Wallet payment failed.';
+          walletMessage.style.color = '#dc2626';
+          walletPayBtn.disabled = false;
+        }
+      });
+    }
 
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-action]');
@@ -516,6 +573,7 @@
       }).render('#paypal-button-container');
     };
 
+    updateWalletPayState();
     renderPaypalButtons();
   </script>
 </body>

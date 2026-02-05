@@ -20,6 +20,11 @@ exports.generateQrCode = async (req, res) => {
   const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
   const voucherCode = (req.body?.voucher_code || '').trim();
   const cartTotal = req.body?.cartTotal || '0.00';
+  const isWalletTopup =
+    req.body?.walletTopup === '1' ||
+    req.body?.walletTopup === true ||
+    String(req.body?.walletTopup || '').toLowerCase() === 'true' ||
+    req.body?.context === 'wallet';
   
   console.log('NETS generateQrCode called for user:', userId, 'role:', role, 'cartTotal:', cartTotal);
   
@@ -28,7 +33,7 @@ exports.generateQrCode = async (req, res) => {
     // Otherwise use the cartTotal sent from the form
     let finalTotal = parseFloat(cartTotal);
     
-    if (voucherCode) {
+    if (!isWalletTopup && voucherCode) {
       try {
         const quote = await Payment.buildQuote(userId, role, voucherCode);
         finalTotal = toTwoDp(quote.pricing.total);
@@ -73,10 +78,12 @@ exports.generateQrCode = async (req, res) => {
       // Store pending payment in session
       req.session.pendingPayment = {
         netsQrTxnRef: txnRetrievalRef,
-        voucherCode: voucherCode || null,
-        quote: { pricing: { total: finalTotal } }
+        voucherCode: isWalletTopup ? null : (voucherCode || null),
+        quote: { pricing: { total: finalTotal } },
+        purpose: isWalletTopup ? 'wallet-topup' : 'cart',
+        walletTopupAmount: isWalletTopup ? finalTotal : null
       };
-      req.session.netsVoucher = voucherCode || null;
+      req.session.netsVoucher = isWalletTopup ? null : voucherCode || null;
 
       res.render('NETSQR', {
         total: finalTotal,
@@ -86,6 +93,7 @@ exports.generateQrCode = async (req, res) => {
         fullNetsResponse: response.data,
         apiKey: process.env.API_KEY,
         projectId: process.env.PROJECT_ID,
+        cancelUrl: isWalletTopup ? '/digitalWallet' : '/cart'
       });
     } else {
       let errorMsg = 'An error occurred while generating the QR code.';
