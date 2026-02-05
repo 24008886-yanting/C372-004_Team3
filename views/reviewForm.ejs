@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Write a Review | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header>
+      <p class="muted">Share your experience</p>
+      <h1>Write a Review</h1>
+    </header>
+
+    <section class="card">
+      <% const formDisabled = alreadyReviewed || !allowed; %>
+      <% if (error) { %>
+        <div class="alert error"><%= error %></div>
+      <% } %>
+      <% if (productName) { %>
+        <p class="muted">Product: <%= productName %></p>
+      <% } %>
+
+      <form class="form-grid" method="POST" action="/review/new/<%= orderId %>/<%= productId %>">
+        <div class="form-group">
+          <label>Order ID</label>
+          <input type="text" name="order_id" value="<%= orderId %>" readonly>
+        </div>
+
+        <div class="form-group">
+          <label>Product ID</label>
+          <input type="text" name="product_id" value="<%= productId %>" readonly>
+        </div>
+
+        <div class="form-group">
+          <label>Rating</label>
+          <select name="rating" required <%= formDisabled ? 'disabled' : '' %>>
+            <option value="">Select...</option>
+            <option value="5" <%= Number(rating) === 5 ? 'selected' : '' %>>5 - Excellent</option>
+            <option value="4" <%= Number(rating) === 4 ? 'selected' : '' %>>4 - Good</option>
+            <option value="3" <%= Number(rating) === 3 ? 'selected' : '' %>>3 - OK</option>
+            <option value="2" <%= Number(rating) === 2 ? 'selected' : '' %>>2 - Poor</option>
+            <option value="1" <%= Number(rating) === 1 ? 'selected' : '' %>>1 - Terrible</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Review</label>
+          <textarea name="review_text" rows="5" required <%= formDisabled ? 'disabled' : '' %>><%= reviewText || '' %></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn" type="submit" <%= formDisabled ? 'disabled' : '' %>>Submit Review</button>
+          <a class="btn outline" href="/allTransactions">Back to Transactions</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

@@ -26,11 +26,21 @@ const OrderItem = {
         t.amount AS amount,
         t.transaction_time AS transaction_time,
         o.delivery_status AS delivery_status,
-        rr.status AS refund_status
+        rr.status AS refund_status,
+        r.review_id AS review_id,
+        r.rating AS review_rating,
+        r.review_text AS review_text,
+        r.created_at AS review_created_at
       FROM orders o
       JOIN order_items oi ON o.order_id = oi.order_id
       JOIN products p ON oi.product_id = p.product_id
       LEFT JOIN transactions t ON o.order_id = t.order_id
+      LEFT JOIN reviews r ON r.user_id = o.user_id
+        AND r.product_id = oi.product_id
+        AND r.order_id = o.order_id
+        AND r.rating BETWEEN 1 AND 5
+        AND r.review_text IS NOT NULL
+        AND TRIM(r.review_text) <> ''
       LEFT JOIN (
         SELECT r1.*
         FROM refund_requests r1

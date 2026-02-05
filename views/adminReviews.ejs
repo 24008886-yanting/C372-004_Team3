@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Reviews | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/shelter.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header class="table-header">
+      <div>
+        <p class="muted">Admin - Review Management</p>
+        <h1>All Reviews</h1>
+        <p class="muted">Reviews submitted by users.</p>
+      </div>
+      <a class="btn outline" href="/orderDashboard">Back to Dashboard</a>
+    </header>
+
+    <% if (!reviews || !reviews.length) { %>
+      <section class="card table-empty">
+        <p class="muted">No reviews found.</p>
+      </section>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Review ID</th>
+              <th>User ID</th>
+              <th>Product ID</th>
+              <th>Rating</th>
+              <th>Review Text</th>
+              <th>Created At</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% reviews.forEach(r => { %>
+              <tr>
+                <td><%= r.review_id %></td>
+                <td><%= r.user_id %></td>
+                <td><%= r.product_id %></td>
+                <td><%= r.rating %></td>
+                <td style="white-space: pre-wrap;"><%= r.review_text || '' %></td>
+                <td>
+                  <%= r.created_at ? new Date(r.created_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' }) : '-' %>
+                </td>
+                <td>
+                  <form method="POST" action="/admin/reviews/delete/<%= r.review_id %>" onsubmit="return confirm('Delete review #<%= r.review_id %>?');">
+                    <button class="action-btn action-btn--reject" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>

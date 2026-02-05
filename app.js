@@ -411,15 +411,19 @@ app.delete('/wishlist/:id', checkAuthenticated, checkAuthorised(['customer', 'ad
 app.post('/wishlist/move-from-cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.moveFromCart);
 app.post('/wishlist/:id/move-to-cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.moveToCart);
 
-// Show new review form (from transactions)
-app.get('/reviews/new', checkAuthenticated, ReviewController.showAddForm);
+// Reviews (user)
+app.get('/review/new/:orderId/:productId', checkAuthenticated, ReviewController.showReviewForm);
+app.post('/review/new/:orderId/:productId', checkAuthenticated, ReviewController.createReview);
+// Backward-compatible routes (expects order_id in query/body; otherwise redirects)
+app.get('/review/new/:productId', checkAuthenticated, ReviewController.showReviewForm);
+app.post('/review/new/:productId', checkAuthenticated, ReviewController.createReview);
 
-// Create review
-app.post('/reviews', checkAuthenticated, ReviewController.create);
-
-// User's reviews list
+// User's reviews list (optional view)
 app.get('/reviewList', checkAuthenticated, ReviewController.listByUser);
-app.get('/reviews/admin', checkAuthenticated, checkAuthorised(['admin']), ReviewController.listAll);
+
+// Reviews (admin)
+app.get('/admin/reviews', checkAuthenticated, ReviewController.listAll);
+app.post('/admin/reviews/delete/:reviewId', checkAuthenticated, ReviewController.deleteReview);
 
 
 // Profile

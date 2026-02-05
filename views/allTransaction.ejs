@@ -35,7 +35,14 @@
           <% const showPending = refundStatus === 'PENDING'; %>
           <% const showRefunded = refundStatus === 'REFUNDED'; %>
           <% const showComplete = !showPending && !showRefunded && (deliveryStatus === 'COMPLETED' || refundStatus); %>
-          <div class="row">
+          <% const productId = tx.product_id || tx.productId; %>
+          <% const hasReview = Boolean(tx.review_id); %>
+          <% const reviewUrl = (productId && tx.order_id) ? `/review/new/${encodeURIComponent(tx.order_id)}/${encodeURIComponent(productId)}` : ''; %>
+          <div class="row"
+               data-order-id="<%= tx.order_id || '' %>"
+               data-product-id="<%= productId || '' %>"
+               data-has-review="<%= hasReview ? '1' : '0' %>"
+               data-review-url="<%= reviewUrl %>">
             <span>#<%= tx.order_id || '-' %></span>
             <span><%= txnDate %></span>
             <span><%= tx.name || tx.product_name || 'Item' %></span>
@@ -48,6 +55,11 @@
                 <span class="status-pill status-pill--refunded">Refunded</span>
               <% } else if (showComplete) { %>
                 <span class="status-pill status-pill--complete">Transaction Complete</span>
+                <% if (!hasReview && reviewUrl) { %>
+                  <a class="confirm-btn" href="<%= reviewUrl %>">Write Review</a>
+                <% } else if (hasReview && reviewUrl) { %>
+                  <a class="confirm-btn" href="<%= reviewUrl %>">View Review</a>
+                <% } %>
               <% } else { %>
                 <button class="confirm-btn" type="button">Confirm Delivery</button>
                 <div class="confirm-panel is-hidden">
@@ -102,7 +114,24 @@
             const statusPill = document.createElement('span');
             statusPill.className = 'status-pill status-pill--complete';
             statusPill.textContent = 'Transaction Complete';
-            row.querySelector('.action-cell')?.appendChild(statusPill);
+            const actionCell = row.querySelector('.action-cell');
+            actionCell?.appendChild(statusPill);
+
+            const reviewUrl = row.dataset.reviewUrl || '';
+            const hasReview = row.dataset.hasReview === '1';
+            if (reviewUrl && !hasReview) {
+              const reviewLink = document.createElement('a');
+              reviewLink.className = 'confirm-btn';
+              reviewLink.href = reviewUrl;
+              reviewLink.textContent = 'Write Review';
+              actionCell?.appendChild(reviewLink);
+            } else if (reviewUrl && hasReview) {
+              const reviewLink = document.createElement('a');
+              reviewLink.className = 'confirm-btn';
+              reviewLink.href = reviewUrl;
+              reviewLink.textContent = 'View Review';
+              actionCell?.appendChild(reviewLink);
+            }
           } catch (err) {
             if (statusEl) statusEl.textContent = err.message || 'Failed to confirm delivery.';
             noRefundBtn.disabled = false;
