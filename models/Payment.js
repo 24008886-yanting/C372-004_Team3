@@ -102,6 +102,8 @@ const recordTransaction = (data) =>
       {
         order_id: data.order_id || null,
         paypal_order_id: data.paypal_order_id || null,
+        nets_transaction_id: data.nets_transaction_id || null,
+        txn_retrieval_ref: data.txn_retrieval_ref || null,
         payer_id: data.payer_id || null,
         payer_email: data.payer_email || null,
         amount: data.amount,

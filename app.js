@@ -19,10 +19,11 @@ const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
 const OrderItem = require('./models/OrderItem');
 const User = require('./models/User');
+const Cart = require('./models/Cart');
+const Payment = require('./models/Payment');
+const { toTwoDp } = Payment;
 const invoiceController = require('./controllers/InvoiceController');
 const PaymentController = require('./controllers/PaymentController');
-const NetsController = require('./controllers/NetsController');
-const netsService = require('./services/Nets');
 const connection = require('./db');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
@@ -65,7 +66,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-
 
 // -------------------- ROUTES --------------------
 app.get('/', (req, res) => {
@@ -170,8 +170,8 @@ app.post('/cart/checkout', checkAuthenticated, checkAuthorised(['customer', 'ado
 app.post('/paypal/create-order', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.createPaypalOrder);
 app.post('/paypal/capture-order', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.capturePaypalOrder);
 
-// NETS payment endpoints
-app.post('/generateNETSQR', checkAuthenticated, checkAuthorised(['customer', 'adopter']), netsService.generateQrCode);
+// NETS QR payment endpoint
+app.post('/generateNETSQR', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.generateNetsQrCode);
 
 // SSE endpoint to poll NETS QR transaction status
 app.get('/sse/payment-status/:txnRetrievalRef', async (req, res) => {
@@ -183,14 +183,13 @@ app.get('/sse/payment-status/:txnRetrievalRef', async (req, res) => {
 
   const txnRetrievalRef = req.params.txnRetrievalRef;
   let pollCount = 0;
-  const maxPolls = 60; // 5 minutes if polling every 5s
+  const maxPolls = 60;
   let frontendTimeoutStatus = 0;
 
   const interval = setInterval(async () => {
     pollCount++;
 
     try {
-      // Call the NETS query API
       const response = await fetch(
         `https://sandbox.nets.openapipaas.com/api/v1/common/payments/nets-qr/query`,
         {
@@ -210,21 +209,16 @@ app.get('/sse/payment-status/:txnRetrievalRef', async (req, res) => {
       const data = await response.json();
       console.log('NETS polling response (poll #' + pollCount + '):', data);
       
-      // Send the full response to the frontend
       res.write(`data: ${JSON.stringify(data)}\n\n`);
 
       const resData = data.result && data.result.data;
 
-      // Decide when to end polling and close the connection
-      // Check if payment is successful
       if (resData && resData.response_code == '00' && resData.txn_status === 1) {
-        // Payment success: send a success message
         console.log('NETS payment successful for txnRef:', txnRetrievalRef);
         res.write(`data: ${JSON.stringify({ success: true })}\n\n`);
         clearInterval(interval);
         res.end();
       } else if (frontendTimeoutStatus == 1 && resData && (resData.response_code !== '00' || resData.txn_status === 2)) {
-        // Payment failure: send a fail message
         console.log('NETS payment failed for txnRef:', txnRetrievalRef);
         res.write(`data: ${JSON.stringify({ fail: true, ...resData })}\n\n`);
         clearInterval(interval);
@@ -237,7 +231,6 @@ app.get('/sse/payment-status/:txnRetrievalRef', async (req, res) => {
       res.end();
     }
 
-    // Timeout after max polls
     if (pollCount >= maxPolls) {
       clearInterval(interval);
       frontendTimeoutStatus = 1;
@@ -245,7 +238,7 @@ app.get('/sse/payment-status/:txnRetrievalRef', async (req, res) => {
       res.write(`data: ${JSON.stringify({ fail: true, error: 'Transaction timed out after 5 minutes' })}\n\n`);
       res.end();
     }
-  }, 5000); // Poll every 5 seconds
+  }, 5000);
 
   req.on('close', () => {
     clearInterval(interval);
@@ -254,179 +247,104 @@ app.get('/sse/payment-status/:txnRetrievalRef', async (req, res) => {
 });
 
 // NETS QR: Success page
-app.get('/nets-qr/success', checkAuthenticated, async (req, res) => {
-  const txnRetrievalRef = req.query.txn_retrieval_ref;
-  console.log('NETS success page - txnRef:', txnRetrievalRef);
-  console.log('Session user_id:', req.session.user_id);
-
-  // Skip NETS payment processing if this payment was already processed (browser refresh)
-  // Check if we already created an invoice in this session to prevent double-processing
-  // Skip NETS payment processing if THIS EXACT TRANSACTION was already processed (browser refresh)
-  // Use txn_retrieval_ref to identify the specific transaction, not just a boolean flag
-  // This allows multiple different payments in the same session
-  if (req.session.lastProcessedTxnRef === txnRetrievalRef && req.session.invoice) {
-    console.log('NETS payment txn_ref', txnRetrievalRef, 'already processed, redirecting to invoice');
-    return res.redirect('/invoice-confirmation');
-  }
-
-  const user = req.session.user || { username: 'guest' };
-  const userId = req.session.user_id;
-
+app.get('/nets-qr/success', async (req, res) => {
   try {
-    const Payment = require('./models/Payment');
-    const Cart = require('./models/Cart');
-    const { toTwoDp } = Payment;
-
-    // STEP 1: Retrieve full cart with product details BEFORE checkout (checkout deletes cart!)
-    console.log('Retrieving cart items before checkout...');
-    const cartItemsWithDetails = await new Promise((resolve, reject) => {
-      const sql = `
-        SELECT c.cart_id, c.product_id, c.quantity, p.product_name, p.price
-        FROM cart c
-        JOIN products p ON c.product_id = p.product_id
-        WHERE c.user_id = ?
-        ORDER BY c.cart_id
-      `;
-      connection.query(sql, [userId], (err, results) => {
-        if (err) {
-          console.error('Cart retrieval error:', err);
-          return reject(err);
-        }
-        console.log('Raw DB results:', JSON.stringify(results));
-        resolve(results || []);
+    if (!req.session || !req.session.user || !req.session.user_id) {
+      return res.render('transactionFail', {
+        message: 'You must be logged in to complete a payment. Please log in and try again.',
+        returnUrl: '/login'
       });
-    });
-
-    if (!cartItemsWithDetails || cartItemsWithDetails.length === 0) {
-      console.log('Cart is empty, redirecting to shopping');
-      req.flash('error', 'Cart is empty');
-      return res.redirect('/shopping');
     }
 
-    console.log('Cart items retrieved:', cartItemsWithDetails.length, 'items');
-    console.log('Cart details:', JSON.stringify(cartItemsWithDetails));
+    const user = req.session.user || { username: 'guest' };
+    const userId = req.session.user_id;
+    const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
+    const voucherCode = (req.session?.netsVoucher || '').trim();
 
-    // STEP 2: Call checkout to create order (this will delete cart and create order_items)
-    console.log('Calling Cart.checkout...');
-    
-    // Calculate shipping fee based on subtotal (matching cart.ejs logic)
-    const cartSubtotal = cartItemsWithDetails.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
-    const shippingFee = cartSubtotal >= 60 ? 0 : 5;
-    const taxRate = 9; // 9% tax rate (expects percentage, not decimal)
-    
+    // Build quote to get cart items and calculate total
+    const quote = await Payment.buildQuote(userId, role, voucherCode);
+
+    // Create invoice
+    const invoice = {
+      id: `INV-${Date.now()}`,
+      user: user.username || user.email || 'guest',
+      date: new Date(),
+      items: quote.items.map((item) => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.subtotal
+      })),
+      subtotal: toTwoDp(quote.pricing.subtotal),
+      shippingFee: toTwoDp(quote.pricing.shippingFee),
+      taxAmount: toTwoDp(quote.pricing.taxAmount),
+      discountAmount: toTwoDp(quote.pricing.discountAmount),
+      total: toTwoDp(quote.pricing.total)
+    };
+
+    // Checkout (deduct stock, create order)
     const orderSummary = await new Promise((resolve, reject) => {
       Cart.checkout(
         userId,
         {
-          voucher_id: null,
-          shipping_fee: shippingFee,
-          tax_rate: taxRate,
-          discount_amount: 0
+          voucher_id: quote.voucherId ?? null,
+          shipping_fee: quote.pricing.shippingFee,
+          tax_rate: quote.pricing.taxRate,
+          discount_amount: quote.pricing.discountAmount
         },
         (checkoutErr, summary) => {
-          if (checkoutErr) {
-            console.error('Checkout error:', checkoutErr);
-            return reject(checkoutErr);
-          }
-          console.log('Checkout successful:', summary);
+          if (checkoutErr) return reject(checkoutErr);
           return resolve(summary);
         }
       );
     });
 
-    console.log('Order created with ID:', orderSummary.order_id);
-
-    // STEP 3: Record the transaction
-    const payerEmail = req.session?.user?.email || null;
-    const payerId = 'nets_' + userId;
-    const paidAmount = toTwoDp(orderSummary.total_amount || 0);
-    const currency = 'SGD';
-
+    // Record transaction
     await Payment.recordTransaction({
       order_id: orderSummary?.order_id || null,
-      paypal_order_id: txnRetrievalRef || 'NETS-' + Date.now(),
-      payer_id: payerId,
-      payer_email: payerEmail,
-      amount: paidAmount,
-      currency,
+      paypal_order_id: req.query.txn_retrieval_ref || 'NETS-' + Date.now(),
+      payer_id: 'nets_' + userId,
+      payer_email: user.email || null,
+      amount: toTwoDp(invoice.total),
+      currency: 'SGD',
       status: 'COMPLETED',
-      payment_method: 'NETS'
+      payment_method: 'NETS QR'
     });
 
-    console.log('Transaction recorded');
+    // Store invoice in session
+    req.session.invoice = invoice;
+    req.session.netsVoucher = null;
 
-    // STEP 4: Convert cart items to invoice format (we have them from step 1)
-    const invoiceItems = cartItemsWithDetails.map((row) => ({
-      id: row.product_id,
-      productName: row.product_name,
-      quantity: Number(row.quantity) || 0,
-      price: Number(row.price) || 0,
-      subtotal: toTwoDp(Number(row.price) * Number(row.quantity))
-    }));
-
-    console.log('Invoice items prepared:', invoiceItems.length);
-    console.log('Invoice items data:', JSON.stringify(invoiceItems));
-
-    // STEP 5: Set up invoice session
-    req.session.lastProcessedTxnRef = txnRetrievalRef;
-    req.session.invoice = {
-      id: `INV-${Date.now()}`,
-      user: user.username || user.email || 'guest',
-      date: new Date(),
-      items: invoiceItems,
-      subtotal: toTwoDp(orderSummary.subtotal || 0),
-      shippingFee: toTwoDp(orderSummary.shipping_fee || 0),
-      taxAmount: toTwoDp(orderSummary.tax_amount || 0),
-      discountAmount: toTwoDp(orderSummary.discount_amount || 0),
-      total: toTwoDp(orderSummary.total_amount || 0),
-      orderId: orderSummary.order_id
-    };
-    
-    console.log('Session invoice created:', JSON.stringify(req.session.invoice));
-
-    req.session.cart = []; // Clear cart
-
-    console.log('NETS invoice created:', req.session.invoice.id);
-    console.log('Redirecting to invoice-confirmation');
-
-    // Save session before redirect to ensure invoice persists
-    req.session.save((saveErr) => {
-      if (saveErr) {
-        console.error('Session save error:', saveErr);
-        return res.status(500).render('netsTxnFailStatus', { 
-          message: 'Payment received but session save failed. Please try again.' 
-        });
-      }
-      console.log('Session saved successfully, redirecting...');
-      res.redirect('/invoice-confirmation');
+    // Redirect to invoice page
+    return res.redirect('/invoice-confirmation');
+  } catch (error) {
+    console.error('NETS success handler error:', error);
+    return res.render('transactionFail', {
+      message: 'Payment processing failed: ' + error.message,
+      returnUrl: '/shopping'
     });
-  } catch (stockErr) {
-    console.error('Stock check error:', stockErr);
-    req.flash('error', 'Payment processed but invoice creation failed: ' + stockErr.message);
-    res.render('netsTxnFailStatus', { message: 'Payment received but order processing failed. Please contact support.' });
   }
 });
 
 // NETS QR: Failure page
-app.get('/nets-qr/fail', checkAuthenticated, (req, res) => {
-  const txnRetrievalRef = req.query.txn_retrieval_ref;
-  console.log('NETS failure page - txnRef:', txnRetrievalRef);
-  res.render('netsTxnFailStatus', { message: 'Transaction Failed. Please try again.' });
+app.get('/nets-qr/fail', (req, res) => {
+  res.render('transactionFail', {
+    message: 'NETS QR Transaction Failed. Please try another payment method.',
+    returnUrl: '/cart'
+  });
 });
 
-app.post('/nets/check-payment', checkAuthenticated, (req, res) => {
-  console.log('*** /nets/check-payment route hit ***');
-  return NetsController.checkPaymentStatus(req, res);
+// Transaction Success page (simplified)
+app.get('/transaction-success', (req, res) => {
+  res.render('transactionSuccess');
 });
 
-app.post('/nets/complete-payment', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
-  console.log('*** /nets/complete-payment route hit ***');
-  return NetsController.completePayment(req, res);
-});
-
-app.post('/nets/check-transaction', checkAuthenticated, (req, res) => {
-  console.log('*** /nets/check-transaction route hit ***');
-  return NetsController.checkTransaction(req, res);
+// Transaction Fail page (simplified)
+app.get('/transaction-fail', (req, res) => {
+  res.render('transactionFail', {
+    message: req.query.message || 'Transaction Failed. Please try again.',
+    returnUrl: req.query.returnUrl || '/cart'
+  });
 });
 
 // Wishlist

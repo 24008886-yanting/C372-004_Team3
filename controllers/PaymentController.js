@@ -1,4 +1,5 @@
 const paypalService = require('../services/paypal');
+const netsService = require('../services/Nets');
 const Cart = require('../models/Cart');
 const Payment = require('../models/Payment');
 const { toTwoDp } = Payment;
@@ -127,6 +128,16 @@ const PaymentController = {
       const message = err.message || 'Failed to capture PayPal order';
       const status = message.toLowerCase().includes('cart') || message.toLowerCase().includes('stock') ? 400 : 500;
       return res.status(status).json({ error: message });
+    }
+  },
+
+  async generateNetsQrCode(req, res) {
+    console.log('=== PaymentController.generateNetsQrCode called ===');
+    try {
+      await netsService.generateQrCode(req, res);
+    } catch (error) {
+      console.error('PaymentController NETS error:', error);
+      res.status(500).json({ error: 'Failed to generate NETS QR code: ' + error.message });
     }
   }
 };

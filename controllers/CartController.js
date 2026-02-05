@@ -24,8 +24,6 @@ const resolveUserId = (req) =>
 const CartController = {
   // View the current user's cart
   viewCart(req, res) {
-    // Clear NETS payment flags when viewing cart (user is starting fresh or shopping again)
-    delete req.session.netsPaymentProcessed;
     delete req.session.invoice;
     
     const userId = resolveUserId(req);

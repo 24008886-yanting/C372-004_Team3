@@ -1,4 +1,6 @@
-const fetch = require('node-fetch');
+const axios = require('axios');
+const Payment = require('../models/Payment');
+const { toTwoDp } = Payment;
 require('dotenv').config();
 
 console.log('NETS Service loaded - checking env vars on startup');
@@ -7,35 +9,55 @@ console.log('PROJECT_ID exists:', !!process.env.PROJECT_ID);
 
 // Generate QR Code
 exports.generateQrCode = async (req, res) => {
-  const { cartTotal } = req.body;
-  console.log('NETS generateQrCode called with cartTotal:', cartTotal);
+  const userId = req.session?.user_id;
+  if (!userId) {
+    return res.render('transactionFail', {
+      message: 'You must be logged in to complete a payment. Please log in and try again.',
+      returnUrl: '/login'
+    });
+  }
+
+  const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
+  const voucherCode = (req.body?.voucher_code || '').trim();
+  const cartTotal = req.body?.cartTotal || '0.00';
+  
+  console.log('NETS generateQrCode called for user:', userId, 'role:', role, 'cartTotal:', cartTotal);
   
   try {
+    // Build quote to get cart total with voucher applied (if provided via form)
+    // Otherwise use the cartTotal sent from the form
+    let finalTotal = parseFloat(cartTotal);
+    
+    if (voucherCode) {
+      try {
+        const quote = await Payment.buildQuote(userId, role, voucherCode);
+        finalTotal = toTwoDp(quote.pricing.total);
+        console.log('Quote built with voucher - total:', finalTotal);
+      } catch (quoteErr) {
+        console.warn('Could not build quote with voucher, using form total:', finalTotal);
+      }
+    }
+
     const requestBody = {
       txn_id: "sandbox_nets|m|8ff8e5b6-d43e-4786-8ac5-7accf8c5bd9b",
-      amt_in_dollars: cartTotal,
+      amt_in_dollars: finalTotal,
       notify_mobile: 0,
     };
 
     console.log('Sending request to NETS API with body:', requestBody);
 
-    const response = await fetch(
+    const response = await axios.post(
       `https://sandbox.nets.openapipaas.com/api/v1/common/payments/nets-qr/request`,
+      requestBody,
       {
-        method: 'POST',
         headers: {
           'api-key': process.env.API_KEY,
           'project-id': process.env.PROJECT_ID,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
       }
     );
 
-    const data = await response.json();
-    console.log('Full NETS response:', data);
-
-    const qrData = data.result.data;
+    const qrData = response.data.result.data;
     console.log('QR Data Response:', qrData);
 
     if (
@@ -47,14 +69,21 @@ exports.generateQrCode = async (req, res) => {
       const txnRetrievalRef = qrData.txn_retrieval_ref;
 
       console.log('Transaction retrieval ref: ' + txnRetrievalRef);
-      console.log('Preserving cart in session for later use');
+
+      // Store pending payment in session
+      req.session.pendingPayment = {
+        netsQrTxnRef: txnRetrievalRef,
+        voucherCode: voucherCode || null,
+        quote: { pricing: { total: finalTotal } }
+      };
+      req.session.netsVoucher = voucherCode || null;
 
       res.render('NETSQR', {
-        total: cartTotal,
+        total: finalTotal,
         title: 'Scan to Pay',
         qrCodeUrl: `data:image/png;base64,${qrData.qr_code}`,
         txnRetrievalRef: txnRetrievalRef,
-        fullNetsResponse: data,
+        fullNetsResponse: response.data,
         apiKey: process.env.API_KEY,
         projectId: process.env.PROJECT_ID,
       });
@@ -72,9 +101,19 @@ exports.generateQrCode = async (req, res) => {
   } catch (error) {
     console.error('Error in generateQrCode:', error.message);
     console.error('Full error:', error);
+    const message = error.message || 'Failed to generate QR code. Please check server logs.';
+    const status = message.toLowerCase().includes('empty') || message.toLowerCase().includes('stock') ? 400 : 500;
+    
+    if (status === 400) {
+      return res.render('transactionFail', {
+        message: message,
+        returnUrl: '/cart'
+      });
+    }
+    
     res.render('netsTxnFailStatus', { 
       title: 'Error', 
-      message: 'Failed to generate QR code. Please check server logs.' 
+      message: message
     });
   }
 };

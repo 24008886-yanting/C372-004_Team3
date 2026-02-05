@@ -425,19 +425,27 @@
           const taxAmount = subtotal * (taxRatePercent / 100);
           const total = subtotal + shippingFee + taxAmount - discountAmount;
 
-          console.log('Sending NETS request with total:', total);
+          console.log('Sending NETS request with total:', total, 'voucher:', voucherCode);
           
           // Create a hidden form and submit it
           const form = document.createElement('form');
           form.method = 'POST';
           form.action = '/generateNETSQR';
           
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'cartTotal';
-          input.value = total;
+          const cartTotalInput = document.createElement('input');
+          cartTotalInput.type = 'hidden';
+          cartTotalInput.name = 'cartTotal';
+          cartTotalInput.value = total;
+          form.appendChild(cartTotalInput);
           
-          form.appendChild(input);
+          if (voucherCode) {
+            const voucherInput = document.createElement('input');
+            voucherInput.type = 'hidden';
+            voucherInput.name = 'voucher_code';
+            voucherInput.value = voucherCode;
+            form.appendChild(voucherInput);
+          }
+          
           document.body.appendChild(form);
           form.submit();
         } catch (error) {
