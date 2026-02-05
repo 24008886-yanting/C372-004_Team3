@@ -32,24 +32,28 @@ h1 {
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 16px 30px rgba(27, 28, 50, 0.08);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .table-like {
   display: grid;
-  grid-template-columns: 1fr 110px 120px;
+  grid-template-columns: 120px 150px 1fr 80px 120px;
   font-weight: 700;
   color: var(--ink);
   border-bottom: 1px solid var(--border);
   padding: 12px 10px;
   background: #f2f5fb;
   border-radius: 10px 10px 0 0;
+  min-width: 720px;
 }
 .row {
   display: grid;
-  grid-template-columns: 1fr 110px 120px;
+  grid-template-columns: 120px 150px 1fr 80px 120px;
   gap: 8px;
   padding: 12px 10px;
   border-bottom: 1px solid var(--border);
   align-items: center;
+  min-width: 720px;
 }
 .muted {
   color: var(--muted);
@@ -71,6 +75,6 @@ h1 {
 @media (max-width: 640px) {
   .table-like,
   .row {
-    grid-template-columns: 1fr 80px 90px;
+    grid-template-columns: 100px 130px 1fr 70px 100px;
   }
 }

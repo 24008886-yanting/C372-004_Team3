@@ -19,15 +19,21 @@
     <section class="card">
       <% if (transactions && transactions.length) { %>
         <div class="table-like">
-          <span>Recent</span>
+          <span>Order ID</span>
+          <span>Transaction Date</span>
+          <span>Item</span>
           <span>Qty</span>
-          <span>$</span>
+          <span>Total Paid</span>
         </div>
         <% transactions.forEach(function(tx) { %>
+          <% const txnDate = tx.transaction_time ? new Date(tx.transaction_time).toLocaleDateString('en-SG', { dateStyle: 'medium' }) : '-'; %>
+          <% const paidAmount = (tx.amount != null) ? Number(tx.amount).toFixed(2) : null; %>
           <div class="row">
+            <span>#<%= tx.order_id || '-' %></span>
+            <span><%= txnDate %></span>
             <span><%= tx.name || tx.product_name || 'Item' %></span>
             <span><%= tx.quantity %></span>
-            <span>S$<%= Number(tx.total_price || tx.item_total || 0).toFixed(2) %></span>
+            <span><%= paidAmount !== null ? ('S$' + paidAmount) : '-' %></span>
           </div>
         <% }); %>
       <% } else { %>

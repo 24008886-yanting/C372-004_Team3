@@ -22,12 +22,15 @@ const OrderItem = {
         oi.product_id,
         p.product_name AS name,
         oi.quantity,
-        oi.item_total AS total_price
+        oi.item_total AS item_total,
+        t.amount AS amount,
+        t.transaction_time AS transaction_time
       FROM orders o
       JOIN order_items oi ON o.order_id = oi.order_id
       JOIN products p ON oi.product_id = p.product_id
+      LEFT JOIN transactions t ON o.order_id = t.order_id
       WHERE o.user_id = ?
-      ORDER BY o.order_id DESC, oi.order_item_id DESC
+      ORDER BY t.transaction_time DESC, o.order_id DESC, oi.order_item_id DESC
     `;
 
     db.query(sql, [userId], callback);
