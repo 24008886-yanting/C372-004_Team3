@@ -84,8 +84,8 @@
                   <td>
                     <% if (refundStatus === 'PENDING') { %>
                       <span class="refund-status">Pending</span>
-                    <% } else if (refundStatus === 'REFUNDED') { %>
-                      <span class="refund-status">Refunded</span>
+                    <% } else if (refundStatus === 'APPROVED' || refundStatus === 'REFUNDED') { %>
+                      <span class="refund-status">Approved</span>
                     <% } else if (refundStatus === 'REJECTED') { %>
                       <span class="refund-status">Rejected</span>
                     <% } else if (refundStatus) { %>

@@ -91,9 +91,11 @@
 .rp-links {
   /* Bottom link row */
   display: flex;
-  gap: 52px;
-  padding: 8px 26px 12px;
-  font-size: 20px;
+  flex-wrap: wrap;
+  column-gap: 20px;
+  row-gap: 10px;
+  padding: 8px 18px 10px;
+  font-size: 18px;
   line-height: 1.2;
   border-top: 2px solid var(--ink);
   border-bottom: 2px solid var(--ink);

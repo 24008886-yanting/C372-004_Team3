@@ -18,6 +18,7 @@ const AdoptionController = require('./controllers/AdoptionController');
 const VoucherController = require('./controllers/VoucherController');
 const WishlistController = require('./controllers/WishlistController');
 const RefundController = require('./controllers/RefundController');
+const AdminReportController = require('./controllers/AdminReportController');
 const OrderItem = require('./models/OrderItem');
 const Order = require('./models/Order');
 const User = require('./models/User');
@@ -162,6 +163,8 @@ app.delete('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), Vouc
 
 // Orders dashboard (admin)
 app.get('/orderDashboard', checkAuthenticated, checkAuthorised(['admin']), OrderController.listDashboard);
+app.get('/admin/reports/sales', checkAuthenticated, checkAuthorised(['admin']), AdminReportController.salesReport);
+app.get('/admin/refunds', checkAuthenticated, checkAuthorised(['admin']), RefundController.listAll);
 app.get('/refund-requests/:id', checkAuthenticated, checkAuthorised(['admin']), RefundController.showAdminDetail);
 app.post('/refund-requests/:id/approve', checkAuthenticated, checkAuthorised(['admin']), RefundController.approve);
 app.post('/refund-requests/:id/reject', checkAuthenticated, checkAuthorised(['admin']), RefundController.reject);

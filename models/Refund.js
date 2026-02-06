@@ -66,12 +66,21 @@ const Refund = {
   },
 
   updateStatus(refundId, status, refundReference, callback) {
+    const normalized = String(status || '').toUpperCase();
+    const shouldApprove = ['APPROVED', 'REFUNDED'].includes(normalized);
     const sql = `
       UPDATE refund_requests
-      SET status = ?, refund_reference = ?, updated_at = NOW()
+      SET
+        status = ?,
+        refund_reference = ?,
+        approved_at = CASE
+          WHEN ? THEN COALESCE(approved_at, NOW())
+          ELSE approved_at
+        END,
+        updated_at = NOW()
       WHERE refund_id = ?
     `;
-    db.query(sql, [status, refundReference || null, refundId], callback);
+    db.query(sql, [normalized, refundReference || null, shouldApprove ? 1 : 0, refundId], callback);
   }
 };
 

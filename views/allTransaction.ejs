@@ -34,7 +34,7 @@
           <% const hasRefundRequest = Boolean(order.refund_id || refundStatus); %>
           <% const refundViewUrl = `/refund-request?order_id=${encodeURIComponent(order.order_id || '')}&view=1`; %>
           <% const showPending = refundStatus === 'PENDING'; %>
-          <% const showRefunded = refundStatus === 'REFUNDED'; %>
+          <% const showRefunded = refundStatus === 'REFUNDED' || refundStatus === 'APPROVED'; %>
           <% const showComplete = deliveryStatus === 'COMPLETED'; %>
           <% const showConfirmPanel = !showPending && !showRefunded && !showComplete && (deliveryStatus === 'CONFIRMED' || refundStatus); %>
           <% const items = Array.isArray(order.items) ? order.items : []; %>

@@ -342,7 +342,7 @@ async showRequestForm(req, res) {
       }
 
       const latestRefund = await getLatestRefund(orderId);
-      if (latestRefund && ['PENDING', 'REFUNDED'].includes(String(latestRefund.status || '').toUpperCase())) {
+      if (latestRefund && ['PENDING', 'APPROVED', 'REFUNDED'].includes(String(latestRefund.status || '').toUpperCase())) {
         return renderForm(res, {
           orderId,
           orderItemId,
@@ -359,8 +359,8 @@ async showRequestForm(req, res) {
       }
 
       const alreadyRefunded = await queryAsync(
-        'SELECT refund_id FROM refund_requests WHERE order_id = ? AND status = ? LIMIT 1',
-        [orderId, 'REFUNDED']
+        "SELECT refund_id FROM refund_requests WHERE order_id = ? AND status IN ('APPROVED','REFUNDED') LIMIT 1",
+        [orderId]
       );
       if (alreadyRefunded && alreadyRefunded.length > 0) {
         return renderForm(res, {
@@ -691,8 +691,8 @@ async showRequestForm(req, res) {
       }
 
       const alreadyRefunded = await queryAsync(
-        'SELECT refund_id FROM refund_requests WHERE order_id = ? AND status = ? LIMIT 1',
-        [refund.order_id, 'REFUNDED']
+        "SELECT refund_id FROM refund_requests WHERE order_id = ? AND status IN ('APPROVED','REFUNDED') LIMIT 1",
+        [refund.order_id]
       );
       if (alreadyRefunded && alreadyRefunded.length > 0) {
         if (req.flash) req.flash('error', 'Refund already completed for this order.');
@@ -702,7 +702,7 @@ async showRequestForm(req, res) {
       const amount = toTwoDp(refund.amount || txn?.amount || 0);
       const currency = txn?.currency || 'SGD';
       let refundReference = null;
-      let finalStatus = 'REFUNDED';
+      let finalStatus = 'APPROVED';
 
       if (method === 'PAYPAL') {
         const ref = refund.payment_reference || txn?.paypal_order_id;
@@ -717,7 +717,7 @@ async showRequestForm(req, res) {
           } else if (refundResult?.status) {
             const refundStatus = String(refundResult.status).toUpperCase();
             if (refundStatus === 'COMPLETED' || refundStatus === 'PENDING') {
-              finalStatus = 'REFUNDED';
+              finalStatus = 'APPROVED';
             } else {
               finalStatus = 'FAILED';
             }
@@ -745,7 +745,7 @@ async showRequestForm(req, res) {
         Refund.updateStatus(refundId, finalStatus, refundReference, (err) => (err ? reject(err) : resolve()));
       });
 
-      if (finalStatus === 'REFUNDED') {
+      if (finalStatus === 'APPROVED') {
         const orderMeta = await queryAsync('SELECT voucher_id, total_amount FROM orders WHERE order_id = ? LIMIT 1', [refund.order_id]);
         const voucherId = orderMeta?.[0]?.voucher_id || null;
         const orderTotal = Number(orderMeta?.[0]?.total_amount || 0);
@@ -763,8 +763,8 @@ async showRequestForm(req, res) {
 
       if (req.flash) {
         req.flash(
-          finalStatus === 'REFUNDED' ? 'success' : 'error',
-          finalStatus === 'REFUNDED' ? 'Refund approved and processed.' : 'Refund failed to process.'
+          finalStatus === 'APPROVED' ? 'success' : 'error',
+          finalStatus === 'APPROVED' ? 'Refund approved and processed.' : 'Refund failed to process.'
         );
       }
       return res.redirect('/orderDashboard');

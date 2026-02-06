@@ -44,8 +44,11 @@
             <tbody>
               <% refunds.forEach(r => { %>
                 <% const rawStatus = String(r.status || '').toUpperCase(); %>
-                <% const displayStatus = rawStatus === 'REFUNDED' ? 'REFUNDED' : 'FAILED'; %>
-                <% const statusClass = displayStatus ? `status status--${displayStatus.toLowerCase()}` : 'status'; %>
+                <% let displayStatus = rawStatus || '-'; %>
+                <% if (rawStatus === 'REFUNDED' || rawStatus === 'APPROVED') { displayStatus = 'APPROVED'; } %>
+                <% if (rawStatus === 'PENDING') { displayStatus = 'PENDING'; } %>
+                <% if (rawStatus === 'REJECTED') { displayStatus = 'REJECTED'; } %>
+                <% const statusClass = displayStatus && displayStatus !== '-' ? `status status--${displayStatus.toLowerCase()}` : 'status'; %>
                 <% let refundItems = []; %>
                 <% try { refundItems = JSON.parse(r.refund_items || '[]'); } catch (e) { refundItems = []; } %>
                 <tr>

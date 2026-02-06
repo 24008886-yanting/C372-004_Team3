@@ -80,6 +80,11 @@ main {
   background: rgba(21, 128, 61, 0.12);
   border: 1px solid rgba(21, 128, 61, 0.25);
 }
+.status--approved {
+  color: #15803d;
+  background: rgba(21, 128, 61, 0.12);
+  border: 1px solid rgba(21, 128, 61, 0.25);
+}
 .status--pending {
   color: #b45309;
   background: rgba(180, 83, 9, 0.12);

@@ -32,7 +32,7 @@
       <% const presetReasonValue = (typeof presetReason === 'undefined' ? '' : presetReason) || ''; %>
       <% const presetDetailsValue = (typeof presetDetails === 'undefined' ? '' : presetDetails) || ''; %>
       <% const presetRefundTypeValue = (typeof presetRefundType === 'undefined' ? 'full' : presetRefundType) || 'full'; %>
-      <% const isRefunded = statusText === 'REFUNDED'; %>
+      <% const isRefunded = statusText === 'REFUNDED' || statusText === 'APPROVED'; %>
       <% const isPending = statusText === 'PENDING'; %>
       <% const isFailed = statusText === 'FAILED'; %>
       <% const isRejected = statusText === 'REJECTED'; %>

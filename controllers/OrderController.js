@@ -24,7 +24,7 @@ const OrderController = {
 				totals.revenue += amount;
 				totals.discount += Number(o.discount_amount || 0);
 				totals.items += Number(o.units_count || 0);
-				if (String(o.refund_status || '').toUpperCase() === 'REFUNDED') {
+				if (['APPROVED', 'REFUNDED'].includes(String(o.refund_status || '').toUpperCase())) {
 					totals.refunds += Number(o.refund_amount || 0);
 				}
 			});

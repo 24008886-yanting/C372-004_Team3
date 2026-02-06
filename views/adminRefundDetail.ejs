@@ -111,7 +111,7 @@
         <div>
           <p class="label">Status</p>
           <% const status = String(refund.status || '').toUpperCase(); %>
-          <% const badgeClass = status === 'REFUNDED' ? 'badge badge--success' : status === 'REJECTED' ? 'badge badge--danger' : status === 'PENDING' ? 'badge' : 'badge badge--muted'; %>
+          <% const badgeClass = (status === 'REFUNDED' || status === 'APPROVED') ? 'badge badge--success' : status === 'REJECTED' ? 'badge badge--danger' : status === 'PENDING' ? 'badge' : 'badge badge--muted'; %>
           <span class="<%= badgeClass %>"><%= status || 'UNKNOWN' %></span>
         </div>
       </div>
