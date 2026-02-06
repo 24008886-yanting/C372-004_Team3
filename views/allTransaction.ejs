@@ -31,6 +31,8 @@
           <% const paidAmount = (order.amount != null) ? Number(order.amount).toFixed(2) : null; %>
           <% const refundStatus = String(order.refund_status || '').toUpperCase(); %>
           <% const deliveryStatus = String(order.delivery_status || '').toUpperCase(); %>
+          <% const hasRefundRequest = Boolean(order.refund_id || refundStatus); %>
+          <% const refundViewUrl = `/refund-request?order_id=${encodeURIComponent(order.order_id || '')}&view=1`; %>
           <% const showPending = refundStatus === 'PENDING'; %>
           <% const showRefunded = refundStatus === 'REFUNDED'; %>
           <% const showComplete = deliveryStatus === 'COMPLETED'; %>
@@ -38,7 +40,13 @@
           <% const items = Array.isArray(order.items) ? order.items : []; %>
           <div class="row"
                data-order-id="<%= order.order_id || '' %>">
-            <span>#<%= order.order_id || '-' %></span>
+            <span>
+              <% if (hasRefundRequest) { %>
+                <a class="refund-link" href="<%= refundViewUrl %>">#<%= order.order_id || '-' %></a>
+              <% } else { %>
+                #<%= order.order_id || '-' %>
+              <% } %>
+            </span>
             <span><%= txnDate %></span>
             <span>
               <% if (items.length) { %>

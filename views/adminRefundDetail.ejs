@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refund Request</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --danger: #dc2626;
+      --success: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .shell {
+      max-width: 1100px;
+      margin: 32px auto 60px;
+      padding: 0 20px;
+      display: grid;
+      gap: 18px;
+    }
+    .page-title {
+      margin: 0;
+      font-size: 28px;
+    }
+    .muted { color: var(--muted); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 12px 28px rgba(17, 24, 39, 0.08);
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .label { font-size: 12px; color: var(--muted); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .value { margin: 0; font-weight: 600; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #1d4ed8;
+    }
+    .badge--success { background: #dcfce7; color: #166534; }
+    .badge--danger { background: #fee2e2; color: #991b1b; }
+    .badge--muted { background: #f3f4f6; color: #4b5563; }
+    .section-title { margin: 0 0 8px; font-size: 16px; }
+    .list { margin: 0; padding-left: 18px; color: var(--muted); }
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-approve { background: var(--success); color: #fff; }
+    .btn-reject { background: #fff; color: var(--danger); border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main class="shell">
+    <header>
+      <p class="muted">Admin - Refund Request Detail</p>
+      <h1 class="page-title">Refund Request</h1>
+      <p class="muted">Review the customer request and approve or reject.</p>
+    </header>
+
+    <section class="card">
+      <div class="grid">
+        <div>
+          <p class="label">Order</p>
+          <p class="value">#<%= refund.order_id %></p>
+        </div>
+        <div>
+          <p class="label">User</p>
+          <p class="value"><%= refund.username || refund.email || refund.user_id %></p>
+        </div>
+        <div>
+          <p class="label">Amount</p>
+          <p class="value">$<%= Number(refund.amount || 0).toFixed(2) %></p>
+        </div>
+        <div>
+          <p class="label">Method</p>
+          <p class="value"><%= refund.payment_method %></p>
+        </div>
+        <div>
+          <p class="label">Status</p>
+          <% const status = String(refund.status || '').toUpperCase(); %>
+          <% const badgeClass = status === 'REFUNDED' ? 'badge badge--success' : status === 'REJECTED' ? 'badge badge--danger' : status === 'PENDING' ? 'badge' : 'badge badge--muted'; %>
+          <span class="<%= badgeClass %>"><%= status || 'UNKNOWN' %></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Request Details</h2>
+      <div class="grid">
+        <div style="grid-column:1/-1;">
+          <p class="label">Reason</p>
+          <p class="value"><%= refund.reason %></p>
+        </div>
+        <div style="grid-column:1/-1;">
+          <p class="label">Details</p>
+          <p class="value"><%= refund.details || '-' %></p>
+        </div>
+        <div style="grid-column:1/-1;">
+          <p class="label">Items</p>
+          <% let items = []; %>
+          <% try { items = JSON.parse(refund.refund_items || '[]'); } catch (e) { items = []; } %>
+          <% if (items.length) { %>
+            <ul class="list">
+              <% items.forEach(item => { %>
+                <li><%= item.name || 'Item' %> x<%= item.qty || 0 %></li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p class="value">-</p>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="actions">
+        <% if (status === 'PENDING') { %>
+          <form method="POST" action="/refund-requests/<%= refund.refund_id %>/approve">
+            <button class="btn btn-approve" type="submit">Approve</button>
+          </form>
+          <form method="POST" action="/refund-requests/<%= refund.refund_id %>/reject">
+            <button class="btn btn-reject" type="submit">Reject</button>
+          </form>
+        <% } else { %>
+          <span class="muted">This request is already <%= status %>.</span>
+        <% } %>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,5 +1,5 @@
 const paypalService = require('../services/paypal');
-const netsService = require('../services/Nets');
+const netsService = require('../services/nets');
 const Wallet = require('../models/Wallet');
 const WalletTransaction = require('../models/WalletTransaction');
 const Payment = require('../models/Payment');
@@ -21,6 +21,58 @@ const createTopupOrder = (userId, amount) =>
       resolve(result?.insertId);
     });
   });
+
+
+const normalizeQrCode = (qrData) => {
+  if (!qrData) return null;
+  const raw =
+    qrData.qr_code ||
+    qrData.qr_code_url ||
+    qrData.qrCode ||
+    qrData.qrCodeUrl ||
+    qrData.qr_code_str ||
+    null;
+
+  if (!raw) return null;
+  if (/^data:|^https?:\/\//i.test(raw)) return raw;
+  return `data:image/png;base64,${raw}`;
+};
+
+const extractStatus = (payload) => {
+  const statusRaw =
+    payload?.txn_status ||
+    payload?.status ||
+    payload?.txnStatus ||
+    payload?.txn_state ||
+    '';
+
+  const code =
+    payload?.response_code ||
+    payload?.resp_code ||
+    payload?.status_code ||
+    payload?.statusCode ||
+    '';
+
+  const message =
+    payload?.response_message ||
+    payload?.resp_message ||
+    payload?.message ||
+    '';
+
+  return {
+    status: String(statusRaw || '').toUpperCase(),
+    code: String(code || '').toUpperCase(),
+    message: message || ''
+  };
+};
+
+const isSuccessStatus = ({ status, code }) =>
+  ['SUCCESS', 'SUCCEEDED', 'COMPLETED', 'PAID', 'APPROVED'].includes(status) ||
+  code === '00';
+
+const isFailStatus = ({ status, code }) =>
+  ['FAILED', 'FAIL', 'DECLINED', 'CANCELLED', 'CANCELED', 'EXPIRED', 'TIMEOUT', 'REJECTED'].includes(status) ||
+  (code && code !== '00' && status !== 'PENDING' && status !== 'IN_PROGRESS');
 
 const WalletController = {
   async viewWallet(req, res) {
@@ -123,10 +175,8 @@ const WalletController = {
         { connection: db, manageTransaction: true }
       );
 
-      const topupOrderId = await createTopupOrder(userId, paidAmount).catch(() => null);
-
       await Payment.recordTransaction({
-        order_id: topupOrderId,
+        order_id: null,
         paypal_order_id: orderId,
         payer_id: captureData?.payer?.payer_id || 'paypal_' + userId,
         payer_email: captureData?.payer?.email_address || req.session?.user?.email || null,
@@ -146,28 +196,186 @@ const WalletController = {
     }
   },
 
-  async generateNetsTopup(req, res) {
+
+
+  async createNetsTopup(req, res) {
     const userId = req.session?.user_id;
-    if (!userId) {
-      return res.render('transactionFail', {
-        message: 'You must be logged in to top up your wallet.',
-        returnUrl: '/login'
-      });
-    }
+    if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
     const amount = toTwoDp(req.body?.amount || 0);
     if (!amount || amount <= 0) {
-      return res.status(400).render('transactionFail', {
-        message: 'Top-up amount must be greater than 0.',
-        returnUrl: '/digitalWallet'
-      });
+      return res.status(400).json({ error: 'Top-up amount must be greater than 0' });
     }
 
-    // Reuse NETS QR flow with a wallet flag
-    req.body.cartTotal = amount;
-    req.body.walletTopup = '1';
-    req.body.voucher_code = '';
-    return netsService.generateQrCode(req, res);
+    try {
+      const qrResponse = await netsService.requestQr({ amount });
+      const qrData = qrResponse?.qrData || null;
+      const qrCodeUrl = normalizeQrCode(qrData);
+      const txnRetrievalRef = qrResponse?.txnRetrievalRef || qrData?.txn_retrieval_ref || null;
+
+      if (!qrCodeUrl || !txnRetrievalRef) {
+        return res.status(500).json({ error: 'Failed to generate NETS QR. Please try again.' });
+      }
+
+      req.session.walletNetsTopup = {
+        status: 'PENDING',
+        createdAt: Date.now(),
+        txnRetrievalRef,
+        courseInitId: qrResponse?.courseInitId || null,
+        amount
+      };
+
+      req.session.walletNetsQrView = {
+        title: 'NETS QR Top-up',
+        qrCodeUrl,
+        total: amount.toFixed(2),
+        timer: Number(qrData?.time_left || qrData?.qr_expiry_seconds || 300),
+        orderExpiryMinutes: 15,
+        txnRetrievalRef,
+        courseInitId: qrResponse?.courseInitId || null,
+        successRedirect: '/digitalWallet',
+        failRedirect: '/wallet/nets/fail',
+        cancelRedirect: '/digitalWallet',
+        sseUrl: `/sse/nets/wallet-status/${txnRetrievalRef}`
+      };
+
+      return res.json({ success: true, redirectUrl: '/wallet/nets/scan' });
+    } catch (err) {
+      console.error('NETS top-up create error:', err);
+      const message = err.message || 'Unable to start NETS top-up.';
+      return res.status(500).json({ error: message });
+    }
+  },
+
+  renderNetsTopupQr(req, res) {
+    const viewData = req.session?.walletNetsQrView;
+    if (!viewData) {
+      if (req.flash) req.flash('error', 'No NETS top-up session found.');
+      return res.redirect('/digitalWallet');
+    }
+    return res.render('netsQr', viewData);
+  },
+
+  async sseNetsTopupStatus(req, res) {
+    const userId = req.session?.user_id;
+    if (!userId) {
+      res.status(401).end();
+      return;
+    }
+
+    const txnRetrievalRef = req.params?.txnRetrievalRef;
+    const pending = req.session?.walletNetsTopup;
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const sendEvent = (payload) => {
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    if (!pending || !txnRetrievalRef || pending.txnRetrievalRef !== txnRetrievalRef) {
+      sendEvent({ fail: true, message: 'No pending NETS top-up.' });
+      return res.end();
+    }
+
+    if (pending.status === 'COMPLETED') {
+      sendEvent({ success: true, message: pending.resultMessage || 'Top-up completed.' });
+      return res.end();
+    }
+
+    if (pending.status === 'FAILED') {
+      sendEvent({ fail: true, message: pending.resultMessage || 'Top-up failed.' });
+      return res.end();
+    }
+
+    let isClosed = false;
+    let interval = null;
+    const closeStream = () => {
+      if (isClosed) return;
+      isClosed = true;
+      if (interval) clearInterval(interval);
+      res.end();
+    };
+
+    req.on('close', closeStream);
+
+    const poll = async () => {
+      if (isClosed) return;
+      try {
+        const response = await netsService.queryStatus({ txnRetrievalRef, frontendTimeoutStatus: 0 });
+        const data = response?.data || {};
+        const result = data.result?.data || data.result || data.data || data;
+        const statusInfo = extractStatus(result);
+
+        if (isSuccessStatus(statusInfo)) {
+          try {
+            const amount = toTwoDp(pending.amount || 0);
+            if (!amount || amount <= 0) {
+              throw new Error('Invalid top-up amount.');
+            }
+
+            await Wallet.credit(
+              userId,
+              amount,
+              {
+                txnType: 'TOPUP',
+                referenceType: 'TOPUP',
+                referenceId: pending.txnRetrievalRef,
+                paymentMethod: 'NETS_QR',
+                description: 'Wallet top-up via NETS QR'
+              },
+              { connection: db, manageTransaction: true }
+            );
+
+            await Payment.recordTransaction({
+              order_id: null,
+              paypal_order_id: pending.txnRetrievalRef,
+              payer_id: 'nets_' + userId,
+              payer_email: req.session?.user?.email || null,
+              amount: amount,
+              currency: 'SGD',
+              status: 'COMPLETED',
+              payment_method: 'WALLET_TOPUP_NETS'
+            });
+
+            pending.status = 'COMPLETED';
+            pending.resultMessage = statusInfo.message || 'Top-up completed.';
+            if (req.flash) req.flash('success', 'Wallet top-up successful.');
+
+            sendEvent({ success: true, message: pending.resultMessage });
+            return closeStream();
+          } catch (err) {
+            console.error('NETS top-up finalize error:', err);
+            pending.status = 'FAILED';
+            pending.resultMessage = err.message || 'Top-up could not be finalized.';
+            sendEvent({ fail: true, message: pending.resultMessage });
+            return closeStream();
+          }
+        }
+
+        if (isFailStatus(statusInfo)) {
+          pending.status = 'FAILED';
+          pending.resultMessage = statusInfo.message || 'Top-up failed.';
+          sendEvent({ fail: true, message: pending.resultMessage });
+          return closeStream();
+        }
+
+        sendEvent({ pending: true, status: statusInfo.status || 'PENDING' });
+      } catch (err) {
+        console.error('NETS top-up status query error:', err);
+        sendEvent({ pending: true, status: 'PENDING' });
+      }
+    };
+
+    await poll();
+    interval = setInterval(poll, 3000);
+  },
+
+  renderNetsTopupFail(req, res) {
+    const message = req.session?.walletNetsTopup?.resultMessage || 'Top-up was not completed.';
+    return res.render('netsTxnFailStatus', { message, orderId: null });
   },
 
   async payWithWallet(req, res) {
@@ -274,7 +482,6 @@ const WalletController = {
   }
 };
 
-// expose helper for reuse (e.g., NETS success handler)
 WalletController.createTopupOrder = createTopupOrder;
 
 module.exports = WalletController;

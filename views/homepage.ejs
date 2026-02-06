@@ -14,6 +14,11 @@
   <%- include('partials/navbar') %>
 
   <main class="home-shell">
+    <% if (success) { %>
+      <div class="alert alert-success" role="alert" style="max-width: 1100px; margin: 20px auto 0; padding: 12px 16px;">
+        <%= success %>
+      </div>
+    <% } %>
     <section class="hero">
       <div class="hero-grid">
         <div class="hero-image">

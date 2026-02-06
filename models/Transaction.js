@@ -6,6 +6,11 @@ const TransactionModel = {
    * payment_method: 'PayPal'
    */
   record(data, callback) {
+
+    const method = (data.payment_method || '').toString().trim();
+    if (!method) {
+      return callback(new Error('payment_method is required'));
+    }
     const sql = `
       INSERT INTO transactions
       (order_id, payment_method, paypal_order_id, payer_id, payer_email, amount, currency, status, transaction_time)
@@ -17,12 +22,15 @@ const TransactionModel = {
     // Use paypal_order_id as the payment reference
     const paymentReference = data.paypal_order_id || `TXN-${Date.now()}`;
 
+    const payerId = data.payer_id ? data.payer_id.toString().slice(0, 100) : null;
+    const payerEmail = data.payer_email ? data.payer_email.toString().slice(0, 255) : null;
+
     const params = [
       orderId,
-      (data.payment_method || 'PayPal').toString().slice(0, 20),
+      method.slice(0, 20),
       paymentReference,
-      data.payer_id || null,
-      data.payer_email || null,
+      payerId,
+      payerEmail,
       Number(data.amount) || 0,
       data.currency || 'SGD',
       data.status || null

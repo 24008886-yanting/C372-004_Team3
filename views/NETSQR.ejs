@@ -1,181 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/event-source-polyfill"></script>
-    <style>
-        body {
-            background-color: #f5f5f5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .qr-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            padding: 40px;
-            max-width: 450px;
-            width: 100%;
-            margin: 50px auto;
-        }
-        .qr-header {
-            color: #333;
-            font-weight: 700;
-            font-size: 24px;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        .qr-subtitle {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        .qr-code-box {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .qr-code-box img {
-            max-width: 100%;
-            height: auto;
-        }
-        .timer {
-            font-size: 16px;
-            color: #007bff;
-            font-weight: 600;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .status-text {
-            color: #666;
-            font-size: 14px;
-            text-align: center;
-            margin: 15px 0;
-        }
-        .cancel-btn {
-            margin-top: 20px;
-            width: 100%;
-        }
-        .info-text {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            color: #666;
-            font-size: 13px;
-            margin-top: 20px;
-            line-height: 1.8;
-        }
-        .info-text strong {
-            color: #333;
-            display: block;
-            margin-bottom: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <script src="https://unpkg.com/event-source-polyfill"></script>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #6b7280;
+      --accent: #0ea5e9;
+      --accent-soft: #e0f2fe;
+      --warning: #f59e0b;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 520px at 0% -10%, #e2e8f0 0%, transparent 60%),
+        radial-gradient(780px 520px at 110% 0%, #e0f2fe 0%, transparent 55%),
+        var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 28px 16px;
+    }
+    .shell {
+      width: min(820px, 100%);
+      display: grid;
+      gap: 14px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+      padding: 24px;
+    }
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .title {
+      margin: 0;
+      font-size: 1.8rem;
+      letter-spacing: -0.02em;
+    }
+    .badge {
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      align-items: center;
+    }
+    .qr-box {
+      background: #f8fafc;
+      border: 1px dashed #cbd5f5;
+      border-radius: 16px;
+      padding: 18px;
+      display: grid;
+      place-items: center;
+      gap: 12px;
+    }
+    .qr-box img {
+      width: min(240px, 86%);
+      height: auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+    }
+    .info {
+      display: grid;
+      gap: 10px;
+    }
+    .amount {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    .status {
+      color: var(--muted);
+    }
+    .timer {
+      font-weight: 600;
+      color: var(--warning);
+    }
+    .hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f1f5f9;
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: #475569;
+      font-size: 0.92rem;
+    }
+    .hint img {
+      height: 22px;
+      width: auto;
+    }
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: #0f172a;
+      background: #e2e8f0;
+      font-weight: 600;
+    }
+    .link.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
-    <%- include('Partials/navbar') %>
-    
-    <div class="container">
-        <div class="qr-container">
-            <div class="qr-header">🛒 Scan to Pay</div>
-            <div class="qr-subtitle">Complete your payment using NETS QR</div>
-            
-            <div class="qr-code-box">
-                <img src="<%= qrCodeUrl %>" alt="QR Code" />
-            </div>
-            
-            <p id="status" class="status-text">Scan with your bank app to complete payment</p>
-            <p id="timer" class="timer">Time remaining: 5:00</p>
-            
-            <a href="<%= cancelUrl || '/cart' %>" class="btn btn-outline-secondary cancel-btn">Cancel</a>
-            
-            <div class="info-text">
-                <strong>How it works:</strong>
-                1. Open your mobile banking app<br>
-                2. Select QR code payment<br>
-                3. Scan the code above<br>
-                4. Confirm the transaction
-            </div>
+  <div class="shell">
+    <div class="card">
+      <div class="header">
+        <h1 class="title">Scan the NETS QR</h1>
+        <span class="badge">Secure checkout</span>
+      </div>
+      <div class="grid">
+        <div class="qr-box">
+          <img src="<%= qrCodeUrl %>" alt="NETS QR code" />
+          <div class="timer" id="timer">Time remaining: --:--</div>
         </div>
+        <div class="info">
+          <div class="status" id="status">Scan with your bank simulator app to complete payment</div>
+          <div class="amount">Amount payable: $<%= total %></div>
+          <div class="hint">
+            <img src="/images/netsLogo.png" alt="NETS" />
+            Use your bank app to scan the QR and confirm payment.
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="link primary" href="#">Waiting for payment...</a>
+        <% if (typeof orderId !== 'undefined' && orderId) { %>
+          <a class="link" href="/payment/<%= orderId %>">Cancel and return to payment</a>
+        <% } else if (typeof cancelRedirect !== 'undefined' && cancelRedirect) { %>
+          <a class="link" href="<%= cancelRedirect %>">Cancel and return</a>
+        <% } else { %>
+          <a class="link" href="/purchases">Cancel and return</a>
+        <% } %>
+      </div>
     </div>
+  </div>
 
-    <script>
-        let s2sNetsTxnStatus;
+  <script>
+    let s2sNetsTxnStatus;
 
-        if (s2sNetsTxnStatus) {
-            s2sNetsTxnStatus.close();
-        }
+    if (s2sNetsTxnStatus) {
+      s2sNetsTxnStatus.close();
+    }
 
-        const txnRetrievalRef = "<%= txnRetrievalRef %>";
-        const url = `/sse/payment-status/${txnRetrievalRef}`;
-   
-        const headers = {
-            "api-key": "<%= apiKey %>",
-            "project-id": "<%= projectId %>",
-        };
+    const txnRetrievalRef = "<%= txnRetrievalRef %>";
+    const courseInitId = "<%= courseInitId %>";
+    const url = "<%= typeof sseUrl !== 'undefined' && sseUrl ? sseUrl : '' %>" || `/sse/nets/payment-status/${txnRetrievalRef}`;
 
-        console.log("NETS REQUEST response:", <%- JSON.stringify(fullNetsResponse) %>);
+    s2sNetsTxnStatus = new EventSourcePolyfill(url, { heartbeatTimeout: 150000 });
 
-        s2sNetsTxnStatus = new EventSourcePolyfill(url, {
-            headers: headers,
-            heartbeatTimeout: 150000,
-        });
+    s2sNetsTxnStatus.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      console.log("NETS Query Response:", data);
 
-        s2sNetsTxnStatus.addEventListener("message", (event) => {
-            const data = JSON.parse(event.data);
-            console.log("NETS Query Response:", data);
+      if (data.success) {
+        if (s2sNetsTxnStatus) s2sNetsTxnStatus.close();
+        const successRedirect = "<%= typeof successRedirect !== 'undefined' && successRedirect ? successRedirect : '' %>";
+        window.location.href = successRedirect || `/nets-qr/success?txn_retrieval_ref=${txnRetrievalRef}`;
+      } else if (data.fail) {
+        if (s2sNetsTxnStatus) s2sNetsTxnStatus.close();
+        const failRedirect = "<%= typeof failRedirect !== 'undefined' && failRedirect ? failRedirect : '' %>";
+        window.location.href = failRedirect || `/nets-qr/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+      }
+    });
 
-            const resData = data && data.result && data.result.data;
-            const isSuccess = data.success || (resData && resData.response_code == '00' && resData.txn_status === 1);
-            const isFail = data.fail || (resData && resData.response_code && resData.response_code !== '00');
+    const timerElement = document.getElementById("timer");
+    const countdownDuration = Number("<%= timer %>") || 300;
+    const orderExpiryMinutes = Number("<%= orderExpiryMinutes %>") || 15;
+    let remainingTime = countdownDuration;
 
-            if (isSuccess) {
-                if (s2sNetsTxnStatus) s2sNetsTxnStatus.close();
-                window.location.href = `/nets-qr/success?txn_retrieval_ref=${txnRetrievalRef}`;
-            } else if (isFail) {
-                if (s2sNetsTxnStatus) s2sNetsTxnStatus.close();
-                window.location.href = `/nets-qr/fail?txn_retrieval_ref=${txnRetrievalRef}`;
-            }
-        });
+    const updateTimer = () => {
+      const minutes = Math.floor(remainingTime / 60);
+      const seconds = remainingTime % 60;
+      timerElement.textContent = `Time remaining: ${minutes}:${seconds.toString().padStart(2, "0")}`;
+      remainingTime--;
 
-        s2sNetsTxnStatus.addEventListener("error", (event) => {
-            console.error("SSE error:", event);
-        });
+      if (remainingTime < 0) {
+        clearInterval(timerInterval);
+        timerElement.textContent = `Your NETS attempt expired. Choose another method within ${orderExpiryMinutes} minutes.`;
+      }
+    };
 
-        console.log("Initialized EventSourcePolyfill");
-
-        // Countdown Timer Logic
-        const timerElement = document.getElementById("timer");
-        const countdownDuration = 300; // 5 minutes in seconds
-        let remainingTime = countdownDuration;
-
-        const updateTimer = () => {
-            const minutes = Math.floor(remainingTime / 60);
-            const seconds = remainingTime % 60;
-            timerElement.textContent = `Time remaining: ${minutes}:${seconds.toString().padStart(2, "0")}`;
-            remainingTime--;
-
-            if (remainingTime < 0) {
-                clearInterval(timerInterval);
-                timerElement.textContent = "Transaction timed out.";
-
-                if (s2sNetsTxnStatus) {
-                    s2sNetsTxnStatus.close();
-                }
-                window.location.href = `/nets-qr/fail?txn_retrieval_ref=${txnRetrievalRef}`;
-            }
-        };
-
-        const timerInterval = setInterval(updateTimer, 1000);
-        updateTimer();
-    </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    const timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+  </script>
 </body>
 </html>

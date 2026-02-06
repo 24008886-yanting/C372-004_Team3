@@ -38,22 +38,21 @@
 
         <div id="topup-section" class="section-card is-hidden">
           <h3 style="margin:0 0 4px; font-size:16px;">Top Up Wallet</h3>
-          <p class="muted" style="margin:0 0 8px;">Enter an amount, then pay via PayPal or NETS.</p>
+          <p class="muted" style="margin:0 0 8px;">Enter an amount, then pay via PayPal or NETS QR.</p>
 
           <label class="muted" for="topup-amount" style="display:block; margin-bottom:6px;">Amount (SGD)</label>
           <input id="topup-amount" class="wallet-input" type="number" min="1" step="0.01" placeholder="10.00">
 
           <div class="pay-area" style="display:grid; gap:10px; margin-top:10px;">
+            <button id="nets-topup" class="card-btn" type="button" aria-label="Top up with NETS QR" style="display:flex; align-items:center; justify-content:center; gap:8px; background:#ffffff; border:1px solid #e5e7eb; color:#111827;">
+              <img src="/images/netsLogo.png" alt="NETS" style="height:22px; width:auto;" />
+            </button>
             <div id="paypal-topup" class="paypal-btn"></div>
             <div class="card-btn" aria-disabled="true">
               <span style="font-size:16px;">▯</span>
               <span>Debit or Credit Card</span>
             </div>
-            <div class="powered-paypal">Powered by <span class="pp">PayPal</span></div>
-            <form id="nets-topup-form" action="/wallet/nets/qr" method="POST" style="margin:0;">
-              <input type="hidden" name="amount" id="nets-amount">
-              <button id="nets-topup-btn" class="nets-btn" type="submit">Top Up with NETS</button>
-            </form>
+
           </div>
           <p id="topup-message" class="muted-small"></p>
           <p class="muted-small">You will return here to see your updated balance.</p>
@@ -105,12 +104,10 @@
     const paypalClientId = "<%= paypalClientId || '' %>";
     const messageEl = document.getElementById('topup-message');
     const amountInput = document.getElementById('topup-amount');
-    const netsAmountInput = document.getElementById('nets-amount');
     const paypalBtn = document.getElementById('paypal-topup');
+    const netsBtn = document.getElementById('nets-topup');
     const topupToggle = document.getElementById('topup-toggle');
     const topupSection = document.getElementById('topup-section');
-    const netsForm = document.getElementById('nets-topup-form');
-    const netsBtn = document.getElementById('nets-topup-btn');
 
     const setMessage = (msg, isError = false) => {
       if (!messageEl) return;
@@ -131,19 +128,6 @@
       const val = parseFloat(amountInput.value || '0');
       return Number.isFinite(val) ? val : 0;
     };
-
-    if (netsForm && netsBtn) {
-      netsForm.addEventListener('submit', (e) => {
-        const amt = getAmount();
-        if (!amt || amt <= 0) {
-          e.preventDefault();
-          setMessage('Enter an amount above $0 to top up.', true);
-          return;
-        }
-        netsAmountInput.value = amt.toFixed(2);
-        setMessage('Generating NETS QR for top-up...');
-      });
-    }
 
     const renderPaypalTopup = () => {
       if (!paypalClientId || typeof paypal === 'undefined') return;
@@ -193,6 +177,34 @@
       }).render('#paypal-topup');
     };
 
+
+    if (netsBtn) {
+      netsBtn.addEventListener('click', async () => {
+        const amt = getAmount();
+        if (!amt || amt <= 0) {
+          setMessage('Enter an amount above $0 to top up.', true);
+          return;
+        }
+        netsBtn.disabled = true;
+        setMessage('Generating NETS QR...');
+        try {
+          const resp = await fetch('/wallet/nets/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: amt })
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.redirectUrl) {
+            throw new Error(data.error || 'Unable to start NETS top-up.');
+          }
+          window.location.href = data.redirectUrl;
+        } catch (err) {
+          console.error('NETS top-up error:', err);
+          setMessage(err?.message || 'NETS top-up failed to start.', true);
+          netsBtn.disabled = false;
+        }
+      });
+    }
     if (paypalClientId) {
       const waitForPaypal = () => {
         if (typeof paypal !== 'undefined') {

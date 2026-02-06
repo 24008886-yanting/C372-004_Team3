@@ -16,7 +16,6 @@ const normalizeMethod = (method) => {
   const rawOriginal = String(method || '').trim();
   const raw = rawOriginal.toUpperCase();
   if (raw === '1') return 'PAYPAL';
-  if (raw === '2') return 'NETS';
   if (raw === '3') return 'WALLET';
   if (raw.includes('PAYPAL')) return 'PAYPAL';
   if (raw.includes('NETS')) return 'NETS';
@@ -31,7 +30,8 @@ const guessPaymentMethod = (txn) => {
   if (normalized !== 'UNKNOWN') return normalized;
   const ref = String(txn.paypal_order_id || '').toUpperCase();
   const payer = String(txn.payer_id || '').toUpperCase();
-  if (ref.startsWith('NETS-') || payer.startsWith('NETS_')) return 'NETS';
+  if (normalized === 'NETS') return 'NETS';
+  if (ref.startsWith('NETS') || ref.includes('NETS') || payer.startsWith('NETS_')) return 'NETS';
   if (ref.startsWith('WALLET-') || payer.startsWith('WALLET_')) return 'WALLET';
   return 'PAYPAL';
 };
@@ -57,10 +57,41 @@ const getLatestRefund = (orderId) =>
 const renderForm = (res, data) => res.render('userRequestRefund', data);
 
 const RefundController = {
-  async showRequestForm(req, res) {
+    async showAdminDetail(req, res) {
+    const refundId = Number(req.params?.id || 0);
+    if (!refundId) return res.redirect('/orderDashboard');
+
+    try {
+      const refund = await new Promise((resolve, reject) => {
+        Refund.getById(refundId, (err, rows) => (err ? reject(err) : resolve(rows?.[0] || null)));
+      });
+      if (!refund) {
+        if (req.flash) req.flash('error', 'Refund request not found.');
+        return res.redirect('/orderDashboard');
+      }
+
+      const userRows = await queryAsync('SELECT username, email FROM users WHERE user_id = ? LIMIT 1', [refund.user_id]);
+      const user = userRows?.[0] || {};
+
+      return res.render('adminRefundDetail', {
+        refund: {
+          ...refund,
+          username: user.username,
+          email: user.email
+        }
+      });
+    } catch (err) {
+      console.error('refund detail error:', err);
+      if (req.flash) req.flash('error', 'Failed to load refund request.');
+      return res.redirect('/orderDashboard');
+    }
+  },
+
+async showRequestForm(req, res) {
     const userId = req.session?.user_id;
     const orderId = Number(req.query.order_id || 0);
     const orderItemId = Number(req.query.order_item_id || 0);
+    const viewOnly = String(req.query.view || '').toLowerCase() === '1' || String(req.query.view || '').toLowerCase() === 'true';
 
     if (!userId || !orderId) {
       return res.redirect('/allTransactions');
@@ -84,7 +115,9 @@ const RefundController = {
 
       const itemRows = await queryAsync(
         `
-        SELECT oi.order_item_id, oi.quantity, oi.item_total, p.product_name, o.subtotal AS order_subtotal, o.discount_amount AS order_discount
+        SELECT oi.order_item_id, oi.quantity, oi.item_total, p.product_name,
+               o.subtotal AS order_subtotal, o.discount_amount AS order_discount, o.shipping_fee AS order_shipping,
+               o.tax_amount AS order_tax, o.total_amount AS order_total
         FROM order_items oi
         JOIN orders o ON oi.order_id = o.order_id
         LEFT JOIN products p ON oi.product_id = p.product_id
@@ -96,6 +129,9 @@ const RefundController = {
 
       const orderSubtotal = Number(itemRows?.[0]?.order_subtotal || 0);
       const orderDiscount = Math.max(Number(itemRows?.[0]?.order_discount || 0), 0);
+      const orderShipping = Math.max(Number(itemRows?.[0]?.order_shipping || 0), 0);
+      const orderTax = Math.max(Number(itemRows?.[0]?.order_tax || 0), 0);
+      const orderTotal = Math.max(Number(itemRows?.[0]?.order_total || 0), 0);
       const discountOnItems = Math.min(orderDiscount, orderSubtotal);
       const items = (itemRows || []).map((item) => {
         const maxQty = Number(item.quantity || 0);
@@ -129,6 +165,30 @@ const RefundController = {
 
       const txn = await getLatestTransaction(orderId);
       const latestRefund = await getLatestRefund(orderId);
+      if (viewOnly && !latestRefund) {
+        return renderForm(res, {
+          orderId,
+          orderItemId,
+          items,
+          totalQty,
+          totalRefundable,
+          amount: '',
+          paymentMethod: '',
+          refundStatus: '',
+          refundReference: '',
+          selectedItemId: orderItemId || null,
+          shippingFee: orderShipping,
+          orderTotal,
+          rejectedCount: 0,
+          success: undefined,
+          error: 'No refund request found for this order.',
+          viewOnly: true,
+          presetRefundItems: {},
+          presetReason: '',
+          presetDetails: '',
+          presetRefundType: 'full'
+        });
+      }
       const rejectedRows = await queryAsync(
         'SELECT COUNT(*) AS rejected_count FROM refund_requests WHERE order_id = ? AND status = ?',
         [orderId, 'REJECTED']
@@ -140,21 +200,56 @@ const RefundController = {
 
       const displayMethod = normalizeMethod(latestRefund?.payment_method || guessPaymentMethod(txn));
       const displayAmount = txn?.amount ?? '';
-      return renderForm(res, {
-        orderId,
-        orderItemId,
-        items,
-        totalQty,
-        totalRefundable,
-        amount: displayAmount,
-        paymentMethod: displayMethod,
-        refundStatus: latestRefund?.status || '',
-        refundReference: latestRefund?.refund_reference || '',
-        selectedItemId: orderItemId || null,
-        rejectedCount,
-        success,
-        error
-      });
+      let presetRefundItems = {};
+      let presetReason = '';
+      let presetDetails = '';
+      let presetRefundType = 'full';
+      if (latestRefund?.refund_items) {
+        try {
+          const parsed = JSON.parse(latestRefund.refund_items);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((item) => {
+              const itemId = Number(item.order_item_id || item.orderItemId || item.id || 0);
+              const qty = Number(item.qty ?? item.quantity ?? 0);
+              if (itemId) presetRefundItems[itemId] = qty;
+            });
+          }
+        } catch (parseErr) {
+          presetRefundItems = {};
+        }
+      }
+      presetReason = latestRefund?.reason || '';
+      presetDetails = latestRefund?.details || '';
+      if (Object.keys(presetRefundItems).length) {
+        const isPartial = items.some((item) => {
+          const selectedQty = Number(presetRefundItems[item.order_item_id] ?? 0);
+          return selectedQty < Number(item.max_qty || 0);
+        });
+        presetRefundType = isPartial ? 'partial' : 'full';
+      }
+        return renderForm(res, {
+          orderId,
+          orderItemId,
+          items,
+          totalQty,
+          totalRefundable,
+          amount: displayAmount,
+          paymentMethod: displayMethod,
+          refundStatus: latestRefund?.status || '',
+          refundReference: latestRefund?.refund_reference || '',
+          selectedItemId: orderItemId || null,
+          shippingFee: orderShipping,
+          orderTax,
+          orderTotal,
+          rejectedCount,
+          success,
+          error,
+          viewOnly,
+          presetRefundItems,
+          presetReason,
+          presetDetails,
+          presetRefundType
+        });
     } catch (err) {
       console.error('refundRequest form error:', err);
       return renderForm(res, {
@@ -260,11 +355,11 @@ const RefundController = {
       }
 
       const attemptRows = await queryAsync(
-        'SELECT COUNT(*) AS attempt_count FROM refund_requests WHERE order_id = ?',
-        [orderId]
+        'SELECT COUNT(*) AS rejected_count FROM refund_requests WHERE order_id = ? AND status = ?',
+        [orderId, 'REJECTED']
       );
-      const attemptCount = Number(attemptRows?.[0]?.attempt_count || 0);
-      if (attemptCount >= 3) {
+      const rejectedCount = Number(attemptRows?.[0]?.rejected_count || 0);
+      if (rejectedCount >= 3) {
         return renderForm(res, {
           orderId,
           orderItemId,
@@ -282,7 +377,9 @@ const RefundController = {
 
       const itemRows = await queryAsync(
         `
-        SELECT oi.order_item_id, oi.quantity, oi.item_total, p.product_name, o.subtotal AS order_subtotal, o.discount_amount AS order_discount
+        SELECT oi.order_item_id, oi.quantity, oi.item_total, p.product_name,
+               o.subtotal AS order_subtotal, o.discount_amount AS order_discount, o.shipping_fee AS order_shipping,
+               o.tax_amount AS order_tax, o.total_amount AS order_total
         FROM order_items oi
         JOIN orders o ON oi.order_id = o.order_id
         LEFT JOIN products p ON oi.product_id = p.product_id
@@ -294,6 +391,9 @@ const RefundController = {
 
       const orderSubtotal = Number(itemRows?.[0]?.order_subtotal || 0);
       const orderDiscount = Math.max(Number(itemRows?.[0]?.order_discount || 0), 0);
+      const orderShipping = Math.max(Number(itemRows?.[0]?.order_shipping || 0), 0);
+      const orderTax = Math.max(Number(itemRows?.[0]?.order_tax || 0), 0);
+      const orderTotal = Math.max(Number(itemRows?.[0]?.order_total || 0), 0);
       const discountOnItems = Math.min(orderDiscount, orderSubtotal);
       const items = (itemRows || []).map((item) => {
         const maxQty = Number(item.quantity || 0);
@@ -323,6 +423,8 @@ const RefundController = {
           paymentMethod: guessPaymentMethod(txn),
           refundStatus: latestRefund?.status || '',
           refundReference: latestRefund?.refund_reference || '',
+          shippingFee: orderShipping,
+          orderTotal,
           success: undefined,
           error: 'No items found for this order.'
         });
@@ -344,6 +446,8 @@ const RefundController = {
             paymentMethod: guessPaymentMethod(txn),
             refundStatus: latestRefund?.status || '',
             refundReference: latestRefund?.refund_reference || '',
+            shippingFee: orderShipping,
+            orderTotal,
             success: undefined,
             error: 'Invalid refund selection. Please try again.'
           });
@@ -377,6 +481,8 @@ const RefundController = {
           paymentMethod: guessPaymentMethod(txn),
           refundStatus: latestRefund?.status || '',
           refundReference: latestRefund?.refund_reference || '',
+          shippingFee: orderShipping,
+          orderTotal,
           success: undefined,
           error: 'Select at least one item to refund.'
         });
@@ -399,6 +505,8 @@ const RefundController = {
             paymentMethod: guessPaymentMethod(txn),
             refundStatus: latestRefund?.status || '',
             refundReference: latestRefund?.refund_reference || '',
+            shippingFee: orderShipping,
+            orderTotal,
             success: undefined,
             error: 'Invalid refund item selection.'
           });
@@ -419,6 +527,12 @@ const RefundController = {
       }
 
       totalRefundAmount = toTwoDp(totalRefundAmount);
+      const totalPurchasedQty = items.reduce((sum, item) => sum + Number(item.max_qty || 0), 0);
+      const isFullRefund = totalRefundQty === totalPurchasedQty && totalPurchasedQty > 0;
+      if (isFullRefund) {
+        const fallbackFull = toTwoDp(totalRefundAmount + orderShipping + orderTax);
+        totalRefundAmount = orderTotal > 0 ? toTwoDp(orderTotal) : fallbackFull;
+      }
       if (!refundItemsPayload.length || totalRefundAmount <= 0) {
         return renderForm(res, {
           orderId,
@@ -430,6 +544,8 @@ const RefundController = {
           paymentMethod: guessPaymentMethod(txn),
           refundStatus: latestRefund?.status || '',
           refundReference: latestRefund?.refund_reference || '',
+          shippingFee: orderShipping,
+          orderTotal,
           success: undefined,
           error: 'Refund amount is zero after voucher discount.'
         });
@@ -496,7 +612,7 @@ const RefundController = {
 
   async approve(req, res) {
     const refundId = Number(req.params?.id || 0);
-    if (!refundId) return res.redirect('/refund-requests');
+    if (!refundId) return res.redirect('/orderDashboard');
 
     try {
       const refund = await new Promise((resolve, reject) => {
@@ -504,13 +620,13 @@ const RefundController = {
       });
       if (!refund) {
         if (req.flash) req.flash('error', 'Refund request not found.');
-        return res.redirect('/refund-requests');
+        return res.redirect('/orderDashboard');
       }
 
       const status = String(refund.status || '').toUpperCase();
       if (status !== 'PENDING') {
         if (req.flash) req.flash('error', `Refund is already ${status || 'processed'}.`);
-        return res.redirect('/refund-requests');
+        return res.redirect('/orderDashboard');
       }
 
       const alreadyRefunded = await queryAsync(
@@ -548,7 +664,7 @@ const RefundController = {
             }
           }
         }
-      } else if (method === 'NETS' || method === 'WALLET') {
+      } else if (method === 'WALLET' || method === 'NETS') {
         await Wallet.credit(
           refund.user_id,
           amount,
@@ -571,8 +687,13 @@ const RefundController = {
       });
 
       if (finalStatus === 'REFUNDED') {
-        const orderRows = await queryAsync('SELECT voucher_id FROM orders WHERE order_id = ? LIMIT 1', [refund.order_id]);
-        const voucherId = orderRows?.[0]?.voucher_id || null;
+        const orderMeta = await queryAsync('SELECT voucher_id, total_amount FROM orders WHERE order_id = ? LIMIT 1', [refund.order_id]);
+        const voucherId = orderMeta?.[0]?.voucher_id || null;
+        const orderTotal = Number(orderMeta?.[0]?.total_amount || 0);
+        const refundAmount = Number(refund.amount || 0);
+        const nextPaymentStatus = refundAmount && orderTotal && refundAmount < orderTotal ? 'PARTIALLY_REFUNDED' : 'REFUNDED';
+        await queryAsync('UPDATE orders SET payment_status = ? WHERE order_id = ?', [nextPaymentStatus, refund.order_id]);
+        // voucherId already resolved above
         if (voucherId) {
           await queryAsync(
             'UPDATE vouchers SET used_count = CASE WHEN used_count > 0 THEN used_count - 1 ELSE 0 END WHERE voucher_id = ?',
@@ -587,17 +708,17 @@ const RefundController = {
           finalStatus === 'REFUNDED' ? 'Refund approved and processed.' : 'Refund failed to process.'
         );
       }
-      return res.redirect('/refund-requests');
+      return res.redirect('/orderDashboard');
     } catch (err) {
       console.error('refund approve error:', err);
       if (req.flash) req.flash('error', err.message || 'Refund approval failed.');
-      return res.redirect('/refund-requests');
+      return res.redirect('/orderDashboard');
     }
   },
 
   async reject(req, res) {
     const refundId = Number(req.params?.id || 0);
-    if (!refundId) return res.redirect('/refund-requests');
+    if (!refundId) return res.redirect('/orderDashboard');
 
     try {
       const refund = await new Promise((resolve, reject) => {
@@ -605,12 +726,12 @@ const RefundController = {
       });
       if (!refund) {
         if (req.flash) req.flash('error', 'Refund request not found.');
-        return res.redirect('/refund-requests');
+        return res.redirect('/orderDashboard');
       }
       const status = String(refund.status || '').toUpperCase();
       if (status !== 'PENDING') {
         if (req.flash) req.flash('error', `Refund is already ${status || 'processed'}.`);
-        return res.redirect('/refund-requests');
+        return res.redirect('/orderDashboard');
       }
 
       await new Promise((resolve, reject) => {
@@ -630,11 +751,11 @@ const RefundController = {
       }
 
       if (req.flash) req.flash('success', 'Refund request rejected.');
-      return res.redirect('/refund-requests');
+      return res.redirect('/orderDashboard');
     } catch (err) {
       console.error('refund reject error:', err);
       if (req.flash) req.flash('error', 'Failed to reject refund.');
-      return res.redirect('/refund-requests');
+      return res.redirect('/orderDashboard');
     }
   }
 };

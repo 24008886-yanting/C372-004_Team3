@@ -223,15 +223,15 @@
       }
       const shippingFee = subtotal >= 60 ? 0 : (subtotal > 0 ? 5 : 0);
       const taxRatePercent = 9;
-      const taxAmount = subtotal * (taxRatePercent / 100);
+      const taxAmount = subtotal * (taxRatePercent / (100 + taxRatePercent));
       const discountAmount = 0;
-      const total = subtotal + shippingFee + taxAmount - discountAmount;
+      const total = subtotal + shippingFee - discountAmount;
     %>
     <aside class="summary" data-subtotal="<%= subtotal.toFixed(2) %>" data-shipping-fee="<%= shippingFee.toFixed(2) %>" data-tax-rate="<%= taxRatePercent %>">
       <div class="row"><span>Items</span><span><%= items ? items.length : 0 %></span></div>
       <div class="row"><span>Subtotal</span><span id="subtotal-value">$<%= subtotal.toFixed(2) %></span></div>
       <div class="row"><span>Shipping fee</span><span id="shipping-fee">$<%= shippingFee.toFixed(2) %></span></div>
-      <div class="row"><span>Tax (9%)</span><span id="tax-amount">$<%= taxAmount.toFixed(2) %></span></div>
+      <div class="row"><span>GST (9% included)</span><span id="tax-amount">$<%= taxAmount.toFixed(2) %></span></div>
       <div class="row"><span>Discount</span><span id="discount-amount">-$<%= discountAmount.toFixed(2) %></span></div>
       <div style="margin-top: 12px;">
         <label for="voucher-code" class="muted" style="display:block; margin-bottom:6px;">Voucher code</label>
@@ -261,9 +261,7 @@
       <button id="wallet-pay-button" class="btn-accent" style="width:100%; margin-top:10px;" type="button">Pay with Wallet</button>
       <div id="wallet-message" class="muted" style="margin-top:6px;"></div>
       <div style="margin-top:6px; font-size:13px;"><a class="link" href="/digitalWallet">Top up or view history</a></div>
-      <button id="nets-button" class="btn-accent" style="width:100%; margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;" type="button">
-        <span style="font-weight: 600;">NETS</span>
-      </button>
+      <button id="nets-pay-button" class="btn-light" style="width:100%; margin-top:8px; display:flex; align-items:center; justify-content:center;" type="button" aria-label="Pay with NETS QR"><img src="/images/netsLogo.png" alt="NETS" style="height:26px; width:auto;" /></button>
       <div id="nets-message" class="muted" style="margin-top:6px;"></div>
       <div id="paypal-button-container" style="margin-top:12px;"></div>
       <div id="paypal-message" class="muted" style="margin-top:6px;"></div>
@@ -287,14 +285,16 @@
     const walletMessage = document.getElementById('wallet-message');
     const paypalButtonContainer = document.getElementById('paypal-button-container');
     const paypalMessage = document.getElementById('paypal-message');
+    const netsPayBtn = document.getElementById('nets-pay-button');
+    const netsMessage = document.getElementById('nets-message');
     let voucherId = null;
     let voucherCode = '';
     let discountAmount = 0;
-    let currentTotal = subtotal + shippingFee + (subtotal * (taxRatePercent / 100)) - discountAmount;
+    let currentTotal = subtotal + shippingFee - discountAmount;
 
     const updateTotals = () => {
-      const taxAmount = subtotal * (taxRatePercent / 100);
-      const total = subtotal + shippingFee + taxAmount - discountAmount;
+      const taxAmount = subtotal * (taxRatePercent / (100 + taxRatePercent));
+      const total = subtotal + shippingFee - discountAmount;
       const taxAmountEl = document.getElementById('tax-amount');
       const discountAmountEl = document.getElementById('discount-amount');
       const totalEl = document.getElementById('total-amount');
@@ -358,8 +358,7 @@
 
         applyVoucherBtn.disabled = true;
         try {
-          const taxAmount = subtotal * (taxRatePercent / 100);
-          const totalBeforeDiscount = subtotal + shippingFee + taxAmount;
+          const totalBeforeDiscount = subtotal + shippingFee;
           const res = await fetch('/vouchers/apply', {
             method: 'POST',
             headers,
@@ -433,7 +432,7 @@
             voucher_id: voucherId,
             discount_amount: discountAmount,
             shipping_fee: shippingFee,
-            tax_rate: taxRatePercent
+            tax_rate: 0
           })
         });
       }
@@ -499,71 +498,45 @@
       handleCartAction(btn);
     });
 
-    const showPaypalMessage = (message, isError = false) => {
-      if (!paypalMessage) return;
-      paypalMessage.textContent = message || '';
-      paypalMessage.style.color = isError ? '#dc2626' : 'var(--muted)';
-    };
 
-    const netsButton = document.getElementById('nets-button');
-    const netsMessage = document.getElementById('nets-message');
-
-    const showNetsMessage = (message, isError = false) => {
+    const setNetsMessage = (message, isError = false) => {
       if (!netsMessage) return;
       netsMessage.textContent = message || '';
       netsMessage.style.color = isError ? '#dc2626' : 'var(--muted)';
     };
 
-    if (netsButton) {
-      netsButton.addEventListener('click', async () => {
-        console.log('NETS button clicked');
-        if (netsButton.disabled) {
-          console.log('NETS button is disabled, returning');
-          return;
-        }
+    if (netsPayBtn) {
+      netsPayBtn.addEventListener('click', async () => {
+        if (netsPayBtn.disabled) return;
         if (hasUnavailable) {
-          console.log('Cart has unavailable items');
-          showNetsMessage('Unavailable items cannot be checked out. Please remove them to continue.', true);
+          setNetsMessage('Unavailable items cannot be checked out. Please remove them to continue.', true);
           return;
         }
-
-        netsButton.disabled = true;
-        showNetsMessage('Generating NETS QR code...');
-
+        netsPayBtn.disabled = true;
+        setNetsMessage('Generating NETS QR...');
         try {
-          const taxAmount = subtotal * (taxRatePercent / 100);
-          const total = subtotal + shippingFee + taxAmount - discountAmount;
-
-          console.log('Sending NETS request with total:', total, 'voucher:', voucherCode);
-          
-          // Create a hidden form and submit it
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = '/generateNETSQR';
-          
-          const cartTotalInput = document.createElement('input');
-          cartTotalInput.type = 'hidden';
-          cartTotalInput.name = 'cartTotal';
-          cartTotalInput.value = total;
-          form.appendChild(cartTotalInput);
-          
-          if (voucherCode) {
-            const voucherInput = document.createElement('input');
-            voucherInput.type = 'hidden';
-            voucherInput.name = 'voucher_code';
-            voucherInput.value = voucherCode;
-            form.appendChild(voucherInput);
+          const resp = await fetch('/nets-qr/create', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ voucher_code: voucherCode || null })
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data.success) {
+            throw new Error(data.error || 'Unable to start NETS payment.');
           }
-          
-          document.body.appendChild(form);
-          form.submit();
-        } catch (error) {
-          console.error('NETS error:', error);
-          showNetsMessage(error?.message || 'Failed to generate NETS QR code. Please try again.', true);
-          netsButton.disabled = false;
+          window.location.href = data.redirectUrl || '/nets-qr/scan';
+        } catch (err) {
+          setNetsMessage(err?.message || 'NETS payment failed to start.', true);
+          netsPayBtn.disabled = false;
         }
       });
     }
+
+    const showPaypalMessage = (message, isError = false) => {
+      if (!paypalMessage) return;
+      paypalMessage.textContent = message || '';
+      paypalMessage.style.color = isError ? '#dc2626' : 'var(--muted)';
+    };
 
     let paypalRendered = false;
     const renderPaypalButtons = () => {
@@ -585,7 +558,7 @@
 
       paypalRendered = true;
       paypal.Buttons({
-        style: { shape: 'rect', color: 'blue', layout: 'vertical', label: 'paypal' },
+        style: { shape: 'rect', color: 'gold', layout: 'vertical', label: 'paypal' },
         onClick: () => showPaypalMessage(''),
         createOrder: async () => {
           showPaypalMessage('Creating PayPal order...');

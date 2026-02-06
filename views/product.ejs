@@ -182,13 +182,29 @@
           <% } %>
         </article>
 
-        <!-- Placeholder reviews block -->
+        <!-- Reviews block -->
         <article class="detail-card" id="reviews">
           <h2>Reviews</h2>
-          <div class="reviews-placeholder">
-            <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <p>Reviews will show up here.</p>
-          </div>
+          <% const safeReviews = Array.isArray(reviews) ? reviews : []; %>
+          <% if (safeReviews.length) { %>
+            <div class="reviews-list">
+              <% safeReviews.forEach((r) => { %>
+                <div class="review-item">
+                  <div class="review-meta">
+                    <strong><%= r.username || 'Customer' %></strong>
+                    <span class="review-rating">★ <%= Number(r.rating || 0).toFixed(1) %></span>
+                    <span class="review-date"><%= r.created_at ? new Date(r.created_at).toLocaleDateString('en-SG', { dateStyle: 'medium' }) : '' %></span>
+                  </div>
+                  <div class="review-text"><%= r.review_text || '' %></div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="reviews-placeholder">
+              <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+              <p>Reviews will show up here.</p>
+            </div>
+          <% } %>
         </article>
       </section>
     </section>
@@ -351,7 +367,11 @@
           const data = await postJSON('/cart', { product_id: productId, quantity });
           const action = data.action === 'updated' ? 'updated' : 'added';
           addBtn.classList.add('is-added');
-          if (action === 'updated') {
+          if (data.moved_from === 'wishlist') {
+            setWishlistState(false, '');
+            setStatus('Moved from wishlist to cart.', 'ok');
+            showAlert('Moved from wishlist to cart.', 'success');
+          } else if (action === 'updated') {
             setStatus('Cart quantity updated.', 'ok');
             showAlert('Item quantity updated in cart.', 'info');
           } else {
@@ -397,8 +417,14 @@
         try {
           const data = await postJSON('/wishlist', { product_id: productId });
           setWishlistState(true, data.wishlist_id);
-          setStatus('Added to wishlist.', 'ok');
-          showAlert('Item added to wishlist.', 'info');
+          if (data.moved_from === 'cart') {
+            if (addBtn) addBtn.classList.remove('is-added');
+            setStatus('Moved from cart to wishlist.', 'ok');
+            showAlert('Moved from cart to wishlist.', 'info');
+          } else {
+            setStatus('Added to wishlist.', 'ok');
+            showAlert('Item added to wishlist.', 'info');
+          }
         } catch (err) {
           console.error(err);
           const message = err?.message || 'An error occurred. Please try again.';

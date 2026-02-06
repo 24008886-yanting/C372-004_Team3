@@ -73,7 +73,8 @@ const upload = multer({ storage });
 
 // -------------------- ROUTES --------------------
 app.get('/', (req, res) => {
-    res.render('homepage');
+    const success = (req.flash && req.flash('login_success')[0]) || undefined;
+    res.render('homepage', { success });
 });
 
 // Product views
@@ -160,7 +161,7 @@ app.delete('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), Vouc
 
 // Orders dashboard (admin)
 app.get('/orderDashboard', checkAuthenticated, checkAuthorised(['admin']), OrderController.listDashboard);
-app.get('/refund-requests', checkAuthenticated, checkAuthorised(['admin']), RefundController.listAll);
+app.get('/refund-requests/:id', checkAuthenticated, checkAuthorised(['admin']), RefundController.showAdminDetail);
 app.post('/refund-requests/:id/approve', checkAuthenticated, checkAuthorised(['admin']), RefundController.approve);
 app.post('/refund-requests/:id/reject', checkAuthenticated, checkAuthorised(['admin']), RefundController.reject);
 
@@ -177,232 +178,12 @@ app.post('/cart/checkout', checkAuthenticated, checkAuthorised(['customer', 'ado
 app.post('/paypal/create-order', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.createPaypalOrder);
 app.post('/paypal/capture-order', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.capturePaypalOrder);
 
-// NETS QR payment endpoint
-app.post('/generateNETSQR', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.generateNetsQrCode);
-
-// SSE endpoint to poll NETS QR transaction status
-app.get('/sse/payment-status/:txnRetrievalRef', async (req, res) => {
-  res.set({
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive'
-  });
-
-  const txnRetrievalRef = req.params.txnRetrievalRef;
-  let pollCount = 0;
-  const maxPolls = 60;
-  let frontendTimeoutStatus = 0;
-
-  const interval = setInterval(async () => {
-    pollCount++;
-
-    try {
-      const response = await fetch(
-        `https://sandbox.nets.openapipaas.com/api/v1/common/payments/nets-qr/query`,
-        {
-          method: 'POST',
-          headers: {
-            'api-key': process.env.API_KEY,
-            'project-id': process.env.PROJECT_ID,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            txn_retrieval_ref: txnRetrievalRef,
-            frontend_timeout_status: frontendTimeoutStatus
-          })
-        }
-      );
-
-      const data = await response.json();
-      console.log('NETS polling response (poll #' + pollCount + '):', data);
-      
-      res.write(`data: ${JSON.stringify(data)}\n\n`);
-
-      const resData = data.result && data.result.data;
-
-      if (resData && resData.response_code == '00' && resData.txn_status === 1) {
-        console.log('NETS payment successful for txnRef:', txnRetrievalRef);
-        res.write(`data: ${JSON.stringify({ success: true })}\n\n`);
-        clearInterval(interval);
-        res.end();
-      } else if (frontendTimeoutStatus == 1 && resData && (resData.response_code !== '00' || resData.txn_status === 2)) {
-        console.log('NETS payment failed for txnRef:', txnRetrievalRef);
-        res.write(`data: ${JSON.stringify({ fail: true, ...resData })}\n\n`);
-        clearInterval(interval);
-        res.end();
-      }
-    } catch (err) {
-      console.error('NETS polling error:', err.message);
-      clearInterval(interval);
-      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-      res.end();
-    }
-
-    if (pollCount >= maxPolls) {
-      clearInterval(interval);
-      frontendTimeoutStatus = 1;
-      console.log('NETS payment polling timeout for txnRef:', txnRetrievalRef);
-      res.write(`data: ${JSON.stringify({ fail: true, error: 'Transaction timed out after 5 minutes' })}\n\n`);
-      res.end();
-    }
-  }, 5000);
-
-  req.on('close', () => {
-    clearInterval(interval);
-    console.log('SSE connection closed for txnRef:', txnRetrievalRef);
-  });
-});
-
-// NETS QR: Success page
-app.get('/nets-qr/success', async (req, res) => {
-  try {
-    if (!req.session || !req.session.user || !req.session.user_id) {
-      return res.render('transactionFail', {
-        message: 'You must be logged in to complete a payment. Please log in and try again.',
-        returnUrl: '/login'
-      });
-    }
-
-    const user = req.session.user || { username: 'guest' };
-    const userId = req.session.user_id;
-    const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
-    const voucherCode = (req.session?.netsVoucher || '').trim();
-    const pendingPayment = req.session?.pendingPayment || {};
-
-    if (pendingPayment.purpose === 'wallet-topup') {
-      const topupAmount = toTwoDp(pendingPayment.walletTopupAmount || 0);
-      if (!topupAmount || topupAmount <= 0) {
-        return res.render('transactionFail', {
-          message: 'Invalid wallet top-up amount. Please try again.',
-          returnUrl: '/digitalWallet'
-        });
-      }
-
-      await Wallet.credit(
-        userId,
-        topupAmount,
-        {
-          txnType: 'TOPUP',
-          referenceType: 'NETS_TOPUP',
-          referenceId: req.query.txn_retrieval_ref || pendingPayment.netsQrTxnRef || null,
-          paymentMethod: 'NETS QR',
-          description: 'Wallet top-up via NETS QR'
-        },
-        { connection: connection, manageTransaction: true }
-      );
-
-      let topupOrderId = null;
-      if (WalletController.createTopupOrder) {
-        topupOrderId = await WalletController.createTopupOrder(userId, topupAmount).catch(() => null);
-      }
-
-      await Payment.recordTransaction({
-        order_id: topupOrderId,
-        paypal_order_id: req.query.txn_retrieval_ref || pendingPayment.netsQrTxnRef || 'NETS-' + Date.now(),
-        payer_id: 'nets_' + userId,
-        payer_email: user.email || null,
-        amount: topupAmount,
-        currency: 'SGD',
-        status: 'COMPLETED',
-        payment_method: 'WALLET_TOPUP_NETS'
-      });
-
-      req.session.pendingPayment = null;
-      return res.redirect('/digitalWallet');
-    }
-
-    // Build quote to get cart items and calculate total
-    const quote = await Payment.buildQuote(userId, role, voucherCode);
-
-    // Create invoice
-    const invoice = {
-      id: `INV-${Date.now()}`,
-      user: user.username || user.email || 'guest',
-      date: new Date(),
-      items: quote.items.map((item) => ({
-        productName: item.productName,
-        quantity: item.quantity,
-        price: item.price,
-        subtotal: item.subtotal
-      })),
-      subtotal: toTwoDp(quote.pricing.subtotal),
-      shippingFee: toTwoDp(quote.pricing.shippingFee),
-      taxAmount: toTwoDp(quote.pricing.taxAmount),
-      discountAmount: toTwoDp(quote.pricing.discountAmount),
-      total: toTwoDp(quote.pricing.total)
-    };
-
-    // Checkout (deduct stock, create order)
-    const orderSummary = await new Promise((resolve, reject) => {
-      Cart.checkout(
-        userId,
-        {
-          voucher_id: quote.voucherId ?? null,
-          shipping_fee: quote.pricing.shippingFee,
-          tax_rate: quote.pricing.taxRate,
-          discount_amount: quote.pricing.discountAmount
-        },
-        (checkoutErr, summary) => {
-          if (checkoutErr) return reject(checkoutErr);
-          return resolve(summary);
-        }
-      );
-    });
-
-    // Record transaction
-    await Payment.recordTransaction({
-      order_id: orderSummary?.order_id || null,
-      paypal_order_id: req.query.txn_retrieval_ref || 'NETS-' + Date.now(),
-      payer_id: 'nets_' + userId,
-      payer_email: user.email || null,
-      amount: toTwoDp(invoice.total),
-      currency: 'SGD',
-      status: 'COMPLETED',
-      payment_method: 'NETS QR'
-    });
-
-    // Store invoice in session
-    req.session.invoice = invoice;
-    req.session.netsVoucher = null;
-    req.session.pendingPayment = null;
-    req.session.appliedVoucher = null;
-
-    // Redirect to invoice page
-    return res.redirect('/invoice-confirmation');
-  } catch (error) {
-    console.error('NETS success handler error:', error);
-    return res.render('transactionFail', {
-      message: 'Payment processing failed: ' + error.message,
-      returnUrl: '/shopping'
-    });
-  }
-});
-
-// NETS QR: Failure page
-app.get('/nets-qr/fail', (req, res) => {
-  const pendingPayment = req.session?.pendingPayment || {};
-  const isWalletTopup = pendingPayment.purpose === 'wallet-topup';
-      req.session.pendingPayment = null;
-      req.session.appliedVoucher = null;
-
-  res.render('transactionFail', {
-    message: 'NETS QR Transaction Failed. Please try another payment method.',
-    returnUrl: isWalletTopup ? '/digitalWallet' : '/cart'
-  });
-});
-
-// Transaction Success page (simplified)
-app.get('/transaction-success', (req, res) => {
-  res.render('transactionSuccess');
-});
-
-// Transaction Fail page (simplified)
-app.get('/transaction-fail', (req, res) => {
-  res.render('transactionFail', {
-    message: req.query.message || 'Transaction Failed. Please try again.',
-    returnUrl: req.query.returnUrl || '/cart'
-  });
-});
+// NETS QR payment endpoints
+app.post('/nets-qr/create', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.createNetsQr);
+app.get('/nets-qr/scan', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.renderNetsQr);
+app.get('/nets-qr/success', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.renderNetsSuccess);
+app.get('/nets-qr/fail', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.renderNetsFail);
+app.get('/sse/nets/payment-status/:txnRetrievalRef', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.sseNetsStatus);
 
 // Wishlist
 app.get('/wishlist', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WishlistController.view);
@@ -444,7 +225,13 @@ app.post('/accountDetails', UserController.updateAccountDetails);
 app.get('/digitalWallet', checkAuthenticated, WalletController.viewWallet);
 app.post('/wallet/paypal/create-order', checkAuthenticated, WalletController.createPaypalTopupOrder);
 app.post('/wallet/paypal/capture-order', checkAuthenticated, WalletController.capturePaypalTopup);
-app.post('/wallet/nets/qr', checkAuthenticated, WalletController.generateNetsTopup);
+
+// NETS QR wallet top-up
+app.post('/wallet/nets/create', checkAuthenticated, WalletController.createNetsTopup);
+app.get('/wallet/nets/scan', checkAuthenticated, WalletController.renderNetsTopupQr);
+app.get('/wallet/nets/fail', checkAuthenticated, WalletController.renderNetsTopupFail);
+app.get('/sse/nets/wallet-status/:txnRetrievalRef', checkAuthenticated, WalletController.sseNetsTopupStatus);
+
 app.post('/wallet/pay-cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), WalletController.payWithWallet);
 
 app.get('/myVoucher', VoucherController.viewMine);
@@ -471,14 +258,15 @@ app.get('/allTransactions', checkAuthenticated, (req, res) => {
             const orderId = row.order_id;
             if (!orderMap.has(orderId)) {
                 const order = {
-                    order_id: orderId,
-                    transaction_time: row.transaction_time || null,
-                    amount: row.amount ?? null,
-                    refund_amount: row.refund_amount ?? null,
-                    delivery_status: row.delivery_status || '',
-                    refund_status: row.refund_status || '',
-                    items: []
-                };
+                order_id: orderId,
+                transaction_time: row.transaction_time || null,
+                amount: row.amount ?? null,
+                refund_amount: row.refund_amount ?? null,
+                refund_id: row.refund_id ?? null,
+                delivery_status: row.delivery_status || '',
+                refund_status: row.refund_status || '',
+                items: []
+            };
                 orderMap.set(orderId, order);
                 grouped.push(order);
             }
@@ -486,6 +274,7 @@ app.get('/allTransactions', checkAuthenticated, (req, res) => {
             if (!order.transaction_time && row.transaction_time) order.transaction_time = row.transaction_time;
             if (order.amount == null && row.amount != null) order.amount = row.amount;
             if (order.refund_amount == null && row.refund_amount != null) order.refund_amount = row.refund_amount;
+            if (order.refund_id == null && row.refund_id != null) order.refund_id = row.refund_id;
             if (!order.delivery_status && row.delivery_status) order.delivery_status = row.delivery_status;
             if (!order.refund_status && row.refund_status) order.refund_status = row.refund_status;
 
@@ -532,53 +321,7 @@ app.get('/refund-request', checkAuthenticated, checkAuthorised(['customer', 'ado
 app.post('/refund-request', checkAuthenticated, checkAuthorised(['customer', 'adopter']), RefundController.submitRequest);
 
 
-// Admin Setup (for initial admin account creation)
-app.get('/admin/setup', (req, res) => {
-    const success = (req.flash && req.flash('success')[0]) || undefined;
-    const error = (req.flash && req.flash('error')[0]) || undefined;
-    res.render('adminSetup', { success, error });
-});
 
-app.post('/admin/setup', (req, res) => {
-    const { username, email, password, confirmPassword } = req.body;
-
-    // Validation
-    if (!username || !email || !password || !confirmPassword) {
-        if (req.flash) req.flash('error', 'All fields are required.');
-        return res.redirect('/admin/setup');
-    }
-
-    if (password !== confirmPassword) {
-        if (req.flash) req.flash('error', 'Passwords do not match.');
-        return res.redirect('/admin/setup');
-    }
-
-    if (password.length < 6) {
-        if (req.flash) req.flash('error', 'Password must be at least 6 characters long.');
-        return res.redirect('/admin/setup');
-    }
-
-    // Create admin account using User model
-    const adminData = {
-        username,
-        email,
-        password,
-        phone: '',
-        address: '',
-        role: 'admin'
-    };
-
-    User.addUser(adminData, (err, result) => {
-        if (err) {
-            console.error('Admin setup error:', err);
-            if (req.flash) req.flash('error', err.message || 'Failed to create admin account.');
-            return res.redirect('/admin/setup');
-        }
-
-        if (req.flash) req.flash('success', 'Admin account created successfully! Please login.');
-        res.redirect('/login');
-    });
-});
 // Checkout and Invoice Routes
 app.get('/checkout', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
     const cart = req.session.cart || [];
@@ -596,6 +339,8 @@ app.post('/process-payment', checkAuthenticated, checkAuthorised(['customer', 'a
 app.get('/invoice-confirmation', checkAuthenticated, (req, res) => {
     invoiceController.viewInvoice(req, res);
 });
+
+
 // -------------------- START SERVER --------------------
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const Wishlist = require('../models/Wishlist');
+const Review = require('../models/Review');
 
 const ProductController = {
     // List all products on the inventory page (admin view)
@@ -127,19 +128,28 @@ const ProductController = {
                 return res.status(404).send('Product not found.');
             }
             const userId = req.session?.user_id;
-            if (!userId) {
-                res.render('product', { product, wishlistItem: null });
-                return;
-            }
+            Review.getReviewsByProduct(productId, (reviewErr, reviews) => {
+                if (reviewErr) {
+                    console.error('Failed to load reviews:', reviewErr);
+                }
+                const safeReviews = Array.isArray(reviews)
+                    ? reviews.filter(r => r && r.review_text && String(r.review_text).trim())
+                    : [];
 
-            Wishlist.getByUser(userId, (wishErr, items) => {
-                if (wishErr) {
-                    console.error('Failed to load wishlist:', wishErr);
-                    return res.render('product', { product, wishlistItem: null });
+                if (!userId) {
+                    res.render('product', { product, wishlistItem: null, reviews: safeReviews });
+                    return;
                 }
 
-                const wishlistItem = (items || []).find(item => String(item.product_id) === String(productId)) || null;
-                res.render('product', { product, wishlistItem });
+                Wishlist.getByUser(userId, (wishErr, items) => {
+                    if (wishErr) {
+                        console.error('Failed to load wishlist:', wishErr);
+                        return res.render('product', { product, wishlistItem: null, reviews: safeReviews });
+                    }
+
+                    const wishlistItem = (items || []).find(item => String(item.product_id) === String(productId)) || null;
+                    res.render('product', { product, wishlistItem, reviews: safeReviews });
+                });
             });
         });
     },

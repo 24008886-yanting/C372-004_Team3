@@ -42,10 +42,6 @@ body.account-body { background: #f3f0e5; }
   background: #1f2937; color: #fff; font-weight: 800; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.nets-btn {
-  width: 100%; border: 1px solid #cbd5e1; padding: 11px 14px; border-radius: 8px;
-  background: #fff; color: #111827; font-weight: 700; cursor: pointer;
-}
 .powered-paypal { text-align:center; font-style: italic; color:#6c7080; font-size: 13px; }
 .powered-paypal .pp { color:#003087; font-weight: 800; }
 table.wallet-table { width:100%; border-collapse: collapse; margin-top:4px; }

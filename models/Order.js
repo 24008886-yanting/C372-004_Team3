@@ -18,10 +18,13 @@ const Order = {
 				o.tax_amount,
 				o.total_amount,
 				o.delivery_status,
+				o.payment_status,
+				tx.payment_method AS payment_method,
 				rr.refund_id,
 				rr.status AS refund_status,
-				rr.amount AS refund_amount,
-				rr.payment_method AS refund_method,
+				rr.amount AS refund_amount,					rr.reason AS refund_reason,
+					rr.refund_items AS refund_items,
+					rr.created_at AS refund_created_at,
 				COALESCE(rc.rejected_count, 0) AS rejected_count,
 				COALESCE(rc.total_attempts, 0) AS refund_attempts,
 				COALESCE(oi.items_count, 0) AS items_count,
@@ -37,6 +40,16 @@ const Order = {
 				FROM order_items
 				GROUP BY order_id
 			) oi ON o.order_id = oi.order_id
+			LEFT JOIN (
+				SELECT t1.*
+				FROM transactions t1
+				JOIN (
+					SELECT order_id, MAX(transaction_time) AS max_time
+					FROM transactions
+					GROUP BY order_id
+				) t2
+				ON t1.order_id = t2.order_id AND t1.transaction_time = t2.max_time
+			) tx ON tx.order_id = o.order_id
 			LEFT JOIN (
 				SELECT r1.*
 				FROM refund_requests r1

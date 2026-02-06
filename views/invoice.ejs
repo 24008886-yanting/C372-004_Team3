@@ -56,13 +56,18 @@
 
                         <hr>
 
+                        <% 
+                            const gstRatePercent = 9;
+                            const gstIncluded = invoice.subtotal * (gstRatePercent / (100 + gstRatePercent));
+                            const totalDisplayed = invoice.subtotal + invoice.shippingFee - invoice.discountAmount;
+                        %>
                         <!-- Totals Breakdown -->
                         <div class="text-end">
                             <p><strong>Subtotal:</strong> $<%= invoice.subtotal.toFixed(2) %></p>
                             <p><strong>Shipping Fee:</strong> $<%= invoice.shippingFee.toFixed(2) %></p>
-                            <p><strong>Tax (9%):</strong> $<%= invoice.taxAmount.toFixed(2) %></p>
+                            <p><strong>GST (9% included):</strong> $<%= gstIncluded.toFixed(2) %></p>
                             <p><strong>Discount:</strong> -$<%= invoice.discountAmount.toFixed(2) %></p>
-                            <h4 style="margin-top: 15px;"><strong>Total: $<%= invoice.total.toFixed(2) %></strong></h4>
+                            <h4 style="margin-top: 15px;"><strong>Total: $<%= totalDisplayed.toFixed(2) %></strong></h4>
                         </div>
 
                         <div class="mt-4 text-center">

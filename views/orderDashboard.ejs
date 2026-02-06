@@ -54,9 +54,9 @@
                 <th>Items</th>
                 <th>Subtotal</th>
                 <th>Total</th>
-                <th>Refund Amt</th>
-                <th>Created</th>
-                <th>Refund</th>
+                <th>Payment Method</th>
+                <th>Payment Status</th>
+                <th>Refund Status</th>
               </tr>
             </thead>
             <tbody>
@@ -66,32 +66,27 @@
                 <% const deliveryStatus = String(o.delivery_status || '').toUpperCase(); %>
                 <% const isFinalReject = refundStatus === 'REJECTED' && rejectedCount >= 3; %>
                 <tr>
-                  <td><strong>#<%= o.order_id %></strong></td>
+                  <td>
+                    <% if (o.refund_id) { %>
+                      <a href="/refund-requests/<%= o.refund_id %>"><strong>#<%= o.order_id %></strong></a>
+                    <% } else { %>
+                      <strong>#<%= o.order_id %></strong>
+                    <% } %>
+                  </td>
                   <td><%= o.username || `User #${o.user_id}` %></td>
                   <td><%= o.voucher_code || '-' %></td>
                   <td><%= o.items_count || 0 %></td>
                   <td>$<%= Number(o.subtotal || 0).toFixed(2) %></td>
                   <td>$<%= Number(o.total_amount || 0).toFixed(2) %></td>
-                  <td><%= o.refund_amount != null ? ('$' + Number(o.refund_amount || 0).toFixed(2)) : '-' %></td>
-                  <td><%= o.order_date ? new Date(o.order_date).toLocaleDateString() : '-' %></td>
+                  <td><%= o.payment_method || '-' %></td>
+                  <td><%= o.payment_status || '-' %></td>
                   <td>
-                    <% if (o.refund_id && refundStatus === 'PENDING') { %>
-                      <div class="action-group">
-                        <form method="POST" action="/refund-requests/<%= o.refund_id %>/approve">
-                          <button class="action-btn" type="submit">Accept</button>
-                        </form>
-                        <form method="POST" action="/refund-requests/<%= o.refund_id %>/reject">
-                          <button class="action-btn action-btn--reject" type="submit">Reject</button>
-                        </form>
-                      </div>
+                    <% if (refundStatus === 'PENDING') { %>
+                      <span class="refund-status">Pending</span>
                     <% } else if (refundStatus === 'REFUNDED') { %>
                       <span class="refund-status">Refunded</span>
-                    <% } else if (isFinalReject) { %>
-                      <span class="refund-status">Rejected (Final)</span>
-                    <% } else if (deliveryStatus === 'COMPLETED' && refundStatus !== 'REFUNDED') { %>
-                      <span class="refund-status">Completed</span>
                     <% } else if (refundStatus === 'REJECTED') { %>
-                      <span class="refund-status">Rejected (<%= rejectedCount || 1 %>)</span>
+                      <span class="refund-status">Rejected</span>
                     <% } else if (refundStatus) { %>
                       <span class="refund-status"><%= refundStatus %></span>
                     <% } else { %>

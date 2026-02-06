@@ -25,6 +25,13 @@
       <% const safeAmount = (typeof amount === 'undefined' ? '' : amount); %>
       <% const safePaymentMethod = (typeof paymentMethod === 'undefined' ? '' : paymentMethod); %>
       <% const safeOrderItemId = (typeof orderItemId === 'undefined' ? '' : orderItemId); %>
+      <% const safeShippingFee = Math.max(Number(typeof shippingFee === 'undefined' ? 0 : shippingFee || 0), 0); %>
+      <% const safeOrderTotal = Math.max(Number(typeof orderTotal === 'undefined' ? 0 : orderTotal || 0), 0); %>
+      <% const viewOnlyMode = Boolean(typeof viewOnly !== 'undefined' && viewOnly); %>
+      <% const presetRefundItemsMap = (typeof presetRefundItems === 'undefined' ? {} : presetRefundItems) || {}; %>
+      <% const presetReasonValue = (typeof presetReason === 'undefined' ? '' : presetReason) || ''; %>
+      <% const presetDetailsValue = (typeof presetDetails === 'undefined' ? '' : presetDetails) || ''; %>
+      <% const presetRefundTypeValue = (typeof presetRefundType === 'undefined' ? 'full' : presetRefundType) || 'full'; %>
       <% const isRefunded = statusText === 'REFUNDED'; %>
       <% const isPending = statusText === 'PENDING'; %>
       <% const isFailed = statusText === 'FAILED'; %>
@@ -83,6 +90,9 @@
       <% if (error) { %>
         <div class="alert alert--error"><%= error %></div>
       <% } %>
+      <% if (viewOnlyMode) { %>
+        <div class="alert alert--info">Viewing your latest refund request (read-only).</div>
+      <% } %>
 
       <form class="refund-form" method="POST" action="/refund-request">
         <input type="hidden" name="order_id" value="<%= orderId || '' %>">
@@ -91,23 +101,23 @@
         <input type="hidden" name="refund_items" id="refund-items" value="">
 
         <label class="label" for="reason">Reason for refund</label>
-        <select id="reason" name="reason" required>
+        <select id="reason" name="reason" required <%= viewOnlyMode ? 'disabled' : '' %>>
           <option value="">Select a reason</option>
-          <option value="Damaged item">Damaged item</option>
-          <option value="Wrong item delivered">Wrong item delivered</option>
-          <option value="Missing item">Missing item</option>
-          <option value="Late delivery">Late delivery</option>
-          <option value="Other">Other</option>
+          <option value="Damaged item" <%= presetReasonValue === 'Damaged item' ? 'selected' : '' %>>Damaged item</option>
+          <option value="Wrong item delivered" <%= presetReasonValue === 'Wrong item delivered' ? 'selected' : '' %>>Wrong item delivered</option>
+          <option value="Missing item" <%= presetReasonValue === 'Missing item' ? 'selected' : '' %>>Missing item</option>
+          <option value="Late delivery" <%= presetReasonValue === 'Late delivery' ? 'selected' : '' %>>Late delivery</option>
+          <option value="Other" <%= presetReasonValue === 'Other' ? 'selected' : '' %>>Other</option>
         </select>
 
         <label class="label">Refund Type</label>
         <div class="refund-type">
           <label class="type-option">
-            <input type="radio" name="refund_type" value="full" checked>
+            <input type="radio" name="refund_type" value="full" <%= presetRefundTypeValue === 'full' ? 'checked' : '' %> <%= viewOnlyMode ? 'disabled' : '' %>>
             Full refund
           </label>
           <label class="type-option">
-            <input type="radio" name="refund_type" value="partial">
+            <input type="radio" name="refund_type" value="partial" <%= presetRefundTypeValue === 'partial' ? 'checked' : '' %> <%= viewOnlyMode ? 'disabled' : '' %>>
             Partial refund
           </label>
         </div>
@@ -115,6 +125,8 @@
         <div class="item-refund-list">
           <% if (safeItems && safeItems.length) { %>
             <% safeItems.forEach((item) => { %>
+              <% const fallbackQty = viewOnlyMode ? 0 : (item.max_qty ?? 0); %>
+              <% const presetQty = Number(presetRefundItemsMap[item.order_item_id] ?? fallbackQty); %>
               <div class="item-row"
                    data-item-id="<%= item.order_item_id %>"
                    data-max-qty="<%= item.max_qty || 0 %>"
@@ -125,7 +137,7 @@
                 </div>
                 <div class="item-qty-wrap">
                   <label class="label" for="refund-qty-<%= item.order_item_id %>">Refund qty</label>
-                  <input class="item-qty" id="refund-qty-<%= item.order_item_id %>" type="number" min="0" max="<%= item.max_qty || 0 %>" value="<%= item.max_qty || 0 %>" disabled>
+                  <input class="item-qty" id="refund-qty-<%= item.order_item_id %>" type="number" min="0" max="<%= item.max_qty || 0 %>" value="<%= presetQty %>" <%= viewOnlyMode ? 'disabled' : 'disabled' %>>
                 </div>
               </div>
             <% }) %>
@@ -139,12 +151,14 @@
           <span class="label">Refund Amount</span>
           <span id="refund-amount-text" class="value">S$0.00</span>
         </div>
-        <p class="muted-small">Note: Refunds exclude GST, delivery fees, and voucher discounts.</p>
+        <p class="muted-small">Note: Refunds exclude voucher discounts. Full refunds include delivery fees and GST.</p>
 
         <label class="label" for="details">Details (optional)</label>
-        <textarea id="details" name="details" rows="4" placeholder="Share what happened so we can help faster."></textarea>
+        <textarea id="details" name="details" rows="4" placeholder="Share what happened so we can help faster." <%= viewOnlyMode ? 'readonly' : '' %>><%= presetDetailsValue %></textarea>
 
-        <button class="primary-btn" type="submit" <%= (isRefunded || isPending || isFinalReject) ? 'disabled' : '' %>>Submit Refund Request</button>
+        <% if (!viewOnlyMode) { %>
+          <button class="primary-btn" type="submit" <%= (isRefunded || isPending || isFinalReject) ? 'disabled' : '' %>>Submit Refund Request</button>
+        <% } %>
         <% if (isPending) { %>
           <p class="muted-small">Your request is pending admin approval.</p>
         <% } %>
@@ -165,13 +179,18 @@
     const refundTypeRadios = document.querySelectorAll('input[name="refund_type"]');
     const itemRows = Array.from(document.querySelectorAll('.item-row'));
     const form = document.querySelector('.refund-form');
+    const viewOnly = <%= viewOnlyMode ? 'true' : 'false' %>;
+    const shippingFee = Number(<%- JSON.stringify(safeShippingFee) %>);
+    const orderTotal = Number(<%- JSON.stringify(safeOrderTotal) %>);
 
     const syncRefundItems = () => {
       let total = 0;
       let totalQty = 0;
+      let maxQtyTotal = 0;
       const payload = itemRows.map((row) => {
         const qtyInput = row.querySelector('.item-qty');
         const maxQty = Number(row.dataset.maxQty || 0);
+        maxQtyTotal += maxQty;
         let qty = Number(qtyInput?.value || 0);
         if (!Number.isFinite(qty)) qty = 0;
         qty = Math.min(Math.max(qty, 0), maxQty);
@@ -182,6 +201,14 @@
         return { order_item_id: Number(row.dataset.itemId || 0), qty };
       });
 
+      const refundType = document.querySelector('input[name="refund_type"]:checked')?.value || 'full';
+      if (refundType === 'full' && totalQty === maxQtyTotal && maxQtyTotal > 0) {
+        if (orderTotal > 0) {
+          total = orderTotal;
+        } else if (shippingFee > 0) {
+          total += shippingFee;
+        }
+      }
       if (refundItemsInput) refundItemsInput.value = JSON.stringify(payload);
       if (refundAmountText) refundAmountText.textContent = `S$${total.toFixed(2)}`;
       return { total, totalQty };
@@ -216,27 +243,34 @@
       }
     };
 
-    refundTypeRadios.forEach((radio) => {
-      radio.addEventListener('change', updateRefundType);
-    });
-
-    itemRows.forEach((row) => {
-      const qtyInput = row.querySelector('.item-qty');
-      if (!qtyInput) return;
-      qtyInput.addEventListener('input', syncRefundItems);
-    });
-
-    if (form) {
-      form.addEventListener('submit', (event) => {
-        const { totalQty } = syncRefundItems();
-        if (totalQty <= 0) {
-          event.preventDefault();
-          alert('Please select at least one item to refund.');
-        }
+    if (!viewOnly) {
+      refundTypeRadios.forEach((radio) => {
+        radio.addEventListener('change', updateRefundType);
       });
-    }
 
-    updateRefundType();
+      itemRows.forEach((row) => {
+        const qtyInput = row.querySelector('.item-qty');
+        if (!qtyInput) return;
+        qtyInput.addEventListener('input', syncRefundItems);
+      });
+
+      if (form) {
+        form.addEventListener('submit', (event) => {
+          const { totalQty } = syncRefundItems();
+          if (totalQty <= 0) {
+            event.preventDefault();
+            alert('Please select at least one item to refund.');
+          }
+        });
+      }
+
+      updateRefundType();
+    } else {
+      syncRefundItems();
+      if (form) {
+        form.addEventListener('submit', (event) => event.preventDefault());
+      }
+    }
   </script>
 </body>
 </html>

@@ -140,7 +140,7 @@ const CartModel = {
    * transaction management on the provided connection.
    */
   checkoutWithConnection(connection, options, userId, callback, manageTransaction = false) {
-    const { voucher_id = null, shipping_fee = 0, tax_rate = 0, discount_amount = 0 } = options || {};
+    const { voucher_id = null, shipping_fee = 0, tax_rate = 0, discount_amount = 0, payment_status = 'UNPAID' } = options || {};
 
     const begin = (next) => {
       if (!manageTransaction) return next();
@@ -193,10 +193,10 @@ const CartModel = {
         const total = subtotal - discount + shippingFee + taxAmount;
 
         const orderSql = `
-          INSERT INTO orders (user_id, voucher_id, subtotal, discount_amount, shipping_fee, tax_amount, total_amount)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO orders (user_id, voucher_id, subtotal, discount_amount, shipping_fee, tax_amount, total_amount, payment_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        const orderParams = [userId, voucher_id, subtotal, discount, shippingFee, taxAmount, total];
+        const orderParams = [userId, voucher_id, subtotal, discount, shippingFee, taxAmount, total, payment_status];
 
         connection.query(orderSql, orderParams, (orderErr, orderResult) => {
           if (orderErr) return rollback(orderErr);

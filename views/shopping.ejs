@@ -375,7 +375,15 @@
           }
           const data = await res.json().catch(() => ({}));
           setWishlistState(btn, true, data.wishlist_id);
-          showAlert('Item added to wishlist.', 'info');
+          if (data.moved_from === 'cart') {
+            const cartBtn = card?.querySelector('.cart-btn');
+            if (cartBtn) {
+              cartBtn.classList.remove('added');
+            }
+            showAlert('Moved from cart to wishlist.', 'info');
+          } else {
+            showAlert('Item added to wishlist.', 'info');
+          }
         } catch (err) {
           console.error(err);
           showAlert(err?.message || 'An error occurred. Please try again.', 'danger');
@@ -448,7 +456,13 @@
           const data = await res.json().catch(() => ({}));
           const action = data.action === 'updated' ? 'updated' : 'added';
           btn.classList.add('added');
-          if (action === 'updated') {
+          if (data.moved_from === 'wishlist') {
+            const wishlistBtn = card?.querySelector('.wishlist-btn');
+            if (wishlistBtn) {
+              setWishlistState(wishlistBtn, false, '');
+            }
+            showAlert('Moved from wishlist to cart.', 'success');
+          } else if (action === 'updated') {
             showAlert('Item quantity updated in cart.', 'info');
           } else {
             showAlert('Item added to cart successfully.', 'success');

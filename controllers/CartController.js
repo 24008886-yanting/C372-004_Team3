@@ -71,21 +71,50 @@ const CartController = {
       return res.status(400).json({ error: 'user_id and product_id are required' });
     }
 
-    Cart.addItem(userId, product_id, quantity || 1, (err, result) => {
-      if (err) {
-        const message = err.message || String(err);
-        const lower = message.toLowerCase();
-        const status = lower.includes('not enough stock') || lower.includes('unavailable') ? 400 : lower.includes('product not found') ? 404 : 500;
-        return res.status(status).json({ error: 'Failed to add item to cart', details: message });
-      }
-      const action = result?.action === 'updated' ? 'updated' : 'added';
-      const message = action === 'updated' ? 'Item quantity updated in cart.' : 'Item added to cart successfully.';
-      Wishlist.removeItemByUserAndProduct(userId, product_id, (removeErr) => {
-        if (removeErr) {
-          console.error('Failed to remove wishlist item after cart add:', removeErr);
+    const proceedWithAdd = (wishlistItem) => {
+      const hadWishlist = Boolean(wishlistItem);
+      Cart.addItem(userId, product_id, quantity || 1, (err, result) => {
+        if (err) {
+          const message = err.message || String(err);
+          const lower = message.toLowerCase();
+          const status = lower.includes('not enough stock') || lower.includes('unavailable') ? 400 : lower.includes('product not found') ? 404 : 500;
+          return res.status(status).json({ error: 'Failed to add item to cart', details: message });
         }
-        renderOrJson(res, 'cart/add-success', { message, action, result });
+        const action = result?.action === 'updated' ? 'updated' : 'added';
+        const message = hadWishlist
+          ? 'Moved from wishlist to cart.'
+          : action === 'updated'
+            ? 'Item quantity updated in cart.'
+            : 'Item added to cart successfully.';
+
+        const finish = () => {
+          renderOrJson(res, 'cart/add-success', {
+            message,
+            action,
+            moved: hadWishlist,
+            moved_from: hadWishlist ? 'wishlist' : null,
+            moved_to: hadWishlist ? 'cart' : null,
+            result
+          });
+        };
+
+        if (!hadWishlist) return finish();
+        Wishlist.removeItem(wishlistItem.wishlist_id, userId, (removeErr) => {
+          if (removeErr) {
+            console.error('Failed to remove wishlist item after cart add:', removeErr);
+          }
+          finish();
+        });
       });
+    };
+
+    Wishlist.getItemByUserAndProduct(userId, product_id, (wishErr, wishRows) => {
+      if (wishErr) {
+        console.error('Failed to check wishlist before cart add:', wishErr);
+        return proceedWithAdd(null);
+      }
+      const wishlistItem = wishRows && wishRows[0] ? wishRows[0] : null;
+      proceedWithAdd(wishlistItem);
     });
   },
 

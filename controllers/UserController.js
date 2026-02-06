@@ -202,7 +202,7 @@ const UserController = {
           shelter_id: user.shelter_id
         };
 
-        if (req.flash) req.flash('success', `Welcome back, ${user.username || 'user'}!`);
+        if (req.flash) req.flash('login_success', `Welcome back, ${user.username || 'user'}!`);
         return res.redirect('/');
       } catch (compareErr) {
         console.error('password compare error:', compareErr);
