@@ -77,7 +77,8 @@ h1 {
 }
 .confirm-btn,
 .no-refund-btn,
-.refund-link {
+.refund-link,
+.track-btn {
   border-radius: 10px;
   padding: 8px 10px;
   font-weight: 700;
@@ -97,6 +98,11 @@ h1 {
   border-color: var(--accent);
   color: var(--accent);
   background: rgba(61, 90, 128, 0.08);
+}
+.track-btn {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
 }
 .refund-link {
   border-color: #b24d1f;

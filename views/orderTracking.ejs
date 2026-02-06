@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Tracking | Repawblic Pets</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="/css/orderTracking.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <main>
+    <header style="margin-bottom:12px;">
+      <p class="subhead">Track the delivery progress of your paid orders.</p>
+      <h1>Order Tracking</h1>
+    </header>
+
+    <% if (error) { %>
+      <p class="error"><%= error %></p>
+    <% } %>
+
+    <section class="card">
+      <% if (orders && orders.length) { %>
+        <% orders.forEach(function(order) { %>
+          <article
+            class="order"
+            data-status="<%= (order.tracking_status || 'in_warehouse').toLowerCase() %>"
+            data-start="<%= order.tracking_updated_at ? new Date(order.tracking_updated_at).toISOString() : new Date().toISOString() %>"
+          >
+            <div class="order-head">
+              <h2>Order #<%= order.order_id %></h2>
+              <span class="status">
+                <%= trackingLabels[order.tracking_status] || trackingLabels.in_warehouse %>
+              </span>
+            </div>
+            <p class="meta"><%= Number(order.units_count || 0) %> item(s) · Total S$<%= Number(order.total_amount || 0).toFixed(2) %></p>
+            <div class="timeline">
+              <div class="step" data-step="in_warehouse">In Warehouse</div>
+              <div class="step" data-step="sorting_centre">Sorting Centre</div>
+              <div class="step" data-step="enroute">En Route to Customer</div>
+              <div class="step" data-step="delivered">Delivered</div>
+            </div>
+          </article>
+        <% }); %>
+      <% } else { %>
+        <p class="muted">You do not have any paid orders to track yet.</p>
+      <% } %>
+    </section>
+
+    <a class="back-link" href="/profile">&#60; Back to Profile</a>
+  </main>
+
+  <script>
+    (() => {
+      const steps = ['in_warehouse', 'sorting_centre', 'enroute', 'delivered'];
+      const labels = {
+        in_warehouse: 'In Warehouse',
+        sorting_centre: 'Sorting Centre',
+        enroute: 'En Route to Customer',
+        delivered: 'Delivered'
+      };
+
+      const normalizeStatus = (value) => {
+        const raw = String(value || '').trim().toLowerCase();
+        if (raw === 'out_for_delivery') return 'enroute';
+        return steps.includes(raw) ? raw : 'in_warehouse';
+      };
+
+      const renderStatus = (card, status) => {
+        const badge = card.querySelector('.status');
+        if (badge) {
+          badge.textContent = labels[status] || labels.in_warehouse;
+          badge.className = `status status-${status}`;
+        }
+
+        const index = steps.indexOf(status);
+        const stepEls = Array.from(card.querySelectorAll('.step'));
+        stepEls.forEach((stepEl) => {
+          const stepKey = stepEl.getAttribute('data-step');
+          const stepIndex = steps.indexOf(stepKey);
+          stepEl.classList.remove('done', 'active');
+          if (stepIndex < index) {
+            stepEl.classList.add('done');
+          } else if (stepIndex === index) {
+            stepEl.classList.add('active');
+          }
+        });
+      };
+
+      const updateCard = (card) => {
+        const baseStatus = normalizeStatus(card.dataset.status);
+        const start = Date.parse(card.dataset.start || '');
+        const startTime = Number.isFinite(start) ? start : Date.now();
+        const baseIndex = steps.indexOf(baseStatus);
+        const elapsedSteps = Math.floor((Date.now() - startTime) / 15000);
+        const nextIndex = Math.min(steps.length - 1, baseIndex + Math.max(elapsedSteps, 0));
+        const nextStatus = steps[nextIndex] || baseStatus;
+        renderStatus(card, nextStatus);
+      };
+
+      const cards = Array.from(document.querySelectorAll('.order'));
+      if (!cards.length) return;
+
+      cards.forEach(updateCard);
+      setInterval(() => {
+        cards.forEach(updateCard);
+      }, 15000);
+    })();
+  </script>
+</body>
+</html>

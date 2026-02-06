@@ -1,6 +1,13 @@
 const Order = require('../models/Order');
 const RiskFlag = require('../models/RiskFlag');
 
+const TRACKING_LABELS = {
+	in_warehouse: 'In Warehouse',
+	sorting_centre: 'Sorting Centre',
+	enroute: 'En Route to Customer',
+	delivered: 'Delivered'
+};
+
 const OrderController = {
 	// Admin: order dashboard
 	listDashboard(req, res) {
@@ -40,6 +47,29 @@ const OrderController = {
 			console.log('Order Totals Calculation:', totals, 'Orders:', orders.map(o => ({ id: o.order_id, total_amount: o.total_amount })));
 
 			res.render('orderDashboard', { orders: orders || [], totals, riskFlagCounts });
+		});
+	},
+
+	// Customer: order tracking view (paid orders only)
+	listTracking(req, res) {
+		const userId = req.session?.user_id;
+		if (!userId) return res.redirect('/login');
+
+		Order.getTrackingByUser(userId, (err, orders) => {
+			if (err) {
+				console.error('Failed to load order tracking:', err);
+				return res.status(500).render('orderTracking', {
+					orders: [],
+					trackingLabels: TRACKING_LABELS,
+					error: 'Failed to load your order tracking right now.'
+				});
+			}
+
+			return res.render('orderTracking', {
+				orders: orders || [],
+				trackingLabels: TRACKING_LABELS,
+				error: null
+			});
 		});
 	}
 };

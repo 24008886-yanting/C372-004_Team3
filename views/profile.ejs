@@ -26,6 +26,7 @@
     const showWallet = isCustomer || isAdopter;
     const showVouchers = isCustomer || isAdopter;
     const showTransactions = isCustomer || isAdopter;
+    const showOrderTracking = isCustomer || isAdopter;
   %>
 
   <main class="profile-shell">
@@ -75,6 +76,13 @@
         <% if (showTransactions) { %>
           <a class="profile-link" href="/allTransactions">
             <span>All Transactions</span>
+            <span aria-hidden="true">&#8250;</span>
+          </a>
+        <% } %>
+
+        <% if (showOrderTracking) { %>
+          <a class="profile-link" href="/orders/tracking">
+            <span>Order Tracking</span>
             <span aria-hidden="true">&#8250;</span>
           </a>
         <% } %>

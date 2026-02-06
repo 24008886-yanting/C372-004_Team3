@@ -113,11 +113,11 @@ const InvoiceController = {
 
                             // Create order record in database
                             const orderSql = `
-                                INSERT INTO orders (user_id, subtotal, discount_amount, shipping_fee, tax_amount, total_amount, voucher_id)
-                                VALUES (?, ?, ?, ?, ?, ?, ?)
+                                INSERT INTO orders (user_id, subtotal, discount_amount, shipping_fee, tax_amount, total_amount, voucher_id, payment_status)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                             `;
 
-                            connection.query(orderSql, [userId, subtotal, discountAmount, shippingFee, taxAmount, totalAmount, voucherId], (orderErr, orderResult) => {
+                            connection.query(orderSql, [userId, subtotal, discountAmount, shippingFee, taxAmount, totalAmount, voucherId, 'PAID'], (orderErr, orderResult) => {
                                 if (orderErr) {
                                     console.error('Error creating order:', orderErr.message);
                                     console.error('SQL:', orderSql);
@@ -129,6 +129,17 @@ const InvoiceController = {
                                 }
 
                                 const orderId = orderResult.insertId;
+                                const trackingSql = `
+                                    INSERT INTO order_tracking (order_id, status)
+                                    VALUES (?, 'in_warehouse')
+                                    ON DUPLICATE KEY UPDATE status = status
+                                `;
+
+                                connection.query(trackingSql, [orderId], (trackingErr) => {
+                                    if (trackingErr) {
+                                        console.error('Error creating initial tracking status:', trackingErr.message);
+                                    }
+                                });
 
                                 // Create order items
                                 const itemInserts = invoiceItems.map(item => [orderId, item.id, item.quantity, item.price, item.subtotal]);

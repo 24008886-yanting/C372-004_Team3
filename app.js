@@ -73,6 +73,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Ensure order tracking table exists.
+Order.ensureTrackingTable();
+
 // -------------------- ROUTES --------------------
 app.get('/', (req, res) => {
     const success = (req.flash && req.flash('login_success')[0]) || undefined;
@@ -163,6 +166,7 @@ app.delete('/vouchers/:id', checkAuthenticated, checkAuthorised(['admin']), Vouc
 
 // Orders dashboard (admin)
 app.get('/orderDashboard', checkAuthenticated, checkAuthorised(['admin']), OrderController.listDashboard);
+app.get('/orders/tracking', checkAuthenticated, checkAuthorised(['customer', 'adopter']), OrderController.listTracking);
 app.get('/admin/reports/sales', checkAuthenticated, checkAuthorised(['admin']), AdminReportController.salesReport);
 app.get('/admin/refunds', checkAuthenticated, checkAuthorised(['admin']), RefundController.listAll);
 app.get('/refund-requests/:id', checkAuthenticated, checkAuthorised(['admin']), RefundController.showAdminDetail);

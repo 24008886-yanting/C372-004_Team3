@@ -79,6 +79,9 @@
                 </div>
                 <div class="confirm-status" aria-live="polite"></div>
               <% } %>
+              <% if (!hasRefundRequest) { %>
+                <a class="track-btn" href="/orders/tracking">Track Order</a>
+              <% } %>
               <div class="review-links <%= showComplete ? '' : 'is-hidden' %>">
                 <% items.forEach((item) => { %>
                   <% const productId = item.product_id; %>

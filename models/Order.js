@@ -1,7 +1,56 @@
 const db = require('../db');
 
+const TRACKING_STATUSES = ['in_warehouse', 'sorting_centre', 'enroute', 'delivered'];
+
+const normalizeTrackingStatus = (value) => {
+	let status = String(value || '').trim().toLowerCase();
+	if (status === 'out_for_delivery') status = 'enroute';
+	return TRACKING_STATUSES.includes(status) ? status : 'in_warehouse';
+};
+
 // Basic order model for admin dashboard and lookups
 const Order = {
+	TRACKING_STATUSES,
+	normalizeTrackingStatus,
+
+	ensureTrackingTable() {
+		const sql = `
+			CREATE TABLE IF NOT EXISTS order_tracking (
+				order_id INT NOT NULL PRIMARY KEY,
+				status VARCHAR(32) NOT NULL DEFAULT 'in_warehouse',
+				updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+				CONSTRAINT fk_order_tracking_order
+					FOREIGN KEY (order_id) REFERENCES orders(order_id)
+					ON DELETE CASCADE
+			)
+		`;
+
+		db.query(sql, (err) => {
+			if (err) {
+				console.error('Failed to ensure order_tracking table exists:', err.message);
+			}
+		});
+	},
+
+	setInitialTrackingStatus(orderId, callback) {
+		const sql = `
+			INSERT INTO order_tracking (order_id, status)
+			VALUES (?, 'in_warehouse')
+			ON DUPLICATE KEY UPDATE status = status
+		`;
+		db.query(sql, [orderId], callback);
+	},
+
+	setTrackingStatus(orderId, status, callback) {
+		const normalizedStatus = normalizeTrackingStatus(status);
+		const sql = `
+			INSERT INTO order_tracking (order_id, status)
+			VALUES (?, ?)
+			ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = CURRENT_TIMESTAMP
+		`;
+		db.query(sql, [orderId, normalizedStatus], callback);
+	},
+
 	// Admin: fetch orders with aggregates
 	getAllWithSummary(callback) {
 		const sql = `
@@ -24,7 +73,7 @@ const Order = {
 				rr.status AS refund_status,
 				rr.amount AS refund_amount,					rr.reason AS refund_reason,
 					rr.refund_items AS refund_items,
-					rr.created_at AS refund_created_at,
+				rr.created_at AS refund_created_at,
 				COALESCE(rc.rejected_count, 0) AS rejected_count,
 				COALESCE(rc.total_attempts, 0) AS refund_attempts,
 				COALESCE(oi.items_count, 0) AS items_count,
@@ -72,6 +121,32 @@ const Order = {
 		`;
 
 		db.query(sql, callback);
+	},
+	// Tracking data for paid orders
+	getTrackingByUser(userId, callback) {
+		const sql = `
+			SELECT
+				o.order_id,
+				o.total_amount,
+				o.payment_status,
+				COALESCE(ot.status, 'in_warehouse') AS tracking_status,
+				COALESCE(ot.updated_at, o.order_date) AS tracking_updated_at,
+				COALESCE(oi.units_count, 0) AS units_count
+			FROM orders o
+			LEFT JOIN order_tracking ot ON o.order_id = ot.order_id
+			LEFT JOIN (
+				SELECT
+					order_id,
+					COALESCE(SUM(quantity), 0) AS units_count
+				FROM order_items
+				GROUP BY order_id
+			) oi ON o.order_id = oi.order_id
+			WHERE o.user_id = ?
+				AND UPPER(COALESCE(o.payment_status, '')) IN ('PAID', 'COMPLETED', 'SUCCESS', 'APPROVED')
+			ORDER BY o.order_id DESC
+		`;
+
+		db.query(sql, [userId], callback);
 	},
 	// Update delivery status for a user's order
 	setDeliveryStatus(orderId, userId, status, callback) {

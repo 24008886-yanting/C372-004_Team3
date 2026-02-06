@@ -202,6 +202,15 @@ const CartModel = {
           if (orderErr) return rollback(orderErr);
           const orderId = orderResult.insertId;
 
+          const trackingSql = `
+            INSERT INTO order_tracking (order_id, status)
+            VALUES (?, 'in_warehouse')
+            ON DUPLICATE KEY UPDATE status = status
+          `;
+
+          connection.query(trackingSql, [orderId], (trackingErr) => {
+            if (trackingErr) return rollback(trackingErr);
+
           // Insert order items
           const orderItemValues = cartItems.map((item) => [
             orderId,
@@ -260,6 +269,7 @@ const CartModel = {
             };
 
             updateStock(0);
+          });
           });
         });
       });
