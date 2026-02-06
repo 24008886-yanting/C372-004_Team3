@@ -35,12 +35,44 @@
               </span>
             </div>
             <p class="meta"><%= Number(order.units_count || 0) %> item(s) · Total S$<%= Number(order.total_amount || 0).toFixed(2) %></p>
-            <div class="timeline">
-              <div class="step" data-step="in_warehouse">In Warehouse</div>
-              <div class="step" data-step="sorting_centre">Sorting Centre</div>
-              <div class="step" data-step="enroute">En Route to Customer</div>
-              <div class="step" data-step="delivered">Delivered</div>
+            <div class="timeline" data-steps="4">
+              <div class="timeline-track"></div>
+              <div class="timeline-progress"></div>
+              <div class="step" data-step="in_warehouse">
+                <span class="dot"></span>
+                <span class="label">In Warehouse</span>
+              </div>
+              <div class="step" data-step="sorting_centre">
+                <span class="dot"></span>
+                <span class="label">Sorting Centre</span>
+              </div>
+              <div class="step" data-step="enroute">
+                <span class="dot"></span>
+                <span class="label">En Route to Customer</span>
+              </div>
+              <div class="step" data-step="delivered">
+                <span class="dot"></span>
+                <span class="label">Delivered</span>
+              </div>
             </div>
+            <ul class="milestones">
+              <li data-step="in_warehouse">
+                <span class="milestone-title">In Warehouse</span>
+                <span class="milestone-time" data-time>Pending</span>
+              </li>
+              <li data-step="sorting_centre">
+                <span class="milestone-title">Sorting Centre</span>
+                <span class="milestone-time" data-time>Pending</span>
+              </li>
+              <li data-step="enroute">
+                <span class="milestone-title">En Route to Customer</span>
+                <span class="milestone-time" data-time>Pending</span>
+              </li>
+              <li data-step="delivered">
+                <span class="milestone-title">Delivered</span>
+                <span class="milestone-time" data-time>Pending</span>
+              </li>
+            </ul>
           </article>
         <% }); %>
       <% } else { %>
@@ -76,6 +108,37 @@
 
         const index = steps.indexOf(status);
         const stepEls = Array.from(card.querySelectorAll('.step'));
+        const milestoneEls = Array.from(card.querySelectorAll('.milestones li'));
+        const timeline = card.querySelector('.timeline');
+        if (timeline) {
+          const progress = steps.length > 1 ? (index / (steps.length - 1)) : 0;
+          timeline.style.setProperty('--progress', progress.toFixed(4));
+
+          const dots = Array.from(timeline.querySelectorAll('.dot'));
+          if (dots.length >= 2) {
+            const timelineRect = timeline.getBoundingClientRect();
+            const firstRect = dots[0].getBoundingClientRect();
+            const lastRect = dots[dots.length - 1].getBoundingClientRect();
+            const left = (firstRect.left + (firstRect.width / 2)) - timelineRect.left;
+            const rightCenter = (lastRect.left + (lastRect.width / 2)) - timelineRect.left;
+            const width = Math.max(rightCenter - left, 0);
+            const leftPx = `${Math.max(left, 0).toFixed(1)}px`;
+            const widthPx = `${width.toFixed(1)}px`;
+            timeline.style.setProperty('--line-left', leftPx);
+            timeline.style.setProperty('--line-width', widthPx);
+
+            const track = timeline.querySelector('.timeline-track');
+            const progressBar = timeline.querySelector('.timeline-progress');
+            if (track) {
+              track.style.left = leftPx;
+              track.style.width = widthPx;
+            }
+            if (progressBar) {
+              progressBar.style.left = leftPx;
+              progressBar.style.width = widthPx;
+            }
+          }
+        }
         stepEls.forEach((stepEl) => {
           const stepKey = stepEl.getAttribute('data-step');
           const stepIndex = steps.indexOf(stepKey);
@@ -84,6 +147,16 @@
             stepEl.classList.add('done');
           } else if (stepIndex === index) {
             stepEl.classList.add('active');
+          }
+        });
+        milestoneEls.forEach((milestoneEl) => {
+          const stepKey = milestoneEl.getAttribute('data-step');
+          const stepIndex = steps.indexOf(stepKey);
+          milestoneEl.classList.remove('done', 'active');
+          if (stepIndex < index) {
+            milestoneEl.classList.add('done');
+          } else if (stepIndex === index) {
+            milestoneEl.classList.add('active');
           }
         });
       };
@@ -97,15 +170,38 @@
         const nextIndex = Math.min(steps.length - 1, baseIndex + Math.max(elapsedSteps, 0));
         const nextStatus = steps[nextIndex] || baseStatus;
         renderStatus(card, nextStatus);
+
+        const milestoneEls = Array.from(card.querySelectorAll('.milestones li'));
+        milestoneEls.forEach((milestoneEl) => {
+          const stepKey = milestoneEl.getAttribute('data-step');
+          const stepIndex = steps.indexOf(stepKey);
+          const timeEl = milestoneEl.querySelector('[data-time]');
+          if (!timeEl) return;
+
+          if (stepIndex <= nextIndex) {
+            const ts = new Date(startTime + (stepIndex * 15000));
+            timeEl.textContent = ts.toLocaleString('en-SG', {
+              month: 'short',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          } else {
+            timeEl.textContent = 'Pending';
+          }
+        });
       };
 
       const cards = Array.from(document.querySelectorAll('.order'));
       if (!cards.length) return;
 
-      cards.forEach(updateCard);
-      setInterval(() => {
+      const updateAll = () => {
         cards.forEach(updateCard);
-      }, 15000);
+      };
+
+      updateAll();
+      window.addEventListener('resize', updateAll);
+      setInterval(updateAll, 15000);
     })();
   </script>
 </body>
