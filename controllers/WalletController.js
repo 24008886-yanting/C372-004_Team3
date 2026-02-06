@@ -2,12 +2,98 @@ const paypalService = require('../services/paypal');
 const netsService = require('../services/nets');
 const Wallet = require('../models/Wallet');
 const WalletTransaction = require('../models/WalletTransaction');
+const RiskFlag = require('../models/RiskFlag');
 const Payment = require('../models/Payment');
 const Cart = require('../models/Cart');
 const db = require('../db');
 
 const { toTwoDp } = Payment;
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
+
+const MAX_TOPUP_PER_TXN = Number(process.env.WALLET_MAX_TOPUP_PER_TXN || 300);
+const DAILY_TOPUP_CAP = Number(process.env.WALLET_DAILY_TOPUP_CAP || 500);
+
+const RAPID_TOPUP_WINDOW_MINUTES = Number(process.env.WALLET_RAPID_TOPUP_WINDOW_MINUTES || 10);
+const RAPID_TOPUP_COUNT = Number(process.env.WALLET_RAPID_TOPUP_COUNT || 4);
+const RAPID_TOPUP_SUM_WINDOW_MINUTES = Number(process.env.WALLET_RAPID_TOPUP_SUM_WINDOW_MINUTES || 30);
+const RAPID_TOPUP_SUM_CAP = Number(process.env.WALLET_RAPID_TOPUP_SUM_CAP || 450);
+
+const enforceTopupLimits = async (userId, amount) => {
+  if (amount > MAX_TOPUP_PER_TXN) {
+    try {
+      await RiskFlag.create(userId, 'TOPUP_PER_TXN_CAP_EXCEEDED', 'Top-up per-transaction cap exceeded', {
+        cap: MAX_TOPUP_PER_TXN,
+        attemptedAmount: amount
+      });
+    } catch (flagErr) {
+      // ignore risk flag logging errors
+    }
+    const err = new Error(`Top-up exceeds per-transaction limit of S$${MAX_TOPUP_PER_TXN}`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const wallet = await Wallet.ensureWallet(userId);
+  const balanceCap = Wallet.BALANCE_CAP || 1000;
+  if (toTwoDp((wallet?.balance || 0) + amount) > balanceCap) {
+    try {
+      await RiskFlag.create(userId, 'WALLET_BALANCE_CAP_EXCEEDED', 'Wallet balance cap exceeded', {
+        cap: balanceCap,
+        balanceBefore: wallet?.balance || 0,
+        attemptedAmount: amount
+      });
+    } catch (flagErr) {
+      // ignore risk flag logging errors
+    }
+    const err = new Error(`Wallet balance cap of S$${balanceCap} would be exceeded`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const todayTotal = await WalletTransaction.getDailyTopupTotal(userId);
+  if (toTwoDp(todayTotal + amount) > DAILY_TOPUP_CAP) {
+    try {
+      await RiskFlag.create(userId, 'TOPUP_DAILY_CAP_EXCEEDED', 'Daily top-up cap exceeded', {
+        cap: DAILY_TOPUP_CAP,
+        todayTotal,
+        attemptedAmount: amount
+      });
+    } catch (flagErr) {
+      // ignore risk flag logging errors
+    }
+    const err = new Error(`Daily top-up cap of S$${DAILY_TOPUP_CAP} exceeded`);
+    err.statusCode = 400;
+    throw err;
+  }
+};
+
+
+const flagRapidTopup = async (userId) => {
+  try {
+    const [count, sum] = await Promise.all([
+      WalletTransaction.countTopupsInWindow(userId, RAPID_TOPUP_WINDOW_MINUTES),
+      WalletTransaction.sumTopupsInWindow(userId, RAPID_TOPUP_SUM_WINDOW_MINUTES)
+    ]);
+
+    if (count >= RAPID_TOPUP_COUNT) {
+      await RiskFlag.create(userId, 'TOPUP_RAPID_BURST', 'Rapid top-up burst detected', {
+        windowMinutes: RAPID_TOPUP_WINDOW_MINUTES,
+        count,
+        threshold: RAPID_TOPUP_COUNT
+      });
+    }
+
+    if (sum >= RAPID_TOPUP_SUM_CAP) {
+      await RiskFlag.create(userId, 'TOPUP_RAPID_SUM', 'Rapid top-up sum threshold exceeded', {
+        windowMinutes: RAPID_TOPUP_SUM_WINDOW_MINUTES,
+        total: sum,
+        threshold: RAPID_TOPUP_SUM_CAP
+      });
+    }
+  } catch (flagErr) {
+    // ignore risk flag logging errors
+  }
+};
 
 const createTopupOrder = (userId, amount) =>
   new Promise((resolve, reject) => {
@@ -118,6 +204,7 @@ const WalletController = {
     }
 
     try {
+      await enforceTopupLimits(userId, amount);
       const order = await paypalService.createOrder(amount);
       req.session.walletTopup = {
         paypalOrderId: order?.id || null,
@@ -131,8 +218,9 @@ const WalletController = {
       });
     } catch (err) {
       console.error('createPaypalTopupOrder error:', err);
+      const status = err.statusCode || 500;
       const message = err.message || 'Failed to create PayPal top-up order';
-      return res.status(500).json({ error: message });
+      return res.status(status).json({ error: message });
     }
   },
 
@@ -161,6 +249,8 @@ const WalletController = {
         return res.status(400).json({ error: 'Invalid capture amount returned by PayPal' });
       }
 
+      await enforceTopupLimits(userId, paidAmount);
+
       // Credit wallet inside its own transaction
       await Wallet.credit(
         userId,
@@ -174,6 +264,8 @@ const WalletController = {
         },
         { connection: db, manageTransaction: true }
       );
+
+      await flagRapidTopup(userId);
 
       await Payment.recordTransaction({
         order_id: null,
@@ -191,8 +283,9 @@ const WalletController = {
       return res.json({ success: true, redirectUrl: '/digitalWallet' });
     } catch (err) {
       console.error('capturePaypalTopup error:', err);
+      const status = err.statusCode || 500;
       const message = err.message || 'Failed to capture PayPal top-up';
-      return res.status(500).json({ error: message });
+      return res.status(status).json({ error: message });
     }
   },
 
@@ -208,6 +301,7 @@ const WalletController = {
     }
 
     try {
+      await enforceTopupLimits(userId, amount);
       const qrResponse = await netsService.requestQr({ amount });
       const qrData = qrResponse?.qrData || null;
       const qrCodeUrl = normalizeQrCode(qrData);
@@ -242,8 +336,9 @@ const WalletController = {
       return res.json({ success: true, redirectUrl: '/wallet/nets/scan' });
     } catch (err) {
       console.error('NETS top-up create error:', err);
+      const status = err.statusCode || 500;
       const message = err.message || 'Unable to start NETS top-up.';
-      return res.status(500).json({ error: message });
+      return res.status(status).json({ error: message });
     }
   },
 

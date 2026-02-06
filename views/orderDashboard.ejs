@@ -57,6 +57,7 @@
                 <th>Payment Method</th>
                 <th>Payment Status</th>
                 <th>Refund Status</th>
+                <th>Risk Flags</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +92,14 @@
                       <span class="refund-status"><%= refundStatus %></span>
                     <% } else { %>
                       <span class="muted">No request</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% const flagCount = (riskFlagCounts && riskFlagCounts[o.user_id]) ? riskFlagCounts[o.user_id] : 0; %>
+                    <% if (flagCount > 0) { %>
+                      <a href="/admin/risk-flags?user_id=<%= o.user_id %>"><%= flagCount %> flag<%= flagCount === 1 ? '' : 's' %></a>
+                    <% } else { %>
+                      <span class="muted">0</span>
                     <% } %>
                   </td>
                 </tr>

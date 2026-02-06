@@ -1,9 +1,10 @@
 const Order = require('../models/Order');
+const RiskFlag = require('../models/RiskFlag');
 
 const OrderController = {
 	// Admin: order dashboard
 	listDashboard(req, res) {
-		Order.getAllWithSummary((err, orders) => {
+		Order.getAllWithSummary(async (err, orders) => {
 			if (err) {
 				console.error('Failed to load orders:', err);
 				return res.status(500).send('Failed to load orders');
@@ -28,9 +29,17 @@ const OrderController = {
 				}
 			});
 
+			const userIds = Array.from(new Set((orders || []).map(o => o.user_id).filter(Boolean)));
+			let riskFlagCounts = {};
+			try {
+				riskFlagCounts = await RiskFlag.countByUserIds(userIds);
+			} catch (flagErr) {
+				console.error('Failed to load risk flag counts:', flagErr);
+			}
+
 			console.log('Order Totals Calculation:', totals, 'Orders:', orders.map(o => ({ id: o.order_id, total_amount: o.total_amount })));
 
-			res.render('orderDashboard', { orders: orders || [], totals });
+			res.render('orderDashboard', { orders: orders || [], totals, riskFlagCounts });
 		});
 	}
 };

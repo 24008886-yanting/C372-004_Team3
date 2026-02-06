@@ -2,6 +2,7 @@ const db = require('../db');
 const Refund = require('../models/Refund');
 const Transaction = require('../models/Transaction');
 const Wallet = require('../models/Wallet');
+const RiskFlag = require('../models/RiskFlag');
 const Payment = require('../models/Payment');
 const paypalService = require('../services/paypal');
 
@@ -49,12 +50,28 @@ const getLatestTransaction = (orderId) =>
     Transaction.getLatestByOrderId(orderId, (err, rows) => (err ? reject(err) : resolve(rows?.[0] || null)));
   });
 
+const getOrderUserId = (orderId) =>
+  new Promise((resolve, reject) => {
+    Transaction.getOrderUserId(orderId, (err, rows) => (err ? reject(err) : resolve(rows?.[0]?.user_id || null)));
+  });
+
 const getLatestRefund = (orderId) =>
   new Promise((resolve, reject) => {
     Refund.getLatestByOrderId(orderId, (err, rows) => (err ? reject(err) : resolve(rows?.[0] || null)));
   });
 
 const renderForm = (res, data) => res.render('userRequestRefund', data);
+
+
+const parseRiskDetails = (raw) => {
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw;
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    return { raw };
+  }
+};
 
 const RefundController = {
     async showAdminDetail(req, res) {
@@ -73,12 +90,19 @@ const RefundController = {
       const userRows = await queryAsync('SELECT username, email FROM users WHERE user_id = ? LIMIT 1', [refund.user_id]);
       const user = userRows?.[0] || {};
 
+      const riskRows = await RiskFlag.listByUser(refund.user_id, { limit: 10 });
+      const riskFlags = (riskRows || []).map((flag) => ({
+        ...flag,
+        details: parseRiskDetails(flag.details)
+      }));
+
       return res.render('adminRefundDetail', {
         refund: {
           ...refund,
           username: user.username,
           email: user.email
-        }
+        },
+        riskFlags
       });
     } catch (err) {
       console.error('refund detail error:', err);
@@ -629,6 +653,43 @@ async showRequestForm(req, res) {
         return res.redirect('/orderDashboard');
       }
 
+      const orderUserId = await getOrderUserId(refund.order_id);
+      if (!orderUserId || Number(orderUserId) !== Number(refund.user_id)) {
+        if (req.flash) req.flash('error', 'Refund request does not match the original order user.');
+        return res.redirect('/orderDashboard');
+      }
+
+      const txn = await getLatestTransaction(refund.order_id);
+      if (!txn) {
+        if (req.flash) req.flash('error', 'No payment record found for this order.');
+        return res.redirect('/orderDashboard');
+      }
+
+      const txnMethod = normalizeMethod(txn?.payment_method);
+      const method = normalizeMethod(refund.payment_method || txn?.payment_method);
+      const isWalletLike = (value) => value === 'WALLET' || value === 'NETS';
+
+      if (method === 'PAYPAL' && txnMethod !== 'PAYPAL') {
+        if (req.flash) req.flash('error', 'Refund method does not match the original payment.');
+        return res.redirect('/orderDashboard');
+      }
+      if (isWalletLike(method) && !isWalletLike(txnMethod)) {
+        if (req.flash) req.flash('error', 'Refund method does not match the original payment.');
+        return res.redirect('/orderDashboard');
+      }
+      if (method === 'PAYPAL') {
+        const txnRef = txn?.paypal_order_id || null;
+        const refundRef = refund.payment_reference || null;
+        if (!txnRef) {
+          if (req.flash) req.flash('error', 'Missing PayPal reference for the original payment.');
+          return res.redirect('/orderDashboard');
+        }
+        if (refundRef && txnRef && refundRef !== txnRef) {
+          if (req.flash) req.flash('error', 'Refund reference does not match the original payment.');
+          return res.redirect('/orderDashboard');
+        }
+      }
+
       const alreadyRefunded = await queryAsync(
         'SELECT refund_id FROM refund_requests WHERE order_id = ? AND status = ? LIMIT 1',
         [refund.order_id, 'REFUNDED']
@@ -638,8 +699,6 @@ async showRequestForm(req, res) {
         return res.redirect('/refund-requests');
       }
 
-      const txn = await getLatestTransaction(refund.order_id);
-      const method = normalizeMethod(refund.payment_method || txn?.payment_method);
       const amount = toTwoDp(refund.amount || txn?.amount || 0);
       const currency = txn?.currency || 'SGD';
       let refundReference = null;

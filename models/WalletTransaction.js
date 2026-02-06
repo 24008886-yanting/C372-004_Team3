@@ -17,6 +17,53 @@ const WalletTransaction = {
         resolve(rows || []);
       });
     });
+  },
+
+
+
+  async countTopupsInWindow(userId, minutes) {
+    const sql = `
+      SELECT COUNT(*) AS cnt
+      FROM wallet_transactions
+      WHERE user_id = ?
+        AND txnType = 'TOPUP'
+        AND createdAt >= (NOW() - INTERVAL ? MINUTE)
+    `;
+    return new Promise((resolve, reject) => {
+      db.query(sql, [userId, minutes], (err, rows) => {
+        if (err) return reject(err);
+        resolve(Number(rows?.[0]?.cnt || 0));
+      });
+    });
+  },
+
+  async sumTopupsInWindow(userId, minutes) {
+    const sql = `
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM wallet_transactions
+      WHERE user_id = ?
+        AND txnType = 'TOPUP'
+        AND createdAt >= (NOW() - INTERVAL ? MINUTE)
+    `;
+    return new Promise((resolve, reject) => {
+      db.query(sql, [userId, minutes], (err, rows) => {
+        if (err) return reject(err);
+        resolve(Number(rows?.[0]?.total || 0));
+      });
+    });
+  },
+  async getDailyTopupTotal(userId) {
+    const sql = `
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM wallet_transactions
+      WHERE user_id = ? AND txnType = 'TOPUP' AND DATE(createdAt) = CURDATE()
+    `;
+    return new Promise((resolve, reject) => {
+      db.query(sql, [userId], (err, rows) => {
+        if (err) return reject(err);
+        resolve(Number(rows?.[0]?.total || 0));
+      });
+    });
   }
 };
 

@@ -28,6 +28,7 @@ const { toTwoDp } = Payment;
 const invoiceController = require('./controllers/InvoiceController');
 const PaymentController = require('./controllers/PaymentController');
 const WalletController = require('./controllers/WalletController');
+const RiskFlagController = require('./controllers/RiskFlagController');
 const connection = require('./db');
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
@@ -206,6 +207,7 @@ app.get('/reviewList', checkAuthenticated, ReviewController.listByUser);
 app.get('/admin/reviews', checkAuthenticated, ReviewController.listAll);
 app.post('/admin/reviews/delete/:reviewId', checkAuthenticated, ReviewController.deleteReview);
 
+app.get('/admin/risk-flags', checkAuthenticated, checkAuthorised(['admin']), RiskFlagController.listAll);
 
 // Profile
 app.get('/profile', checkAuthenticated, (req, res) => {

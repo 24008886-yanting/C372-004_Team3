@@ -48,6 +48,16 @@ const TransactionModel = {
       LIMIT 1
     `;
     db.query(sql, [orderId], callback);
+  },
+  getOrderUserId(orderId, callback) {
+    if (!orderId) return callback(new Error('order_id is required'));
+    const sql = `
+      SELECT user_id
+      FROM orders
+      WHERE order_id = ?
+      LIMIT 1
+    `;
+    db.query(sql, [orderId], callback);
   }
 };
 

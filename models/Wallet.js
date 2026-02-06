@@ -1,6 +1,9 @@
 const db = require('../db');
 const Payment = require('./Payment');
+const RiskFlag = require('./RiskFlag');
 const { toTwoDp } = Payment;
+
+const WALLET_BALANCE_CAP = Number(process.env.WALLET_BALANCE_CAP || 1000);
 
 /**
  * Wallet model responsible for balance management and ledger insertion.
@@ -71,6 +74,18 @@ const Wallet = {
 
       const before = toTwoDp(wallet.balance || 0);
       const after = toTwoDp(before + amountDelta);
+      if (amountDelta > 0 && after > WALLET_BALANCE_CAP) {
+        try {
+          await RiskFlag.create(userId, 'WALLET_BALANCE_CAP_EXCEEDED', 'Wallet balance cap exceeded', {
+            cap: WALLET_BALANCE_CAP,
+            balanceBefore: before,
+            attemptedDelta: amountDelta
+          });
+        } catch (flagErr) {
+          // ignore risk flag logging errors
+        }
+        throw new Error(`Wallet balance cap of S$${WALLET_BALANCE_CAP} exceeded`);
+      }
       if (after < 0) {
         throw new Error('Insufficient wallet balance');
       }
@@ -121,5 +136,7 @@ const Wallet = {
     return this.updateBalance(userId, -safeAmount, meta, options);
   }
 };
+
+Wallet.BALANCE_CAP = WALLET_BALANCE_CAP;
 
 module.exports = Wallet;

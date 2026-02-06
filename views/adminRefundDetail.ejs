@@ -145,6 +145,38 @@
       </div>
     </section>
 
+
+    <section class="card">
+      <h2 class="section-title">Risk Flags</h2>
+      <% const flags = Array.isArray(riskFlags) ? riskFlags : []; %>
+      <% if (!flags.length) { %>
+        <p class="muted">No risk flags recorded for this user.</p>
+      <% } else { %>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+              <tr style="text-align:left; border-bottom:1px solid var(--border);">
+                <th style="padding:8px 6px;">Date</th>
+                <th style="padding:8px 6px;">Type</th>
+                <th style="padding:8px 6px;">Reason</th>
+                <th style="padding:8px 6px;">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% flags.forEach(flag => { %>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:8px 6px;"><%= flag.created_at %></td>
+                  <td style="padding:8px 6px;"><%= flag.event_type %></td>
+                  <td style="padding:8px 6px;"><%= flag.reason || '-' %></td>
+                  <td style="padding:8px 6px; color: var(--muted);"><%= flag.details ? JSON.stringify(flag.details) : '-' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+
     <section class="card">
       <div class="actions">
         <% if (status === 'PENDING') { %>

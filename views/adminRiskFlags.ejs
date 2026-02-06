@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risk Flags | Admin</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .shell {
+      max-width: 1100px;
+      margin: 32px auto 60px;
+      padding: 0 20px;
+      display: grid;
+      gap: 18px;
+    }
+    .page-title { margin: 0; font-size: 28px; }
+    .muted { color: var(--muted); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 12px 28px rgba(17, 24, 39, 0.08);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+  <main class="shell">
+    <header>
+      <p class="muted">Admin - Risk Flags</p>
+      <h1 class="page-title">Risk Flags</h1>
+      <p class="muted">Automated flags triggered by wallet limits and monitoring rules.</p>
+    </header>
+
+
+    <section class="card">
+      <h2 class="section-title" style="margin:0 0 12px;">Risk Filters</h2>
+      <form method="GET" action="/admin/risk-flags" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+        <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted);">
+          User ID
+          <input type="text" name="user_id" value="<%= (filters && filters.userId) ? filters.userId : '' %>" style="padding:8px 10px; border:1px solid var(--border); border-radius:8px;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted);">
+          Event Type
+          <input type="text" name="event_type" value="<%= (filters && filters.eventType) ? filters.eventType : '' %>" style="padding:8px 10px; border:1px solid var(--border); border-radius:8px;" placeholder="e.g. TOPUP_DAILY_CAP_EXCEEDED">
+        </label>
+        <div style="display:flex; gap:14px; align-items:center; padding-bottom:1px;">
+          <button type="submit" style="padding:10px 22px; border-radius:18px; border:0; background:#111827; color:#fff; font-weight:700; font-size:16px; box-shadow:0 10px 20px rgba(17, 24, 39, 0.2);">Apply</button>
+          <a href="/admin/risk-flags" style="padding:10px 22px; border-radius:18px; border:1px solid #d9dde6; text-decoration:none; color:#111827; background:#fff; font-weight:500; font-size:16px;">Clear</a>
+        </div>
+      </form>
+    </section>
+
+
+    <section class="card">
+      <% if (typeof error !== 'undefined' && error) { %>
+        <p class="muted"><%= error %></p>
+      <% } %>
+      <% const rows = Array.isArray(flags) ? flags : []; %>
+      <% const eventLabels = {
+        TOPUP_PER_TXN_CAP_EXCEEDED: 'Top-up: Per-transaction cap exceeded',
+        WALLET_BALANCE_CAP_EXCEEDED: 'Wallet: Balance cap exceeded',
+        TOPUP_DAILY_CAP_EXCEEDED: 'Top-up: Daily cap exceeded',
+        TOPUP_RAPID_BURST: 'Top-up: Rapid burst (count in short window)',
+        TOPUP_RAPID_SUM: 'Top-up: Rapid sum (total in short window)'
+      }; %>
+      <% if (!rows.length) { %>
+        <p class="muted">No risk flags found.</p>
+      <% } else { %>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>User ID</th>
+                <th>Type</th>
+                <th>Reason</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% rows.forEach(flag => { %>
+                <tr>
+                  <td><%= flag.created_at %></td>
+                  <td><%= flag.user_id %></td>
+                  <td>
+                    <div><%= eventLabels[flag.event_type] || flag.event_type %></div>
+                    <div class="muted"><%= flag.event_type %></div>
+                  </td>
+                  <td><%= flag.reason || '-' %></td>
+                  <td class="muted"><%= flag.details ? JSON.stringify(flag.details) : '-' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+  </main>
+</body>
+</html>
