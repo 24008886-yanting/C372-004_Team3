@@ -3,12 +3,12 @@
 }
 
 .admin-contact-body {
-  --bg: #f6f7fb;
+  --bg: #f6f1e9;
   --card: #ffffff;
-  --text: #111827;
-  --muted: #6b7280;
-  --accent: #2563eb;
-  --border: #e5e7eb;
+  --text: #1b1c32;
+  --muted: #6c7080;
+  --accent: #3d5a80;
+  --border: #d8dbe3;
   --pending: #fef3c7;
   --pending-text: #92400e;
   --replied: #dcfce7;
@@ -18,23 +18,31 @@
 body.admin-contact-body {
   margin: 0;
   font-family: 'Manrope', 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  background: var(--bg);
+  min-height: 100vh;
+  background: radial-gradient(120% 80% at 10% 20%, #fce7d9 0%, #f6f1e9 42%, #eef1f6 100%);
   color: var(--text);
 }
 
 .admin-contact-main {
-  max-width: 1040px;
-  margin: 32px auto 48px;
-  padding: 0 20px;
+  max-width: 1100px;
+  margin: 48px auto 64px;
+  padding: 0 28px 12px;
 }
 
 .page-header {
   margin-bottom: 18px;
 }
 
+.page-header--with-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 h1 {
   margin: 0 0 8px;
-  font-size: 30px;
+  font-size: 32px;
   letter-spacing: -0.01em;
 }
 
@@ -55,9 +63,9 @@ h1 {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 20px;
   padding: 18px;
-  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+  box-shadow: 0 20px 40px rgba(27, 28, 50, 0.08);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -198,6 +206,24 @@ h1 {
   margin-top: 10px;
   display: grid;
   gap: 10px;
+}
+
+.account-back {
+  align-self: flex-start;
+  margin-top: 16px;
+  color: #3d5a80;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 10px 14px;
+  border: 1px solid #3d5a80;
+  border-radius: 12px;
+  background: rgba(61, 90, 128, 0.08);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.account-back:hover {
+  background: rgba(61, 90, 128, 0.16);
+  transform: translateY(-1px);
 }
 
 .reply-form textarea {

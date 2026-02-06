@@ -11,10 +11,13 @@
     <%- include('partials/navbar') %>
 
     <main class="admin-contact-main">
-      <header class="page-header">
-        <p class="subhead">Your inbox</p>
-        <h1>Contact Messages</h1>
-        <p class="muted">Track your submissions and replies from our team.</p>
+      <header class="page-header page-header--with-action">
+        <div>
+          <p class="subhead">Your inbox</p>
+          <h1>Contact Messages</h1>
+          <p class="muted">Track your submissions and replies from our team.</p>
+        </div>
+        <a class="account-back" href="/profile"><span aria-hidden="true">&#60;</span> Back to Profile</a>
       </header>
 
       <section class="card">
@@ -79,6 +82,7 @@
           <p class="muted">No contact messages yet.</p>
         <% } %>
       </section>
+
     </main>
   </body>
 </html>
