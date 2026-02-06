@@ -65,8 +65,9 @@ const buildQuote = (userId, role, voucherCode) =>
         }
 
         const shippingFee = computeShipping(subtotal);
-        const taxAmount = toTwoDp(subtotal * (TAX_RATE_PERCENT / 100));
-        const totalBeforeDiscount = subtotal + shippingFee + taxAmount;
+        // GST is included in item prices; compute the included portion for display/records.
+        const taxAmount = toTwoDp(subtotal * (TAX_RATE_PERCENT / (100 + TAX_RATE_PERCENT)));
+        const totalBeforeDiscount = subtotal + shippingFee;
 
         const voucherInfo = await applyVoucherAsync(voucherCode, totalBeforeDiscount, role);
         const discountAmount = Math.min(

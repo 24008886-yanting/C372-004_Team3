@@ -1,5 +1,7 @@
 const db = require('../db');
 
+const toTwoDp = (value) => Number((Number(value) || 0).toFixed(2));
+
 const CartModel = {
   // Fetch cart items for a user with product details
   getCartByUser(userId, callback) {
@@ -189,14 +191,16 @@ const CartModel = {
 
         const shippingFee = Number(shipping_fee) || 0;
         const discount = Number(discount_amount) || 0;
-        const taxAmount = Number(((Number(tax_rate) || 0) / 100) * subtotal);
-        const total = subtotal - discount + shippingFee + taxAmount;
+        const rate = Number(tax_rate) || 0;
+        // GST is included in item prices; compute included portion for record.
+        const taxAmount = rate > 0 ? toTwoDp(subtotal * (rate / (100 + rate))) : 0;
+        const total = toTwoDp(subtotal - discount + shippingFee);
 
         const orderSql = `
           INSERT INTO orders (user_id, voucher_id, subtotal, discount_amount, shipping_fee, tax_amount, total_amount, payment_status)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        const orderParams = [userId, voucher_id, subtotal, discount, shippingFee, taxAmount, total, payment_status];
+          const orderParams = [userId, voucher_id, subtotal, discount, shippingFee, taxAmount, total, payment_status];
 
         connection.query(orderSql, orderParams, (orderErr, orderResult) => {
           if (orderErr) return rollback(orderErr);

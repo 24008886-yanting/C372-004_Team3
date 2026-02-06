@@ -90,11 +90,11 @@ const InvoiceController = {
                             const discountAmount = parseFloat(req.body?.discount_amount) || 0;
                             const voucherId = req.body?.voucher_id || null;
                             
-                            // Tax is calculated on subtotal
-                            const taxAmount = taxRate > 0 ? (subtotal * (taxRate / 100)) : 0;
+                            // GST is included in item prices; compute included portion for record.
+                            const taxAmount = taxRate > 0 ? (subtotal * (taxRate / (100 + taxRate))) : 0;
                             
-                            // Total amount calculation
-                            const totalAmount = subtotal + shippingFee + taxAmount - discountAmount;
+                            // Total amount calculation (no extra tax added)
+                            const totalAmount = subtotal + shippingFee - discountAmount;
 
                             console.log('Order Calculation:', { subtotal, shippingFee, taxRate, taxAmount, discountAmount, totalAmount });
 
