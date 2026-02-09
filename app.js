@@ -26,7 +26,6 @@ const Cart = require('./models/Cart');
 const Payment = require('./models/Payment');
 const Wallet = require('./models/Wallet');
 const { toTwoDp } = Payment;
-const invoiceController = require('./controllers/InvoiceController');
 const PaymentController = require('./controllers/PaymentController');
 const WalletController = require('./controllers/WalletController');
 const RiskFlagController = require('./controllers/RiskFlagController');
@@ -180,7 +179,7 @@ app.put('/cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']
 app.delete('/cart/:id', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.removeItem);
 app.delete('/cart', checkAuthenticated, checkAuthorised(['customer', 'adopter']), CartController.clearCart);
 app.post('/cart/checkout', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
-    invoiceController.processInvoice(req, res);
+    PaymentController.processInvoice(req, res);
 });
 // PayPal payment endpoints
 app.post('/paypal/create-order', checkAuthenticated, checkAuthorised(['customer', 'adopter']), PaymentController.createPaypalOrder);
@@ -342,11 +341,11 @@ app.get('/checkout', checkAuthenticated, checkAuthorised(['customer', 'adopter']
 });
 
 app.post('/process-payment', checkAuthenticated, checkAuthorised(['customer', 'adopter']), (req, res) => {
-    invoiceController.processInvoice(req, res);
+    PaymentController.processInvoice(req, res);
 });
 
 app.get('/invoice-confirmation', checkAuthenticated, (req, res) => {
-    invoiceController.viewInvoice(req, res);
+    PaymentController.viewInvoice(req, res);
 });
 
 

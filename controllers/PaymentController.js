@@ -81,6 +81,58 @@ const isFailStatus = ({ status, code }) =>
   (code && code !== '00' && status !== 'PENDING' && status !== 'IN_PROGRESS');
 
 const PaymentController = {
+
+  // Process payment: deduct stock, create session invoice, clear cart
+  processInvoice(req, res) {
+    const userId = req.session?.user_id;
+    const user = req.session?.user || { username: 'guest' };
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    Payment.processInvoice(userId, user, req.body)
+      .then((invoice) => {
+        req.session.invoice = invoice;
+        return res.json({
+          success: true,
+          message: 'Payment successful',
+          invoice
+        });
+      })
+      .catch((err) => {
+        const status = err?.status || 500;
+        return res.status(status).json({
+          success: false,
+          message: err?.message || 'Error processing order'
+        });
+      });
+  },
+
+  // Render invoice page using session invoice
+  viewInvoice(req, res) {
+    const invoice = req.session.invoice;
+    if (!invoice) {
+      req.flash('error', 'No invoice available');
+      return res.redirect('/shopping');
+    }
+
+    console.log('Displaying invoice from session:', JSON.stringify(invoice, null, 2));
+
+    // compute cartCount (should be 0 after checkout) and render
+    const cartCount = (req.session.cart || []).reduce((s, i) => s + (i.quantity || 0), 0);
+
+    res.render('Invoice', {
+      invoice,
+      user: req.session.user,
+      cartCount,
+      messages: req.flash('success'),
+      errors: req.flash('error')
+    });
+  },
   async createPaypalOrder(req, res) {
     const userId = req.session?.user_id;
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
