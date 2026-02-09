@@ -1,4 +1,6 @@
 const Adoption = require('../models/Adoption');
+const User = require('../models/User');
+const Wallet = require('../models/Wallet');
 
 const toInt = (value) => {
   const parsed = Number.parseInt(value, 10);
@@ -6,6 +8,45 @@ const toInt = (value) => {
 };
 
 const trim = (value) => (typeof value === 'string' ? value.trim() : '');
+const normalizeRole = (value) => (value ? String(value).toLowerCase() : '');
+
+const ensureAdopterAccount = (email, done) => {
+  if (!email) return done(null, { created: false, userId: null });
+
+  User.findByEmail(email, (findErr, existing) => {
+    if (findErr) return done(findErr);
+    if (existing) {
+      const currentRole = normalizeRole(existing.role);
+      if (currentRole === 'customer' || !currentRole) {
+        return User.updateUser(existing.user_id, { role: 'adopter' }, (updateErr) => {
+          if (updateErr) return done(updateErr);
+          return done(null, { created: false, userId: existing.user_id });
+        });
+      }
+      return done(null, { created: false, userId: existing.user_id });
+    }
+
+    const userData = {
+      username: email,
+      email,
+      phone: '',
+      address: '',
+      password: email,
+      role: 'adopter'
+    };
+
+    User.addUser(userData, (addErr, result) => {
+      if (addErr) return done(addErr);
+      const userId = result?.insertId || null;
+      if (userId) {
+        Wallet.ensureWallet(userId).catch((walletErr) => {
+          console.error('Failed to create wallet for adopter:', walletErr);
+        });
+      }
+      return done(null, { created: true, userId });
+    });
+  });
+};
 
 const AdoptionController = {
   // Render the add adopter form
@@ -13,10 +54,13 @@ const AdoptionController = {
     const shelterId = req.session?.user?.shelter_id || req.session?.shelter_id || '';
     const success = req.query?.success === '1';
     const adoptionId = req.query?.adoptionId || '';
+    const accountParam = req.query?.account;
+    const accountCreated = accountParam === '1' ? true : accountParam === '0' ? false : null;
     res.render('addAdopter', {
       error: null,
       success,
       adoptionId,
+      accountCreated,
       formData: {
         shelter_id: shelterId,
         cat_id: '',
@@ -101,9 +145,24 @@ const AdoptionController = {
         });
       }
 
-      const savedId = result?.insertId;
-      const query = savedId ? `?success=1&adoptionId=${encodeURIComponent(savedId)}` : '?success=1';
-      return res.redirect(`/addAdopter${query}`);
+      ensureAdopterAccount(adopterEmail, (accountErr, accountResult) => {
+        if (accountErr) {
+          console.error('Failed to create adopter account:', accountErr);
+          return res.status(500).render('addAdopter', {
+            error: 'Adopter saved, but account creation failed. Please try again.',
+            success: false,
+            adoptionId: result?.insertId || '',
+            formData
+          });
+        }
+
+        const savedId = result?.insertId;
+        const accountCreated = accountResult?.created ? 1 : 0;
+        const query = savedId
+          ? `?success=1&adoptionId=${encodeURIComponent(savedId)}&account=${accountCreated}`
+          : `?success=1&account=${accountCreated}`;
+        return res.redirect(`/addAdopter${query}`);
+      });
     });
   },
 

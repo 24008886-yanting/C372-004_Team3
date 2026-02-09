@@ -32,6 +32,11 @@
             <% if (adoptionId) { %>
               Adopter ID: <strong><%= adoptionId %></strong>
             <% } %>
+            <% if (accountCreated === true) { %>
+              <div class="muted" style="margin-top:6px;">Login created. Default password is the adopter email.</div>
+            <% } else if (accountCreated === false) { %>
+              <div class="muted" style="margin-top:6px;">Existing account found. Password remains unchanged.</div>
+            <% } %>
           </div>
         <% } %>
 
