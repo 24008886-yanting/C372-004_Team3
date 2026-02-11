@@ -72,10 +72,12 @@ const extractStatus = (payload) => {
   };
 };
 
+//checks if a payment is considered successful
 const isSuccessStatus = ({ status, code }) =>
   ['SUCCESS', 'SUCCEEDED', 'COMPLETED', 'PAID', 'APPROVED'].includes(status) ||
   code === '00';
 
+  //treats response code “00” as success.
 const isFailStatus = ({ status, code }) =>
   ['FAILED', 'FAIL', 'DECLINED', 'CANCELLED', 'CANCELED', 'EXPIRED', 'TIMEOUT', 'REJECTED'].includes(status) ||
   (code && code !== '00' && status !== 'PENDING' && status !== 'IN_PROGRESS');
@@ -135,6 +137,7 @@ const PaymentController = {
   },
   async createPaypalOrder(req, res) {
     const userId = req.session?.user_id;
+    //blocks the action if the user is not logged in
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
     const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
