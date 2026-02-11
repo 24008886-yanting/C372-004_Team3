@@ -18,6 +18,7 @@ const computeShipping = (subtotal) => {
 const applyVoucherAsync = (voucherCode, totalBeforeDiscount, role) =>
   new Promise((resolve, reject) => {
     const cleanCode = (voucherCode || '').trim();
+    //This returns “no discount” immediately if the user did not enter a voucher.
     if (!cleanCode) return resolve({ discount_amount: 0, voucher_id: null });
 
     if (role !== 'adopter') {
@@ -26,6 +27,7 @@ const applyVoucherAsync = (voucherCode, totalBeforeDiscount, role) =>
 
     Voucher.apply(cleanCode, totalBeforeDiscount, role, (err, info) => {
       if (err) return reject(err);
+      //This returns voucher info if available, otherwise defaults to no discount
       resolve(info || { discount_amount: 0, voucher_id: null });
     });
   });
