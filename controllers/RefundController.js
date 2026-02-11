@@ -2,7 +2,7 @@ const db = require('../db');
 const Refund = require('../models/Refund');
 const Transaction = require('../models/Transaction');
 const Wallet = require('../models/Wallet');
-const RiskFlag = require('../models/RiskFlag');
+const RiskFlag = require('../models/RiskFlag'); // show recent risk flags on admin refund detail
 const Payment = require('../models/Payment');
 const paypalService = require('../services/paypal');
 
@@ -63,6 +63,7 @@ const getLatestRefund = (orderId) =>
 const renderForm = (res, data) => res.render('userRequestRefund', data);
 
 
+// Parse risk-flag details JSON for display on the refund admin page.
 const parseRiskDetails = (raw) => {
   if (!raw) return null;
   if (typeof raw === 'object') return raw;
@@ -90,6 +91,7 @@ const RefundController = {
       const userRows = await queryAsync('SELECT username, email FROM users WHERE user_id = ? LIMIT 1', [refund.user_id]);
       const user = userRows?.[0] || {};
 
+      // Load recent risk flags for the refund's user.
       const riskRows = await RiskFlag.listByUser(refund.user_id, { limit: 10 });
       const riskFlags = (riskRows || []).map((flag) => ({
         ...flag,

@@ -17,6 +17,7 @@
     .filter((src, idx, arr) => arr.indexOf(src) === idx);
 
   // Numeric helpers with fallbacks for price and stock
+  // Availability + wishlist state derived from product data.
   const priceValue = Number(safeProduct.price) || 0;
   const stockValue = Number.isFinite(Number(safeProduct.stock)) ? Number(safeProduct.stock) : null;
   const inStock = stockValue === null ? true : stockValue > 0;
@@ -66,6 +67,7 @@
         &lt; Back to Products
       </a>
     </div>
+    <!-- Two-column layout: media left, content right -->
     <section class="product-layout">
       <aside class="media-column">
         <div class="media-slider">
@@ -183,6 +185,7 @@
         </article>
 
         <!-- Reviews block -->
+        <!-- Reviews section -->
         <article class="detail-card" id="reviews">
           <h2>Reviews</h2>
           <% const safeReviews = Array.isArray(reviews) ? reviews : []; %>
@@ -211,6 +214,7 @@
   </main>
 
   <!-- Client-side interactions: quantity controls, cart/wishlist, slider -->
+  <!-- Client-side interactions: quantity, cart/wishlist, slider -->
   <script>
     (() => {
       // Grab main page element; stop if missing

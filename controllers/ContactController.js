@@ -1,11 +1,13 @@
 const Contact = require('../models/Contact');
 
+// Pull a consistent user object from the session, regardless of shape.
 const getSessionUser = (req) => {
   if (!req.session?.user) return null;
   const id = req.session.user.user_id ?? req.session.user_id;
   return { ...req.session.user, id };
 };
 
+// Guard that the user is logged in before continuing.
 const requireUser = (req, res) => {
   if (req.session?.user) return true;
   if (req.flash) req.flash('error', 'Please log in to continue.');
@@ -13,6 +15,7 @@ const requireUser = (req, res) => {
   return false;
 };
 
+// Guard that the user is an admin before continuing.
 const requireAdmin = (req, res) => {
   if (!req.session?.user) {
     if (req.flash) req.flash('error', 'Please log in as an admin.');
@@ -32,8 +35,10 @@ const requireAdmin = (req, res) => {
 const ContactController = {
   // User: render contact form
   showForm: (req, res) => {
+    // Ensure a user is logged in before showing the form.
     if (!requireUser(req, res)) return;
     const user = getSessionUser(req);
+    // Read flash messages for prior submit attempts.
     const success = (req.flash && req.flash('contact_success')[0]) || undefined;
     const error = (req.flash && req.flash('contact_error')[0]) || undefined;
     res.render('contactForm', { user, success, error });
@@ -41,12 +46,14 @@ const ContactController = {
 
   // User: submit contact form
   submitMessage: (req, res) => {
+    // Only authenticated users can submit.
     if (!requireUser(req, res)) return;
     const user = getSessionUser(req);
     const { subject, message } = req.body || {};
     const trimmedSubject = (subject || '').trim();
     const trimmedMessage = (message || '').trim();
 
+    // Server-side validation for required fields.
     if (!trimmedSubject || !trimmedMessage) {
       return res.status(400).render('contactForm', {
         user,
@@ -55,6 +62,7 @@ const ContactController = {
       });
     }
 
+    // Persist the contact message.
     Contact.createMessage(
       {
         userId: user?.id,
@@ -71,6 +79,7 @@ const ContactController = {
             formData: { email: user?.email || '', subject, message }
           });
         }
+        // Success feedback via flash then redirect.
         if (req.flash) req.flash('contact_success', 'Message sent. We will reply soon.');
         return res.redirect('/contact');
       }
@@ -79,7 +88,9 @@ const ContactController = {
 
   // Admin: view all messages
   viewAllMessages: (req, res) => {
+    // Admin-only access to the inbox.
     if (!requireAdmin(req, res)) return;
+    // Read flash messages from prior admin actions.
     const success = (req.flash && req.flash('admin_contact_success')[0]) || undefined;
     const error = (req.flash && req.flash('admin_contact_error')[0]) || undefined;
     Contact.getAllMessages((err, rows) => {
@@ -97,6 +108,7 @@ const ContactController = {
 
   // Admin: render reply form for a specific message
   showReplyForm: (req, res) => {
+    // Admin-only access to replies.
     if (!requireAdmin(req, res)) return;
     const messageId = req.params?.id;
     if (!messageId) {
@@ -106,6 +118,7 @@ const ContactController = {
       });
     }
 
+    // Load message to confirm it exists and isn't already replied.
     Contact.getMessageById(messageId, (err, rows) => {
       if (err) {
         console.error('getMessageById error:', err);
@@ -123,21 +136,25 @@ const ContactController = {
         });
       }
 
+      // Prevent double-replies.
       if ((message.status || '').toLowerCase() === 'replied') {
         if (req.flash) req.flash('admin_contact_error', 'This message has already been replied to.');
         return res.redirect('/admin/messages');
       }
 
+      // Render reply UI.
       res.render('adminReply', { message, error: undefined });
     });
   },
 
   // Admin: handle reply submission
   submitReply: (req, res) => {
+    // Admin-only access to submit replies.
     if (!requireAdmin(req, res)) return;
     const messageId = req.params?.id;
     const reply = (req.body?.reply || req.body?.admin_notes || '').trim();
 
+    // Require a valid message ID.
     if (!messageId) {
       return res.status(400).render('adminReply', {
         message: null,
@@ -145,6 +162,7 @@ const ContactController = {
       });
     }
 
+    // Require reply content; re-render with message details.
     if (!reply) {
       return Contact.getMessageById(messageId, (err, rows) => {
         if (err) {
@@ -162,6 +180,7 @@ const ContactController = {
       });
     }
 
+    // Persist reply and update status.
     Contact.replyToMessage(messageId, reply, (err, result) => {
       if (err) {
         console.error('replyToMessage error:', err);
@@ -174,6 +193,7 @@ const ContactController = {
         return res.redirect('/admin/messages');
       }
 
+      // Success feedback to admin.
       if (req.flash) req.flash('admin_contact_success', 'Reply sent successfully.');
       return res.redirect('/admin/messages');
     });
@@ -181,10 +201,12 @@ const ContactController = {
 
   // User: inbox for logged-in user
   viewInbox: (req, res) => {
+    // Require login to view personal inbox.
     if (!requireUser(req, res)) return;
     const user = getSessionUser(req);
     const userId = user?.id;
 
+    // Load messages for the current user only.
     Contact.getMessagesByUserId(userId, (err, rows) => {
       if (err) {
         console.error('getMessagesByUserId error:', err);

@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <%
+  // Normalize inputs and pagination defaults for a safe render.
   const safeProducts = Array.isArray(products) ? products : [];
   const paginationInfo = pagination || {};
   const totalProducts = Number(paginationInfo.totalProducts) || safeProducts.length;
@@ -17,9 +18,11 @@
     return '/images/' + src;
   };
 
+  // Build category list from provided data or product fallback.
   const providedCategories = Array.isArray(categories) ? categories.filter(Boolean) : [];
   const categorySet = new Set(providedCategories.length ? providedCategories : safeProducts.map(p => p.category || 'Uncategorized'));
   const categoriesList = Array.from(categorySet).sort();
+  // Map of product_id -> wishlist_id for quick lookups.
   const wishlistLookup = wishlistMap || {};
 %>
 <head>
@@ -34,11 +37,13 @@
   <%- include('partials/navbar') %>
 
   <main class="shopping-shell">
+    <!-- Alert placeholder for wishlist/cart actions -->
     <div id="page-alert" class="alert alert-success alert-dismissible fade show d-none page-alert" role="alert">
       <span class="page-alert__message"></span>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <section class="shopping-page">
+      <!-- Sidebar filters -->
       <aside class="filter-panel">
         <h2 class="filter-title">Filter Products</h2>
 
@@ -99,6 +104,7 @@
         </div>
       </aside>
 
+      <!-- Product grid + pagination -->
       <section class="products-area">
         <div class="products-header">
           <h2>All Products</h2>
@@ -116,6 +122,7 @@
           </div>
         <% } %>
 
+        <!-- Cards rendered from product list -->
         <div class="products-grid">
           <% safeProducts.forEach((product) => {
                const inStock = Number(product.stock) > 0;
@@ -156,6 +163,7 @@
           <% }); %>
         </div>
 
+        <!-- Server-side pagination links (updated by JS to include filters) -->
         <% if (totalPages > 1) { %>
           <nav class="pagination" aria-label="Product pages">
             <a class="page-nav <%= currentPage === 1 ? 'disabled' : '' %>"
@@ -174,6 +182,7 @@
           </nav>
         <% } %>
 
+        <!-- Empty state shown when filters hide all items -->
         <div id="empty-state" class="empty-state">
           <div>No products match these filters.</div>
           <small class="muted">Try clearing or adjusting your filters.</small>
@@ -182,6 +191,7 @@
     </section>
   </main>
 
+  <!-- Client-side filtering + wishlist/cart actions -->
   <script>
     (() => {
       const filterPanel = document.querySelector('.filter-panel');

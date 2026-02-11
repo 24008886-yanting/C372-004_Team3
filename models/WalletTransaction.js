@@ -22,6 +22,7 @@ const WalletTransaction = {
 
 
   async countTopupsInWindow(userId, minutes) {//This defines a function that counts how many TOPUP transactions happened within the last X minutes
+    // Used by WalletController to flag rapid top-up bursts.
     const sql = `
       SELECT COUNT(*) AS cnt
       FROM wallet_transactions
@@ -38,6 +39,7 @@ const WalletTransaction = {
   },
 
   async sumTopupsInWindow(userId, minutes) {
+    // Used by WalletController to flag rapid top-up sum thresholds.
     const sql = `
       SELECT COALESCE(SUM(amount), 0) AS total
       FROM wallet_transactions
@@ -53,6 +55,7 @@ const WalletTransaction = {
     });
   },
   async getDailyTopupTotal(userId) {//This defines a function that sums all TOPUP amounts for today only
+    // Used by WalletController to enforce daily top-up cap and create risk flags.
     const sql = `
       SELECT COALESCE(SUM(amount), 0) AS total
       FROM wallet_transactions

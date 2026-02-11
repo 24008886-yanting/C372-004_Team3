@@ -1,6 +1,6 @@
 const db = require('../db');
 const Payment = require('./Payment');
-const RiskFlag = require('./RiskFlag');
+const RiskFlag = require('./RiskFlag'); // record wallet-related risk events
 const { toTwoDp } = Payment;
 
 const WALLET_BALANCE_CAP = Number(process.env.WALLET_BALANCE_CAP || 1000);
@@ -76,6 +76,7 @@ const Wallet = {
       const after = toTwoDp(before + amountDelta);
       if (amountDelta > 0 && after > WALLET_BALANCE_CAP) {
         try {
+          // Flag balance-cap violations during wallet updates.
           await RiskFlag.create(userId, 'WALLET_BALANCE_CAP_EXCEEDED', 'Wallet balance cap exceeded', {
             cap: WALLET_BALANCE_CAP,
             balanceBefore: before,

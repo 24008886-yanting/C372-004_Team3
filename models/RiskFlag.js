@@ -2,6 +2,9 @@ const db = require('../db');
 
 const RiskFlag = {
   create(userId, eventType, reason, details) {
+    // Support two call styles:
+    // 1) create(userId, eventType, reason, details)
+    // 2) create(userId, eventType, detailsObj) (no reason text)
     let reasonText = null;
     let detailsObj = null;
 
@@ -12,6 +15,7 @@ const RiskFlag = {
       detailsObj = reason || null;
     }
 
+    // Insert a new risk flag row with JSON-encoded details.
     const sql = `
       INSERT INTO risk_flags (user_id, event_type, reason, details, created_at)
       VALUES (?, ?, ?, ?, NOW())
@@ -26,6 +30,7 @@ const RiskFlag = {
   },
 
   async listAll(options = {}) {
+    // Build a filtered query for admin listing.
     const limit = options.limit || 200;
     const clauses = [];
     const params = [];
@@ -42,6 +47,7 @@ const RiskFlag = {
       whereSql = 'WHERE ' + clauses.join(' AND ');
     }
 
+    // Return latest flags first.
     const sql = `
       SELECT risk_flag_id, user_id, event_type, reason, details, created_at
       FROM risk_flags
@@ -63,6 +69,7 @@ const RiskFlag = {
   },
 
   async countByUserIds(userIds = []) {
+    // Return a map of user_id -> risk flag count.
     if (!Array.isArray(userIds) || userIds.length == 0) return {};
     const placeholders = userIds.map(() => '?').join(',');
     const sql = `
@@ -84,6 +91,7 @@ const RiskFlag = {
   },
 
   async listByUser(userId, options = {}) {
+    // List recent flags for a single user.
     const limit = options.limit || 20;
     const sql = `
       SELECT risk_flag_id, user_id, event_type, reason, details, created_at

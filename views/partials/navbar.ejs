@@ -33,6 +33,7 @@
         <a class="icon-btn icon-btn--profile" aria-label="Profile" href="/profile">
           <img src="/images/profile-icon.jpg" alt="Profile">
         </a>
+        <!-- Search overlay trigger (customer view) -->
         <button class="icon-btn icon-btn--search" aria-label="Search">
           <img src="/images/search-icon.png" alt="Search">
         </button>
@@ -77,6 +78,7 @@
   </nav>
 </header>
 
+<!-- Product search overlay UI -->
 <section id="product-search-overlay" class="search-overlay" aria-hidden="true">
   <div class="search-dialog" role="dialog" aria-modal="true" aria-labelledby="product-search-label">
     <div class="search-header">
@@ -90,6 +92,7 @@
 
 <script>
   (() => {
+    // Search overlay elements and state.
     const searchButton = document.querySelector('.icon-btn--search');
     const searchOverlay = document.getElementById('product-search-overlay');
     const searchInput = document.getElementById('product-search-input');
@@ -99,17 +102,20 @@
     let searchAbort = null;
     let searchTimer = null;
 
+    // Normalize image paths for search result thumbnails.
     const resolveImage = (src) => {
       if (!src) return '';
       if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/images/')) return src;
       return '/images/' + src;
     };
 
+    // Clear results list and set the status text.
     const clearSearchResults = (message) => {
       if (searchResults) searchResults.innerHTML = '';
       if (searchStatus) searchStatus.textContent = message;
     };
 
+    // Hide overlay and reset search state.
     const closeSearch = () => {
       if (!searchOverlay) return;
       searchOverlay.classList.remove('is-open');
@@ -120,6 +126,7 @@
       if (searchAbort) searchAbort.abort();
     };
 
+    // Show overlay and focus input.
     const openSearch = () => {
       if (!searchOverlay || !searchInput) return;
       searchOverlay.classList.add('is-open');
@@ -130,6 +137,7 @@
       searchInput.focus();
     };
 
+    // Render a single search result row.
     const createResultItem = (product) => {
       const imageUrl = resolveImage(product.image1) || resolveImage(product.image2) || '';
       const price = Number(product.price) || 0;
@@ -151,6 +159,7 @@
       `;
     };
 
+    // Render all results or show empty-state text.
     const renderSearchResults = (items) => {
       if (!searchResults) return;
       searchResults.innerHTML = '';
@@ -165,6 +174,7 @@
       searchResults.innerHTML = html;
     };
 
+    // Fetch search results from the server, with abort support.
     const runSearch = async (term) => {
       if (searchAbort) searchAbort.abort();
       searchAbort = new AbortController();
@@ -183,23 +193,28 @@
     };
 
     if (searchButton && searchOverlay && searchInput) {
+      // Open overlay.
       searchButton.addEventListener('click', (e) => {
         e.preventDefault();
         openSearch();
       });
 
+      // Close overlay.
       closeSearchBtn?.addEventListener('click', closeSearch);
 
+      // Close when clicking outside the dialog.
       searchOverlay.addEventListener('click', (e) => {
         if (e.target === searchOverlay) closeSearch();
       });
 
+      // Close on Escape.
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && searchOverlay.classList.contains('is-open')) {
           closeSearch();
         }
       });
 
+      // Debounced search as user types.
       searchInput.addEventListener('input', () => {
         const term = searchInput.value.trim();
         if (!term) {

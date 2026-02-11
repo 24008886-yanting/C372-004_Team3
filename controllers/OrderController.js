@@ -1,5 +1,5 @@
 const Order = require('../models/Order');
-const RiskFlag = require('../models/RiskFlag');
+const RiskFlag = require('../models/RiskFlag'); // risk-flag counts for admin dashboard
 
 const TRACKING_LABELS = {
 	in_warehouse: 'In Warehouse',
@@ -39,6 +39,7 @@ const OrderController = {
 			const userIds = Array.from(new Set((orders || []).map(o => o.user_id).filter(Boolean)));
 			let riskFlagCounts = {};
 			try {
+				// Attach risk-flag counts per user to highlight risky accounts.
 				riskFlagCounts = await RiskFlag.countByUserIds(userIds);
 			} catch (flagErr) {
 				console.error('Failed to load risk flag counts:', flagErr);

@@ -5,7 +5,9 @@ const Review = require('../models/Review');
 const ProductController = {
     // List all products on the inventory page (admin view)
     listInventory(req, res) {
+        // Log context to help diagnose inventory issues.
         console.log('listInventory called - user:', req.session?.user, 'role:', req.session?.role);
+        // Fetch all products for the admin inventory page.
         Product.getAllProducts((err, products) => {
             if (err) {
                 console.error('Failed to load inventory:', err);
@@ -20,20 +22,25 @@ const ProductController = {
             let deleteBlock = null;
             if (deleteBlockRaw) {
                 try {
+                    // Stored as JSON to show a detailed delete-block reason.
                     deleteBlock = JSON.parse(deleteBlockRaw);
                 } catch (parseErr) {
+                    // Fallback if the flash message isn't valid JSON.
                     deleteBlock = { message: deleteBlockRaw };
                 }
             }
+            // Render with any flash messages (success, error, delete block).
             res.render('inventory', { products, messages: { success, error, deleteBlock } });
         });
     },
 
     // List all products on the shopping page (customer view)
     shoppingList(req, res) {
+        // Simple pagination for the shopping list.
         const pageSize = 15;
         const requestedPage = Math.max(parseInt(req.query.page, 10) || 1, 1);
 
+        // Count products to compute total pages.
         Product.getProductsCount((countErr, countResults) => {
             if (countErr) {
                 console.error('Failed to count products:', countErr);
@@ -45,12 +52,14 @@ const ProductController = {
             const currentPage = Math.min(requestedPage, totalPages);
             const offset = (currentPage - 1) * pageSize;
 
+            // Fetch the current page of products.
             Product.getPaginatedProducts(pageSize, offset, (listErr, products) => {
                 if (listErr) {
                     console.error('Failed to load products:', listErr);
                     return res.status(500).send('Failed to load products.');
                 }
 
+                // Load categories for the category filter UI.
                 Product.getDistinctCategories((catErr, categoryResults) => {
                     if (catErr) {
                         console.error('Failed to load categories:', catErr);
@@ -61,6 +70,7 @@ const ProductController = {
                         ? categoryResults.map(row => row.category).filter(Boolean)
                         : [];
 
+                    // Render helper so both logged-in and guest users share logic.
                     const renderShopping = (wishlistMap) => {
                         res.render('shopping', {
                             products,
@@ -75,12 +85,14 @@ const ProductController = {
                         });
                     };
 
+                    // If not logged in, render without wishlist info.
                     const userId = req.session?.user_id;
                     if (!userId) {
                         renderShopping({});
                         return;
                     }
 
+                    // Build a map of product_id -> wishlist_id for UI state.
                     Wishlist.getByUser(userId, (wishErr, items) => {
                         if (wishErr) {
                             console.error('Failed to load wishlist:', wishErr);
@@ -99,18 +111,23 @@ const ProductController = {
     },
 
     search(req, res) {
+        // Simple search endpoint for autocomplete or search UI.
         const query = (req.query.q || '').trim();
+        // Optional limit from the client (clamped in the model).
         const limit = req.query.limit;
 
         if (!query) {
+            // Empty query returns empty list to keep UI clean.
             return res.json({ products: [] });
         }
 
+        // Delegate search to the model and return JSON results.
         Product.searchProductsByName(query, limit, (err, products) => {
             if (err) {
                 console.error('Product search failed:', err);
                 return res.status(500).json({ error: 'Failed to search products.' });
             }
+            // Ensure consistent array shape in the response.
             res.json({ products: Array.isArray(products) ? products : [] });
         });
     },
@@ -118,6 +135,7 @@ const ProductController = {
     // Get a single product by ID and render product page
     getProductById(req, res) {
         const productId = req.params.id;
+        // Load product details first.
         Product.getProductById(productId, (err, results) => {
             if (err) {
                 console.error('Error retrieving product:', err);
@@ -128,19 +146,23 @@ const ProductController = {
                 return res.status(404).send('Product not found.');
             }
             const userId = req.session?.user_id;
+            // Load reviews for this product.
             Review.getReviewsByProduct(productId, (reviewErr, reviews) => {
                 if (reviewErr) {
                     console.error('Failed to load reviews:', reviewErr);
                 }
+                // Only keep reviews that have a non-empty text.
                 const safeReviews = Array.isArray(reviews)
                     ? reviews.filter(r => r && r.review_text && String(r.review_text).trim())
                     : [];
 
+                // Guests do not have wishlist items.
                 if (!userId) {
                     res.render('product', { product, wishlistItem: null, reviews: safeReviews });
                     return;
                 }
 
+                // Fetch wishlist to mark if this product is already saved.
                 Wishlist.getByUser(userId, (wishErr, items) => {
                     if (wishErr) {
                         console.error('Failed to load wishlist:', wishErr);
@@ -156,9 +178,11 @@ const ProductController = {
 
     // Render add-product form (admin only)
     showAddForm(req, res) {
+        // Enforce admin-only access.
         if (req.session?.role !== 'admin') {
             return res.status(403).send('Unauthorized: admin role required.');
         }
+        // Surface any flash error back to the form.
         const error = (req.flash && req.flash('error')[0]) || undefined;
         res.render('addProduct', { messages: { error } });
     },
@@ -170,6 +194,7 @@ const ProductController = {
             return res.status(403).send('Unauthorized: admin role required.');
         }
 
+        // Map and sanitize input fields.
         const files = req.files || {};
         const product = {
             product_name: (req.body.product_name || '').trim(),
@@ -182,6 +207,7 @@ const ProductController = {
             image2: files.image2?.[0]?.filename || null
         };
 
+        // Persist new product and redirect on success.
         Product.addProduct(product, role, (err, result) => {
             if (err) {
                 console.error('Failed to add product:', err);
@@ -195,11 +221,13 @@ const ProductController = {
 
     // Render update-product form with existing data (admin only)
     showUpdateForm(req, res) {
+        // Enforce admin-only access.
         if (req.session?.role !== 'admin') {
             return res.status(403).send('Unauthorized: admin role required.');
         }
 
         const productId = req.params.id;
+        // Load product data for editing.
         Product.getProductById(productId, (err, results) => {
             if (err) {
                 console.error('Error retrieving product:', err);
@@ -221,6 +249,7 @@ const ProductController = {
         }
 
         const productId = req.params.id;
+        // Build update payload, preferring newly uploaded images.
         const files = req.files || {};
         const product = {
             product_name: (req.body.product_name || '').trim(),
@@ -233,6 +262,7 @@ const ProductController = {
             image2: files.image2?.[0]?.filename || req.body.image2 || null
         };
 
+        // Persist updates and redirect to inventory.
         Product.updateProduct(productId, product, role, (err) => {
             if (err) {
                 console.error('Failed to update product:', err);
@@ -252,6 +282,7 @@ const ProductController = {
         }
 
         const productId = req.params.id;
+        // Guard deletion if the product is still in carts or wishlists.
         Product.getProductUsageCounts(productId, (countErr, usage) => {
             if (countErr) {
                 console.error('Failed to check product usage:', countErr);
@@ -276,6 +307,7 @@ const ProductController = {
                 return res.redirect('/inventory');
             }
 
+            // Safe to delete when not referenced.
             Product.deleteProduct(productId, role, (err) => {
                 if (err) {
                     console.error('Failed to delete product:', err);
@@ -295,6 +327,7 @@ const ProductController = {
 
         const productId = req.params.id;
         const status = req.body?.status;
+        // Toggle product availability for the catalog.
         Product.updateStatus(productId, status, role, (err) => {
             if (err) {
                 console.error('Failed to update product status:', err);

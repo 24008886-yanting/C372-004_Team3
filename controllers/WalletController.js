@@ -2,7 +2,7 @@ const paypalService = require('../services/paypal');
 const netsService = require('../services/nets');
 const Wallet = require('../models/Wallet');
 const WalletTransaction = require('../models/WalletTransaction');
-const RiskFlag = require('../models/RiskFlag');
+const RiskFlag = require('../models/RiskFlag'); // log risky wallet behavior
 const Payment = require('../models/Payment');
 const Cart = require('../models/Cart');
 const db = require('../db');
@@ -22,6 +22,7 @@ const RAPID_TOPUP_SUM_CAP = Number(process.env.WALLET_RAPID_TOPUP_SUM_CAP || 450
 const enforceTopupLimits = async (userId, amount) => {
   if (amount > MAX_TOPUP_PER_TXN) {
     try {
+      // Flag attempts that exceed per-transaction top-up cap.
       await RiskFlag.create(userId, 'TOPUP_PER_TXN_CAP_EXCEEDED', 'Top-up per-transaction cap exceeded', {
         cap: MAX_TOPUP_PER_TXN,
         attemptedAmount: amount
@@ -38,6 +39,7 @@ const enforceTopupLimits = async (userId, amount) => {
   const balanceCap = Wallet.BALANCE_CAP || 1000;
   if (toTwoDp((wallet?.balance || 0) + amount) > balanceCap) {
     try {
+      // Flag attempts that would exceed wallet balance cap.
       await RiskFlag.create(userId, 'WALLET_BALANCE_CAP_EXCEEDED', 'Wallet balance cap exceeded', {
         cap: balanceCap,
         balanceBefore: wallet?.balance || 0,
@@ -51,9 +53,11 @@ const enforceTopupLimits = async (userId, amount) => {
     throw err;
   }
 
+  // Check today's total top-ups to enforce daily cap (risk flags on exceed).
   const todayTotal = await WalletTransaction.getDailyTopupTotal(userId);
   if (toTwoDp(todayTotal + amount) > DAILY_TOPUP_CAP) {
     try {
+      // Flag attempts that exceed daily top-up cap.
       await RiskFlag.create(userId, 'TOPUP_DAILY_CAP_EXCEEDED', 'Daily top-up cap exceeded', {
         cap: DAILY_TOPUP_CAP,
         todayTotal,
@@ -71,12 +75,14 @@ const enforceTopupLimits = async (userId, amount) => {
 
 const flagRapidTopup = async (userId) => {
   try {
+    // Count and sum top-ups in recent windows to detect rapid activity.
     const [count, sum] = await Promise.all([
       WalletTransaction.countTopupsInWindow(userId, RAPID_TOPUP_WINDOW_MINUTES),
       WalletTransaction.sumTopupsInWindow(userId, RAPID_TOPUP_SUM_WINDOW_MINUTES)
     ]);
 
     if (count >= RAPID_TOPUP_COUNT) {
+      // Flag high-frequency top-ups in a short window.
       await RiskFlag.create(userId, 'TOPUP_RAPID_BURST', 'Rapid top-up burst detected', {
         windowMinutes: RAPID_TOPUP_WINDOW_MINUTES,
         count,
@@ -85,6 +91,7 @@ const flagRapidTopup = async (userId) => {
     }
 
     if (sum >= RAPID_TOPUP_SUM_CAP) {
+      // Flag high total top-ups in a short window.
       await RiskFlag.create(userId, 'TOPUP_RAPID_SUM', 'Rapid top-up sum threshold exceeded', {
         windowMinutes: RAPID_TOPUP_SUM_WINDOW_MINUTES,
         total: sum,
