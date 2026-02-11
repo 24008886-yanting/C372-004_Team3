@@ -20,19 +20,19 @@ const Wallet = {
       });
     });
   },
-
+  //This defines an async function that creates a new wallet with 0 balance for a user
   async createForUser(userId, connection = db) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => { //This wraps the insert query in a Promise
       const sql = 'INSERT INTO wallets (user_id, balance, createdAt, updatedAt) VALUES (?, 0.00, NOW(), NOW())';
       connection.query(sql, [userId], (err, result) => {
-        if (err) return reject(err);
-        resolve({ walletId: result.insertId, balance: 0 });
+        if (err) return reject(err); //This rejects if insert fails.
+        resolve({ walletId: result.insertId, balance: 0 }); //This returns the new walletId and starting balance
       });
     });
   },
 
-  async ensureWallet(userId, connection = db) {
-    const existing = await this.getByUserId(userId, connection);
+  async ensureWallet(userId, connection = db) { //This defines a function that guarantees the user has a wallet before continuing
+    const existing = await this.getByUserId(userId, connection); //This checks if a wallet already exists for the user
     if (existing) return existing;
     await this.createForUser(userId, connection);
     return this.getByUserId(userId, connection);
