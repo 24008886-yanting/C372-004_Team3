@@ -185,9 +185,9 @@ const PaymentController = {
     try {
       const quote = await Payment.buildQuote(userId, role, voucherCode);
 
-      if (pending?.quote?.pricing?.total !== undefined) {
+      if (pending?.quote?.pricing?.total !== undefined) { //This checks if original quote total exists in pending session
         const storedTotal = toTwoDp(pending.quote.pricing.total);
-        if (storedTotal !== quote.pricing.total) {
+        if (storedTotal !== quote.pricing.total) { //This checks if cart total changed since QR generation
           return res.status(409).json({ error: 'Cart changed after creating PayPal order. Please refresh and try again.' });
         }
       }
