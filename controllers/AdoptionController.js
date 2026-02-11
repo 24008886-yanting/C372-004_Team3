@@ -73,6 +73,7 @@ const AdoptionController = {
 
   // Create a new adoption record (shelter only)
   addAdoption(req, res) {
+    // Beginner note: validate form data, save the adoption, then create/upgrade the adopter account.
     const sessionShelterId = req.session?.user?.shelter_id || req.session?.shelter_id || '';
     const shelterInput = trim(req.body?.shelter_id);
     const catIdInput = trim(req.body?.cat_id);
@@ -128,6 +129,7 @@ const AdoptionController = {
       });
     }
 
+    // Save adoption into the database.
     Adoption.addAdoption({
       shelterId,
       catId,
@@ -145,6 +147,7 @@ const AdoptionController = {
         });
       }
 
+      // Ensure the adopter has an account (create or promote to adopter).
       ensureAdopterAccount(adopterEmail, (accountErr, accountResult) => {
         if (accountErr) {
           console.error('Failed to create adopter account:', accountErr);
@@ -156,6 +159,7 @@ const AdoptionController = {
           });
         }
 
+        // Redirect back to the form with success flags to show a banner.
         const savedId = result?.insertId;
         const accountCreated = accountResult?.created ? 1 : 0;
         const query = savedId
@@ -168,6 +172,7 @@ const AdoptionController = {
 
   // List adoption records (shelter only)
   listAdoptions(req, res) {
+    // Beginner note: show all adoptions or filter by shelter_id if provided.
     const sessionShelterId = req.session?.user?.shelter_id || req.session?.shelter_id || '';
     const filterInput = trim(req.query?.shelter_id);
     const shelterId = toInt(sessionShelterId || filterInput);

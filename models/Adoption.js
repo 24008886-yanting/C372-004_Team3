@@ -2,6 +2,7 @@ const db = require('../db');
 
 // Function-based Adoption model using callbacks and MySQL queries
 const Adoption = {
+  // Beginner note: fetch all adoption rows for the list view.
   // List all adoptions
   getAll(callback) {
     const sql = `
@@ -12,6 +13,7 @@ const Adoption = {
     db.query(sql, callback);
   },
 
+  // Beginner note: fetch adoption rows for one shelter (used by listAdoptions filter).
   // List adoptions for a specific shelter
   getByShelter(shelterId, callback) {
     const sql = `
@@ -23,6 +25,7 @@ const Adoption = {
     db.query(sql, [shelterId], callback);
   },
 
+  // Beginner note: insert a new adoption row (called by AdoptionController.addAdoption).
   // Insert a new adoption record
   addAdoption({ shelterId, catId, catName, adopterEmail, adoptionDate }, callback) {
     const hasDate = Boolean(adoptionDate);
