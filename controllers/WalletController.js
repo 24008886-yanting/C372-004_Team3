@@ -8,6 +8,7 @@ const Cart = require('../models/Cart');
 const db = require('../db');
 
 const { toTwoDp } = Payment;
+//This reads PayPal client id from environment variables.
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
 
 const MAX_TOPUP_PER_TXN = Number(process.env.WALLET_MAX_TOPUP_PER_TXN || 300);
