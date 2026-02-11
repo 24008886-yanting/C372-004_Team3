@@ -73,6 +73,7 @@
                   <td><span class="<%= statusClass %>"><%= displayStatus || '-' %></span></td>
                   <td><%= r.created_at ? new Date(r.created_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' }) : '-' %></td>
                   <td>
+                    <%# Beginner note: these forms POST to RefundController.approve/reject, which calls models/Refund.updateStatus. %>
                     <% if (rawStatus === 'PENDING') { %>
                       <form method="POST" action="/refund-requests/<%= r.refund_id %>/approve" style="display:inline;">
                         <button class="action-btn" type="submit">Approve</button>

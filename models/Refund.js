@@ -1,6 +1,7 @@
 const db = require('../db');
 
 const Refund = {
+  // Beginner note: create() inserts a new refund request row in refund_requests (status defaults to PENDING).
   create(data, callback) {
     const sql = `
       INSERT INTO refund_requests
@@ -65,6 +66,7 @@ const Refund = {
     db.query(sql, callback);
   },
 
+  // Beginner note: updateStatus() changes the refund status and sets approved_at when approved/refunded.
   updateStatus(refundId, status, refundReference, callback) {
     const normalized = String(status || '').toUpperCase();
     const shouldApprove = ['APPROVED', 'REFUNDED'].includes(normalized);

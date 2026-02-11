@@ -3,6 +3,7 @@ const db = require('../db');
 const toTwoDp = (value) => Number((Number(value) || 0).toFixed(2));
 
 const CartModel = {
+  // Beginner note: CartModel handles cart CRUD and checkout DB operations.
   // Fetch cart items for a user with product details
   getCartByUser(userId, callback) {
     const sql = `
@@ -29,6 +30,7 @@ const CartModel = {
 
   // Add a product to the cart; increments if already present
   addItem(userId, productId, quantity, callback) {
+    // Beginner note: creates a new cart row or increases quantity if it already exists.
     const safeQty = Math.max(parseInt(quantity, 10) || 0, 1);
 
     // Ensure product exists and check stock
@@ -133,6 +135,7 @@ const CartModel = {
 
   // Perform checkout: create order + order_items, update stock, and clear cart
   checkout(userId, options, callback) {
+    // Beginner note: converts cart rows into a new order and empties the cart.
     this.checkoutWithConnection(db, options, userId, callback, true);
   },
 
@@ -142,6 +145,7 @@ const CartModel = {
    * transaction management on the provided connection.
    */
   checkoutWithConnection(connection, options, userId, callback, manageTransaction = false) {
+    // Beginner note: voucher_id/discount_amount come from the checkout UI after a voucher is applied.
     const { voucher_id = null, shipping_fee = 0, tax_rate = 0, discount_amount = 0, payment_status = 'UNPAID' } = options || {};
 
     const begin = (next) => {
@@ -249,6 +253,7 @@ const CartModel = {
                         total_amount: total
                       });
 
+                    // If a voucher was used, mark it as consumed after the order is saved.
                     if (!voucher_id) {
                       return doCommit();
                     }

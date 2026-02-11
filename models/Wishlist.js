@@ -2,6 +2,7 @@ const db = require('../db');
 const Cart = require('./Cart');
 
 const WishlistModel = {
+  // Beginner note: WishlistModel handles wishlist CRUD and move-to/from-cart logic.
   // Get wishlist items for a user with product details
   getByUser(userId, callback) {
     const sql = `
@@ -17,6 +18,7 @@ const WishlistModel = {
 
   // Add product to wishlist (ignores duplicates)
   addItem(userId, productId, callback) {
+    // Beginner note: inserts a wishlist row; duplicates are ignored.
     const productSql = 'SELECT product_id, status FROM products WHERE product_id = ?';
     db.query(productSql, [productId], (productErr, rows) => {
       if (productErr) return callback(productErr);
@@ -59,6 +61,7 @@ const WishlistModel = {
 
   // Move a cart item to wishlist: insert then delete from cart
   moveFromCart(cartId, userId, callback) {
+    // Beginner note: add to wishlist, then remove the item from cart.
     const cartSql = `
       SELECT cart_id, product_id
       FROM cart
@@ -96,6 +99,7 @@ const WishlistModel = {
 
   // Move a wishlist item to cart: add to cart then remove from wishlist
   moveToCart(wishlistId, userId, quantity, callback) {
+    // Beginner note: add to cart with quantity, then delete from wishlist.
     const safeQty = Math.max(parseInt(quantity, 10) || 0, 1);
     const sql = `
       SELECT wishlist_id, product_id

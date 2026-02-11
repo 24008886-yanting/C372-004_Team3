@@ -15,6 +15,7 @@ const computeShipping = (subtotal) => {
   return subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
 };
 
+// Beginner note: wraps Voucher.apply in a Promise and enforces adopter-only vouchers.
 const applyVoucherAsync = (voucherCode, totalBeforeDiscount, role) =>
   new Promise((resolve, reject) => {
     const cleanCode = (voucherCode || '').trim();
@@ -70,6 +71,7 @@ const buildQuote = (userId, role, voucherCode) =>
         const taxAmount = toTwoDp(subtotal * (TAX_RATE_PERCENT / (100 + TAX_RATE_PERCENT)));
         const totalBeforeDiscount = subtotal + shippingFee;
 
+        // Beginner note: apply the voucher to subtotal + shipping, then cap the discount.
         const voucherInfo = await applyVoucherAsync(voucherCode, totalBeforeDiscount, role);
         const discountAmount = Math.min(
           Math.max(Number(voucherInfo.discount_amount) || 0, 0),
@@ -191,6 +193,7 @@ const processInvoice = (userId, user, body) =>
               const shippingFee = parseFloat(body?.shipping_fee) || 0;
               const taxRate = parseFloat(body?.tax_rate) || 0;
               const discountAmount = parseFloat(body?.discount_amount) || 0;
+              // Beginner note: store the voucher_id on the order so it can be reported/refunded later.
               const voucherId = body?.voucher_id || null;
 
               const taxAmount = taxRate > 0 ? (subtotal * (taxRate / (100 + taxRate))) : 0;

@@ -4,6 +4,7 @@ const Cart = require('../models/Cart');
 const Payment = require('../models/Payment');
 const { toTwoDp } = Payment;
 
+// Beginner note: prefer a voucher from the current request, fall back to the session.
 const getVoucherCode = (req) => {
   const bodyVoucher = (req.body?.voucher_code || '').trim();
   const sessionVoucher = (req.session?.appliedVoucher?.code || '').trim();
@@ -141,6 +142,7 @@ const PaymentController = {
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
     const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
+    // Beginner note: voucher can come from the cart (body) or a prior "Apply" (session).
     const bodyVoucher = (req.body?.voucher_code || '').trim();
     const sessionVoucher = (req.session?.appliedVoucher?.code || '').trim();
     const voucherCode = bodyVoucher || sessionVoucher;
@@ -149,6 +151,7 @@ const PaymentController = {
       const quote = await Payment.buildQuote(userId, role, voucherCode);
       const order = await paypalService.createOrder(toTwoDp(quote.pricing.total));
 
+      // Beginner note: store voucher info in session so capture can revalidate totals.
       req.session.pendingPayment = {
         paypalOrderId: order?.id || null,
         voucherCode: voucherCode || null,
@@ -254,6 +257,7 @@ const PaymentController = {
         total: toTwoDp(orderSummary.total_amount)
       };
 
+      // Clear voucher/session state after successful payment.
       req.session.pendingPayment = null;
       req.session.appliedVoucher = null;
 

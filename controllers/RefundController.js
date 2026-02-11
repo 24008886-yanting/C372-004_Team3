@@ -291,6 +291,8 @@ async showRequestForm(req, res) {
   },
 
   async submitRequest(req, res) {
+    // Beginner note: this function validates the request, calculates the refund,
+    // saves a refund record, then redirects back to the refund page with a message.
     const userId = req.session?.user_id;
     const orderId = Number(req.body?.order_id || 0);
     const orderItemId = Number(req.body?.order_item_id || 0);
@@ -298,6 +300,7 @@ async showRequestForm(req, res) {
     const details = (req.body?.details || '').trim();
     const refundItemsRaw = req.body?.refund_items || '';
 
+    // 1) Basic required fields check.
     if (!userId || !orderId || !reason) {
       return renderForm(res, {
         orderId,
@@ -313,6 +316,7 @@ async showRequestForm(req, res) {
     }
 
     try {
+      // 2) Confirm the order belongs to the user.
       const order = await getOrderForUser(orderId, userId);
       if (!order) {
         return renderForm(res, {
@@ -327,6 +331,7 @@ async showRequestForm(req, res) {
         });
       }
 
+      // 3) Load the original payment so we know the method and amount.
       const txn = await getLatestTransaction(orderId);
       if (!txn) {
         return renderForm(res, {
@@ -341,6 +346,7 @@ async showRequestForm(req, res) {
         });
       }
 
+      // 4) Prevent duplicate or already-approved refund requests.
       const latestRefund = await getLatestRefund(orderId);
       if (latestRefund && ['PENDING', 'APPROVED', 'REFUNDED'].includes(String(latestRefund.status || '').toUpperCase())) {
         return renderForm(res, {
@@ -378,6 +384,7 @@ async showRequestForm(req, res) {
         });
       }
 
+      // 5) Enforce a max number of rejected attempts.
       const attemptRows = await queryAsync(
         'SELECT COUNT(*) AS rejected_count FROM refund_requests WHERE order_id = ? AND status = ?',
         [orderId, 'REJECTED']
@@ -399,6 +406,7 @@ async showRequestForm(req, res) {
         });
       }
 
+      // 6) Load order items and compute per-item refundable amounts (net of discounts).
       const itemRows = await queryAsync(
         `
         SELECT oi.order_item_id, oi.quantity, oi.item_total, p.product_name,
@@ -454,6 +462,7 @@ async showRequestForm(req, res) {
         });
       }
 
+      // 7) Parse the selected refund items from the form.
       let requestedItems = [];
       if (refundItemsRaw) {
         try {
@@ -481,6 +490,7 @@ async showRequestForm(req, res) {
         requestedItems = [{ order_item_id: orderItemId, qty: qtyFallback }];
       }
 
+      // 8) Normalize selections (merge duplicates, drop zero qty).
       const normalized = new Map();
       requestedItems.forEach((item) => {
         const itemId = Number(item.order_item_id || item.orderItemId || item.id || 0);
@@ -512,6 +522,7 @@ async showRequestForm(req, res) {
         });
       }
 
+      // 9) Calculate the refund total based on selected quantities.
       let totalRefundAmount = 0;
       let totalRefundQty = 0;
       const refundItemsPayload = [];
@@ -575,6 +586,7 @@ async showRequestForm(req, res) {
         });
       }
 
+      // 10) Save the refund request in the database (status starts as PENDING).
       const displayMethod = guessPaymentMethod(txn);
       const orderItemForRow = refundItemsPayload.length === 1 ? refundItemsPayload[0].order_item_id : null;
       const refundQtyForRow = refundItemsPayload.length === 1 ? refundItemsPayload[0].qty : totalRefundQty;
@@ -603,6 +615,7 @@ async showRequestForm(req, res) {
         req.flash('success', 'Refund request submitted. Awaiting admin approval.');
       }
 
+      // 11) Redirect back to the refund page so the user can see the status.
       const query = `order_id=${encodeURIComponent(orderId)}`;
       return res.redirect(`/refund-request?${query}`);
     } catch (err) {
@@ -752,7 +765,7 @@ async showRequestForm(req, res) {
         const refundAmount = Number(refund.amount || 0);
         const nextPaymentStatus = refundAmount && orderTotal && refundAmount < orderTotal ? 'PARTIALLY_REFUNDED' : 'REFUNDED';
         await queryAsync('UPDATE orders SET payment_status = ? WHERE order_id = ?', [nextPaymentStatus, refund.order_id]);
-        // voucherId already resolved above
+        // Beginner note: if the order used a voucher, give the usage back on full approval.
         if (voucherId) {
           await queryAsync(
             'UPDATE vouchers SET used_count = CASE WHEN used_count > 0 THEN used_count - 1 ELSE 0 END WHERE voucher_id = ?',

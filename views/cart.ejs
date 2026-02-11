@@ -23,6 +23,7 @@
       return `$${money} off`;
     };
     const now = new Date();
+    // Beginner note: only show vouchers that are adopter-only, not expired, and not used up.
     const availableVouchers = (Array.isArray(vouchers) ? vouchers : []).filter((voucher) => {
       const allowedRole = String(voucher.allowed_role || '').toLowerCase();
       if (allowedRole && allowedRole !== 'adopter') return false;
@@ -207,6 +208,7 @@
               <div class="actions">
                 <input class="qty-input" type="number" min="1" value="<%= item.quantity %>" aria-label="Quantity" <%= isAvailable ? '' : 'disabled' %>>
                 <button class="btn-accent" data-action="update" <%= isAvailable ? '' : 'disabled' %>>Update Qty</button>
+                <%# Beginner note: moves this item from cart to wishlist via WishlistController.moveFromCart. %>
                 <button class="btn-light" data-action="move-to-wishlist" <%= isAvailable ? '' : 'disabled' %>>Move to Wishlist</button>
                 <button class="btn-ghost" data-action="remove">Remove</button>
               </div>
@@ -234,6 +236,7 @@
       <div class="row"><span>GST (9% included)</span><span id="tax-amount">$<%= taxAmount.toFixed(2) %></span></div>
       <div class="row"><span>Discount</span><span id="discount-amount">-$<%= discountAmount.toFixed(2) %></span></div>
       <div style="margin-top: 12px;">
+        <%# Beginner note: apply a voucher code and show available vouchers for adopters. %>
         <label for="voucher-code" class="muted" style="display:block; margin-bottom:6px;">Voucher code</label>
         <div class="voucher-input-wrap">
           <input id="voucher-code" class="qty-input" style="flex:1;" type="text" placeholder="Enter code">
@@ -287,6 +290,7 @@
     const paypalMessage = document.getElementById('paypal-message');
     const netsPayBtn = document.getElementById('nets-pay-button');
     const netsMessage = document.getElementById('nets-message');
+    // Beginner note: voucherId/voucherCode are set after /vouchers/apply succeeds.
     let voucherId = null;
     let voucherCode = '';
     let discountAmount = 0;
@@ -347,6 +351,7 @@
       closeVoucherPanel();
     });
     if (applyVoucherBtn) {
+      // Beginner note: validate voucher on the server and update totals on success.
       applyVoucherBtn.addEventListener('click', async () => {
         const codeInput = document.getElementById('voucher-code');
         const statusEl = document.getElementById('voucher-status');
@@ -418,6 +423,7 @@
       } else if (action === 'remove') {
         resp = await fetch(`/cart/${cartId}`, { method: 'DELETE', headers });
       } else if (action === 'move-to-wishlist') {
+        // Move a cart item into wishlist.
         resp = await fetch(`/wishlist/move-from-cart/${cartId}`, {
           method: 'POST',
           headers
@@ -429,6 +435,7 @@
           method: 'POST',
           headers,
           body: JSON.stringify({
+            // Send voucher_id/discount_amount so the server can save it on the order.
             voucher_id: voucherId,
             discount_amount: discountAmount,
             shipping_fee: shippingFee,

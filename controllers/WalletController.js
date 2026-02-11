@@ -479,6 +479,7 @@ const WalletController = {
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
     const role = (req.session?.role || req.session?.user?.role || '').toLowerCase();
+    // Beginner note: voucher can come from the cart request or the session.
     const bodyVoucher = (req.body?.voucher_code || '').trim();
     const sessionVoucher = (req.session?.appliedVoucher?.code || '').trim();
     const voucherCode = bodyVoucher || sessionVoucher;
@@ -568,6 +569,7 @@ const WalletController = {
         total: toTwoDp(orderSummary.total_amount)
       };
 
+      // Clear the applied voucher so it is not reused after checkout.
       req.session.appliedVoucher = null;
       return res.json({ success: true, redirectUrl: '/invoice-confirmation' });
     } catch (err) {

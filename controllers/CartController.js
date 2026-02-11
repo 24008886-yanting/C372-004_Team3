@@ -25,6 +25,7 @@ const resolveUserId = (req) =>
 const CartController = {
   // View the current user's cart
   viewCart(req, res) {
+    // Beginner note: loads cart items (and vouchers for adopters) then renders the cart page.
     delete req.session.invoice;
     
     const userId = resolveUserId(req);
@@ -36,6 +37,7 @@ const CartController = {
 
       Wallet.ensureWallet(userId)
         .then((wallet) => {
+          // Beginner note: only adopters see available vouchers in the cart.
           if (role !== 'adopter') {
             return renderOrJson(res, 'cart', { items, userRole: role || null, vouchers: [], paypalClientId: PAYPAL_CLIENT_ID, wallet });
           }
@@ -64,6 +66,7 @@ const CartController = {
 
   // Add an item to the cart (or increment quantity if it already exists)
   addItem(req, res) {
+    // Beginner note: if the item is already in the cart, it just increases the quantity.
     const userId = resolveUserId(req);
     const { product_id, quantity } = req.body || {};
 
@@ -71,6 +74,7 @@ const CartController = {
       return res.status(400).json({ error: 'user_id and product_id are required' });
     }
 
+    // If the item exists in wishlist, move it from wishlist -> cart.
     const proceedWithAdd = (wishlistItem) => {
       const hadWishlist = Boolean(wishlistItem);
       Cart.addItem(userId, product_id, quantity || 1, (err, result) => {
@@ -120,6 +124,7 @@ const CartController = {
 
   // Update the quantity of a specific cart line
   updateQuantity(req, res) {
+    // Beginner note: updates quantity for a single cart row (cart_id).
     const userId = resolveUserId(req);
     const { id } = req.params;
     const { quantity } = req.body || {};
@@ -142,6 +147,7 @@ const CartController = {
 
   // Remove a specific item from the cart
   removeItem(req, res) {
+    // Beginner note: deletes one cart row for the current user.
     const userId = resolveUserId(req);
     const { id } = req.params;
     if (!userId || !id) {
@@ -157,6 +163,7 @@ const CartController = {
 
   // Clear all items from the user's cart
   clearCart(req, res) {
+    // Beginner note: removes every cart row for the user.
     const userId = resolveUserId(req);
     if (!userId) return res.status(400).json({ error: 'user_id is required' });
 
@@ -168,9 +175,11 @@ const CartController = {
 
   // Checkout: create order + order_items from cart and empty the cart
   checkout(req, res) {
+    // Beginner note: converts cart to an order, then clears the cart.
     const userId = resolveUserId(req);
     if (!userId) return res.status(400).json({ error: 'user_id is required' });
 
+    // Beginner note: voucher_id/discount_amount come from the cart page after "Apply" is successful.
     const { voucher_id, shipping_fee, tax_rate, discount_amount } = req.body || {};
 
     const checkoutOptions = { voucher_id, shipping_fee, tax_rate, discount_amount };

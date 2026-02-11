@@ -144,7 +144,9 @@
             </div>
             <div class="actions">
               <input class="qty-input" type="number" min="1" value="1" aria-label="Quantity" <%= isAvailable ? '' : 'disabled' %>>
+              <%# Beginner note: sends a POST to WishlistController.moveToCart with the quantity. %>
               <button class="btn-accent" data-action="move-to-cart" <%= isAvailable ? '' : 'disabled' %>>Move to Cart</button>
+              <%# Beginner note: deletes this wishlist item via WishlistController.remove. %>
               <button class="btn-ghost" data-action="remove">Remove</button>
             </div>
           </div>
@@ -154,7 +156,7 @@
   </main>
 
   <script>
-    // Minimal client-side helpers to call API endpoints without method-override
+    // Beginner note: call wishlist endpoints and then refresh the page.
     const handleClick = async (btn) => {
       if (btn.disabled) return;
       const card = btn.closest('.card');
@@ -169,12 +171,14 @@
       let resp;
 
       if (action === 'move-to-cart') {
+        // Move wishlist item into cart with selected quantity.
         resp = await fetch(`/wishlist/${wishlistId}/move-to-cart`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ quantity })
         });
       } else if (action === 'remove') {
+        // Remove item from wishlist.
         resp = await fetch(`/wishlist/${wishlistId}`, {
           method: 'DELETE',
           headers

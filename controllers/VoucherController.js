@@ -26,6 +26,7 @@ const VoucherController = {
     if (!requireAdmin(req, res)) return;
     Voucher.getAll((err, vouchers) => {
       if (err) return res.status(500).json({ error: 'Failed to fetch vouchers', details: err });
+      // Beginner note: compute display status based on expiry date and usage count.
       const now = new Date();
       const mapped = (vouchers || []).map(v => {
         const expiry = v.expiry_date ? new Date(v.expiry_date) : null;
@@ -64,11 +65,13 @@ const VoucherController = {
       return res.status(400).json({ error: 'voucher_code, discount_type, discount_value, and expiry_date are required' });
     }
 
+    // Beginner note: treat blank usage_limit as "no limit" instead of 0.
     const normalizedUsageLimit =
       usage_limit === undefined || usage_limit === null || String(usage_limit).trim() === ''
         ? undefined
         : Number(usage_limit);
 
+    // Beginner note: only adopters can use vouchers in this app.
     const allowedRole = 'adopter';
 
     Voucher.create(
@@ -103,6 +106,7 @@ const VoucherController = {
     if (!requireAdmin(req, res)) return;
     const { id } = req.params;
     const updates = { ...(req.body || {}) };
+    // Beginner note: keep vouchers restricted to adopters even if the form is edited.
     if (updates.allowed_role && String(updates.allowed_role).toLowerCase() !== 'adopter') {
       updates.allowed_role = 'adopter';
     }
@@ -133,6 +137,7 @@ const VoucherController = {
     if (!code) return res.status(400).json({ error: 'Voucher code is required' });
     if (subtotal === undefined) return res.status(400).json({ error: 'Subtotal is required' });
 
+    // Beginner note: only logged-in adopters can apply vouchers at checkout.
     const role = (req.session?.role || req.session?.user?.role || '').toLowerCase().trim();
     const userId = req.session?.user_id;
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
@@ -145,6 +150,7 @@ const VoucherController = {
         if (req.session) req.session.appliedVoucher = null;
         return res.status(400).json({ error: 'Failed to apply voucher', details: err.message || err });
       }
+      // Beginner note: store the applied voucher in session so checkout can reuse it.
       if (req.session) {
         req.session.appliedVoucher = {
           code: info.voucher_code,
@@ -190,6 +196,7 @@ const VoucherController = {
         });
       }
 
+      // Beginner note: split vouchers into active vs used/expired for display.
       const now = new Date();
       const activeVouchers = [];
       const usedVouchers = [];

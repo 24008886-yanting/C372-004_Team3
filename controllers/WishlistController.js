@@ -27,6 +27,7 @@ const resolveUserId = (req) =>
 const WishlistController = {
   // View wishlist for the current user
   view(req, res) {
+    // Beginner note: fetches all wishlist items for this user and renders the wishlist page.
     const userId = resolveUserId(req);
     if (!userId) return res.status(400).json({ error: 'user_id is required' });
 
@@ -39,6 +40,7 @@ const WishlistController = {
 
   // Add a product to wishlist
   add(req, res) {
+    // Beginner note: if the item is in the cart, move it to the wishlist; otherwise add it.
     const userId = resolveUserId(req);
     const { product_id } = req.body || {};
     if (!userId || !product_id) {
@@ -106,6 +108,7 @@ const WishlistController = {
 
   // Remove a wishlist item
   remove(req, res) {
+    // Beginner note: deletes one wishlist row for the user.
     const userId = resolveUserId(req);
     const { id } = req.params;
     if (!userId || !id) {
@@ -121,6 +124,7 @@ const WishlistController = {
 
   // Move a cart item to wishlist
   moveFromCart(req, res) {
+    // Beginner note: takes a cart item and creates a wishlist entry instead.
     const userId = resolveUserId(req);
     const { id } = req.params; // cart_id
     if (!userId || !id) {
@@ -140,6 +144,7 @@ const WishlistController = {
 
   // Move a wishlist item to cart
   moveToCart(req, res) {
+    // Beginner note: takes a wishlist item and creates a cart entry with a quantity.
     const userId = resolveUserId(req);
     const { id } = req.params; // wishlist_id
     const { quantity } = req.body || {};

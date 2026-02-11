@@ -19,6 +19,7 @@
 
     <% const expiryValue = voucher.expiry_date ? new Date(voucher.expiry_date).toISOString().split('T')[0] : ''; %>
     <section class="card">
+      <%# Beginner note: this form updates a voucher; the Delete button posts to /vouchers/:id/delete. %>
       <form action="/vouchers/<%= voucher.voucher_id %>" method="post" class="form-grid">
         <div class="form-group">
           <label for="voucher_code">Voucher code</label>

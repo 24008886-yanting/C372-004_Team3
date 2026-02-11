@@ -1,6 +1,7 @@
 const db = require('../db');
 
 const VoucherModel = {
+  // Beginner note: this model handles voucher CRUD and validation against the vouchers table.
   // Fetch all vouchers
   getAll(callback) {
     const sql = `
@@ -95,6 +96,8 @@ const VoucherModel = {
     db.query(sql, [voucherId], callback);
   },
 
+  // Beginner note: apply() only validates and calculates the discount.
+  // It does NOT mark the voucher as used (used_count is updated after checkout).
   // Apply voucher code to a subtotal; validates expiry, role, and usage limit
   apply(code, subtotal, role, callback) {
     if (typeof role === 'function') {
