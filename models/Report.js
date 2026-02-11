@@ -1,12 +1,12 @@
 const db = require('../db');
 
 const SUCCESS_STATUSES = ['SUCCESS', 'SUCCEEDED', 'COMPLETED', 'PAID', 'APPROVED'];
-const SUCCESS_PLACEHOLDERS = SUCCESS_STATUSES.map(() => '?').join(', ');
+const SUCCESS_PLACEHOLDERS = SUCCESS_STATUSES.map(() => '?').join(', ');//This builds the correct number of ? placeholders for a SQL IN (...) filter
 
-const GST_RATE = 0.09;
+const GST_RATE = 0.09;//This stores the GST rate (9%) used to remove GST from amounts
 const netOfGst = (amount) => {
   const value = Number(amount || 0);
-  return value / (1 + GST_RATE);
+  return value / (1 + GST_RATE);//This removes included GST by dividing by 1.09
 };
 
 const query = (sql, params = []) =>
@@ -19,11 +19,11 @@ const buildOrderFilters = (filters) => {
   const params = [];
 
   if (filters.startDate) {
-    parts.push('o.order_date >= ?');
-    params.push(filters.startDate);
+    parts.push('o.order_date >= ?'); //This adds a condition to include orders on/after the start date
+    params.push(filters.startDate);//This adds the start date into the SQL parameters list
   }
   if (filters.endDate) {
-    parts.push('o.order_date < DATE_ADD(?, INTERVAL 1 DAY)');
+    parts.push('o.order_date < DATE_ADD(?, INTERVAL 1 DAY)');//This includes orders up to the end date (inclusive) by using “endDate + 1 day” and <
     params.push(filters.endDate);
   }
   if (filters.paymentStatus) {

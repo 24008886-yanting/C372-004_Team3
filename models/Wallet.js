@@ -86,11 +86,11 @@ const Wallet = {
         }
         throw new Error(`Wallet balance cap of S$${WALLET_BALANCE_CAP} exceeded`);
       }
-      if (after < 0) {
-        throw new Error('Insufficient wallet balance');
+      if (after < 0) { //This checks if the wallet would become negative.
+        throw new Error('Insufficient wallet balance'); //This blocks the debit because user does not have enough balance.
       }
 
-      await new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => { //This wraps the balance update SQL into a Promise for async/await.
         const sql = 'UPDATE wallets SET balance = ?, updatedAt = NOW() WHERE walletId = ?';
         connection.query(sql, [after, wallet.walletId], (err) => (err ? reject(err) : resolve()));
       });
@@ -110,13 +110,13 @@ const Wallet = {
           toTwoDp(after),
           txnMeta.referenceType || null,
           txnMeta.referenceId || null,
-          txnMeta.paymentMethod || null,
+          txnMeta.paymentMethod || null, //This stores payment method info (e.g., NETS, PayPal), or null.
           txnMeta.description || null
         ];
-        connection.query(sql, params, (err) => (err ? reject(err) : resolve()));
+        connection.query(sql, params, (err) => (err ? reject(err) : resolve())); //This inserts the wallet transaction log row.
       });
 
-      await commit();
+      await commit(); //This commits the DB transaction if it is being managed here.
       return { walletId: wallet.walletId, balanceBefore: before, balanceAfter: after };
     } catch (err) {
       await rollback(err).catch(() => {});
@@ -124,13 +124,13 @@ const Wallet = {
     }
   },
 
-  credit(userId, amount, meta, options = {}) {
+  credit(userId, amount, meta, options = {}) { //This defines a function that increases wallet balance and logs the transaction.
     const safeAmount = toTwoDp(Number(amount) || 0);
     if (safeAmount <= 0) return Promise.reject(new Error('Credit amount must be greater than 0'));
     return this.updateBalance(userId, safeAmount, meta, options);
   },
 
-  debit(userId, amount, meta, options = {}) {
+  debit(userId, amount, meta, options = {}) { //This defines a function that decreases wallet balance and logs the transaction.
     const safeAmount = toTwoDp(Number(amount) || 0);
     if (safeAmount <= 0) return Promise.reject(new Error('Debit amount must be greater than 0'));
     return this.updateBalance(userId, -safeAmount, meta, options);
